@@ -8,14 +8,17 @@
 # Optional repository variable:
 #   DOCKERHUB_REPOSITORY  repository name (default: open-webui-pure)
 #
-# Triggers: version tags (v*) and manual dispatch. No CUDA/Ollama/slim
-# variants, no upstream Helm automation.
+# Triggers: pushes to main (publishes the moving `:main` tag), version tags
+# (v*, keeps `:latest`) and manual dispatch. No CUDA/Ollama/slim variants, no
+# upstream Helm automation.
 # ─────────────────────────────────────────────────────────────────────────────
 name: Pure Image
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -101,6 +104,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=git-
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
           flavor: |
             latest=${{ startsWith(github.ref, 'refs/tags/v') }}
 
@@ -166,6 +170,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=git-
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
           flavor: |
             latest=${{ startsWith(github.ref, 'refs/tags/v') }}
 
