@@ -466,7 +466,11 @@
      变更后按 Round 5 的 checker 复跑 `pytest`、回归 20 项、SSRF 8 项、压缩 q-value 矩阵。
 2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui_open-webui` volume（compose 实际卷名）。
 3. 本地跑 `open_webui.main` 前先 `npm run build`，否则 `backend/open_webui/static` 顶层文件会被启动流程清掉（见 Round 2 踩坑）。
-4. 线上容器当前仍运行 Round 3 的 `pure`（331 MB，r3 镜像 ID `fec50870`）；下次 `podman-up.sh` / `podman compose up -d --build` 会重建为 Round 5 的 300 MB 版本（镜像 ID `314cccf8d475`；volume 不变，Round 4 已用真实 volume 副本验证兼容）。注意：重建后运行期不再写 `.pyc`（writable layer 更干净），需要旧行为可 `-e PYTHONDONTWRITEBYTECODE=0`。
+4. 线上容器已重建为 **Round 5**（300 MB，镜像 ID `314cccf8d475`，容器 ID 以 `podman ps` 为准；`open-webui_open-webui` volume 数据零变化：user 1 / chat 3 / msg 61 / alembic `d4c1a8e37b62` / secret 哈希不变）。
+   注意：`podman compose up -d`（含 `podman-up.sh`）**不会因镜像 ID 变化而重建容器**（config hash 未变时静默跳过）；
+   更新镜像后需 `WEBUI_CONTAINER_HTTP_PROXY=... podman compose -f podman-compose.yaml up -d --force-recreate`
+   或先 `podman rm -f open-webui` 再跑 `./podman-up.sh`（只删容器、绝不删 volume）。
+   运行期不再写 `.pyc`，需要旧行为可 `-e PYTHONDONTWRITEBYTECODE=0`。
 5. 默认镜像已不含 PDF 字体；需要后端 PDF 导出时用
    `podman build --build-arg ENABLE_PDF=true -t localhost/open-webui:pure-pdf .`（已验证，380 MB）。
 
