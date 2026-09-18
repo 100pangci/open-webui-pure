@@ -34,7 +34,6 @@ from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import include_user_info_headers
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.session_pool import get_session
-from PIL import Image, ImageOps
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,6 +106,10 @@ def normalize_openai_edit_image_data_url(data_url: str) -> str:
         return data_url
 
     try:
+        # Pillow is imported lazily: deployments that never edit images should
+        # not pay for it at startup, and it degrades gracefully when absent.
+        from PIL import Image, ImageOps
+
         image_bytes = base64.b64decode(encoded)
         with Image.open(io.BytesIO(image_bytes)) as image:
             orientation = image.getexif().get(274)

@@ -7,8 +7,10 @@ authors = [
 license = { file = "LICENSE" }
 dependencies = [
     "fastapi==0.136.3",
-    "uvicorn[standard]==0.51.0",
-    "typer==0.25.1",
+    "uvicorn==0.51.0",
+    "uvloop==0.22.1",
+    "httptools==0.8.0",
+    "websockets==17.1",
     "pydantic==2.13.4",
     "python-multipart==0.0.32",
     "itsdangerous==2.2.0",
@@ -26,26 +28,17 @@ dependencies = [
     "aiofiles==25.1.0",
     "starlette-compress==1.7.1",
     "Brotli==1.2.0",
-    "brotlicffi==1.2.0.1",
-    "httpx[socks,http2,zstd,cli,brotli]==0.28.1",
-    "starsessions[redis]==2.2.1",
-    "python-mimeparse==2.0.0",
+    "httpx[socks,http2,zstd,brotli]==0.28.1",
+    "starsessions==2.2.1",
     "sqlalchemy[asyncio]==2.0.50",
     "aiosqlite==0.22.1",
-    "psycopg[binary]==3.3.4",
     "alembic==1.18.4",
-    "redis==8.0.1",
-    "hiredis==3.4.0",
-    "pytz==2026.2",
     "loguru==0.7.3",
     "asgiref==3.11.1",
-    "openai==2.29.0",
-    "azure-identity==1.25.3",
     "beautifulsoup4==4.14.3",
     "Markdown==3.10.3",
     "pillow==12.2.0",
     "fpdf2==2.8.7",
-    "ldap3==2.9.1",
     "black==26.5.1",
 ]
 readme = "README.md"
@@ -62,7 +55,20 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-postgres = ["psycopg2-binary==2.9.12"]
+# Opt-in feature dependencies. The default install is SQLite-only.
+postgres = ["psycopg[binary]==3.3.4"]
+redis = ["redis==8.0.1", "hiredis==3.4.0"]
+azure = ["azure-identity==1.25.3"]
+ldap = ["ldap3==2.9.1"]
+cli = ["typer==0.25.1"]
+all = [
+    "psycopg[binary]==3.3.4",
+    "redis==8.0.1",
+    "hiredis==3.4.0",
+    "azure-identity==1.25.3",
+    "ldap3==2.9.1",
+    "typer==0.25.1",
+]
 
 [project.scripts]
 open-webui = "open_webui:app"
@@ -110,6 +116,9 @@ ignore-words-list = 'ans'
 dev = [
     "pytest-asyncio>=1.0.0",
     "ruff>=0.15.5",
+    # Dev-only extras for `uvicorn --reload` / .env loading.
+    "watchfiles>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.black]

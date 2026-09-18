@@ -1,0 +1,10 @@
+# Convenience file: every optional feature dependency at once.
+#
+# Use it only when you actually need PostgreSQL / Redis / Azure / LDAP:
+#   pip install -r requirements-min.txt -r requirements-optional.txt
+# or:
+#   pip install "open-webui[postgres,redis,azure,ldap]"
+-r requirements-postgres.txt
+-r requirements-redis.txt
+-r requirements-azure.txt
+-r requirements-ldap.txt

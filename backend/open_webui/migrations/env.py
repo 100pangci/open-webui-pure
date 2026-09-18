@@ -6,7 +6,7 @@ import logging.config
 import logging
 import alembic.context
 from open_webui.env import DATABASE_PASSWORD, DATABASE_URL, LOG_FORMAT
-from open_webui.internal.db import enable_iam_token_auth, extract_ssl_params_from_url, reattach_ssl_params_to_url
+from open_webui.internal.db import enable_iam_token_auth, extract_ssl_params_from_url, make_sync_url, reattach_ssl_params_to_url
 from open_webui.models.auths import Auth
 from open_webui.models.chat_messages import ChatMessage  # noqa: F401
 from open_webui.models.chats import Chat  # noqa: F401
@@ -21,7 +21,8 @@ if LOG_FORMAT == 'json':
     for log_handler in logging.root.handlers:
         log_handler.setFormatter(JSONFormatter())
 migration_metadata = Auth.metadata
-target_db_url = DATABASE_URL
+# Pin PostgreSQL URLs to Psycopg 3 (the only supported optional driver).
+target_db_url = make_sync_url(DATABASE_URL)
 base_url, ssl_query_params = extract_ssl_params_from_url(target_db_url)
 if ssl_query_params:
     target_db_url = reattach_ssl_params_to_url(base_url, ssl_query_params)

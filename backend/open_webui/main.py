@@ -39,7 +39,6 @@ from starsessions import (
 from starsessions import (
     SessionMiddleware as StarSessionsMiddleware,
 )
-from starsessions.stores.redis import RedisStore
 
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,
@@ -71,7 +70,6 @@ from open_webui.env import (
     AUDIT_INCLUDED_PATHS,
     AUDIT_LOG_LEVEL,
     BYPASS_MODEL_ACCESS_CONTROL,
-    CHANGELOG,
     DEPLOYMENT_ID,
     ENABLE_AUDIT_GET_REQUESTS,
     ENABLE_COMPRESSION_MIDDLEWARE,
@@ -97,6 +95,7 @@ from open_webui.env import (
     SAFE_MODE,
     VERSION,
     WEBSOCKET_HEARTBEAT_INTERVAL,
+    get_changelog,
     # Admin Account Runtime Creation
     WEBUI_ADMIN_EMAIL,
     WEBUI_ADMIN_NAME,
@@ -194,7 +193,7 @@ from open_webui.utils.models import (
     get_all_models,
     get_filtered_models,
 )
-from open_webui.utils.oauth import OAuthManager
+from open_webui.utils.oauth_manager import get_oauth_manager
 from open_webui.utils.redis import get_redis_client
 from open_webui.utils.session_pool import get_session
 
@@ -377,9 +376,9 @@ app = FastAPI(
 # Used by readiness checks to gate traffic until startup work is done.
 app.state.startup_complete = False
 
-# For Open WebUI OIDC/OAuth2
-oauth_manager = OAuthManager(app)
-app.state.oauth_manager = oauth_manager
+# For Open WebUI OIDC/OAuth2. The manager (and authlib) is created lazily by
+# open_webui.utils.oauth_manager.get_oauth_manager() on the first OAuth request.
+app.state.oauth_manager = None
 
 app.state.instance_id = None
 app.state.redis = None
@@ -1583,7 +1582,8 @@ async def get_app_latest_release_version(user=Depends(get_verified_user)):
 
 @app.get('/api/changelog')
 async def get_app_changelog():
-    return {key: CHANGELOG[key] for idx, key in enumerate(CHANGELOG) if idx < 5}
+    changelog = get_changelog()
+    return {key: changelog[key] for idx, key in enumerate(changelog) if idx < 5}
 
 
 @app.get('/api/usage')
@@ -1616,6 +1616,10 @@ async def get_current_usage(user=Depends(get_verified_user)):
 
 try:
     if ENABLE_STAR_SESSIONS_MIDDLEWARE:
+        # Imported lazily: starsessions' Redis store imports `redis.asyncio`,
+        # which must not be required in the default (no-Redis) deployment.
+        from starsessions.stores.redis import RedisStore
+
         redis_session_store = RedisStore(
             url=REDIS_URL,
             prefix=(f'{REDIS_KEY_PREFIX}:session:' if REDIS_KEY_PREFIX else 'session:'),
@@ -1633,6 +1637,8 @@ try:
     else:
         raise ValueError('No Redis URL provided')
 except Exception as e:
+    if ENABLE_STAR_SESSIONS_MIDDLEWARE:
+        log.warning('Redis session store unavailable (%s); falling back to signed cookie sessions', e)
     app.add_middleware(
         SessionMiddleware,
         secret_key=WEBUI_SECRET_KEY,
@@ -1644,7 +1650,7 @@ except Exception as e:
 
 @app.get('/oauth/{provider}/login')
 async def oauth_login(provider: str, request: Request):
-    return await oauth_manager.handle_login(request, provider)
+    return await get_oauth_manager(request).handle_login(request, provider)
 
 
 @app.get('/oauth/{provider}/login/callback')
@@ -1664,7 +1670,7 @@ async def oauth_login_callback(
     3. If no match and ``ENABLE_OAUTH_SIGNUP`` is enabled, create a new user
        (fails if the email is already registered).
     """
-    return await oauth_manager.handle_callback(request, provider, response, db=db)
+    return await get_oauth_manager(request).handle_callback(request, provider, response, db=db)
 
 
 ############################
@@ -1679,7 +1685,7 @@ async def oauth_backchannel_logout(
 ):
     if not ENABLE_OAUTH_BACKCHANNEL_LOGOUT:
         raise HTTPException(status_code=404)
-    return await oauth_manager.handle_backchannel_logout(request, db=db)
+    return await get_oauth_manager(request).handle_backchannel_logout(request, db=db)
 
 
 @app.get('/manifest.json')

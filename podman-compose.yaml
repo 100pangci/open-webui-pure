@@ -3,6 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Optional feature dependencies. Default is SQLite only.
+        ENABLE_POSTGRES: "${WEBUI_ENABLE_POSTGRES:-false}"
+        ENABLE_REDIS: "${WEBUI_ENABLE_REDIS:-false}"
+        ENABLE_AZURE: "${WEBUI_ENABLE_AZURE:-false}"
+        ENABLE_LDAP: "${WEBUI_ENABLE_LDAP:-false}"
     image: localhost/open-webui:${WEBUI_IMAGE_TAG-lite}
     container_name: open-webui
     volumes:

@@ -5,9 +5,11 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from authlib.integrations.starlette_client import OAuth
+if TYPE_CHECKING:  # authlib is an optional dependency, loaded by utils/oauth.py on demand
+    from authlib.integrations.starlette_client import OAuth
 
 from pydantic import BaseModel
 

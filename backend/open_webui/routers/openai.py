@@ -10,7 +10,6 @@ from urllib.parse import quote, urlparse
 import aiofiles
 import aiohttp
 from aiocache import cached
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import (
     FileResponse,
@@ -45,6 +44,7 @@ from open_webui.utils.headers import get_custom_headers, include_user_info_heade
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.misc import convert_logit_bias_input_to_json
 from open_webui.utils.model_ids import strip_provider_model_prefix
+from open_webui.utils.oauth_manager import get_oauth_manager
 from open_webui.utils.payload import (
     apply_model_params_to_body_openai,
     apply_system_prompt_to_body,
@@ -194,7 +194,7 @@ async def get_headers_and_cookies(
         oauth_token = None
         try:
             if request.cookies.get('oauth_session_id', None):
-                oauth_token = await request.app.state.oauth_manager.get_oauth_token(
+                oauth_token = await get_oauth_manager(request).get_oauth_token(
                     user.id,
                     request.cookies.get('oauth_session_id', None),
                 )
@@ -223,10 +223,19 @@ def get_microsoft_entra_id_access_token():
     Returns the token string or None if authentication fails.
     """
     try:
+        # azure-identity is optional; only import it for Azure Entra ID auth.
+        from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
         token_provider = get_bearer_token_provider(
             DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
         )
         return token_provider()
+    except ImportError:
+        log.error(
+            'Azure Entra ID authentication requires the "azure-identity" package '
+            '(backend/requirements-azure.txt).'
+        )
+        return None
     except Exception as e:
         log.error(f'Error getting Microsoft Entra ID access token: {e}')
         return None

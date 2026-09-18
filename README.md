@@ -13,17 +13,70 @@ the configured OpenAI-compatible provider.
 - Multiple configured models and per-model system prompts and parameters
 - Image generation and image editing
 - Local image uploads stored in the application data directory
-- SQLite by default, with PostgreSQL support
+- SQLite by default; PostgreSQL, Redis, Azure/Entra ID and LDAP are opt-in
 - Responsive desktop and mobile interface
 - Multilingual interface
 
-## Installation
+## Optional features
 
-Use Python 3.11 or 3.12 for a native installation:
+The default install and the default container image ship **SQLite only** and
+are tuned for personal, home and small deployments: no PostgreSQL driver, no
+Redis client, no Azure SDK and no LDAP client are installed or imported.
+
+Enable a feature only when it is actually used:
+
+| Feature | pip extra | requirements file | container build arg |
+| --- | --- | --- | --- |
+| PostgreSQL (Psycopg 3) | `open-webui[postgres]` | `backend/requirements-postgres.txt` | `ENABLE_POSTGRES=true` |
+| Redis (multi-instance) | `open-webui[redis]` | `backend/requirements-redis.txt` | `ENABLE_REDIS=true` |
+| Azure / Entra ID auth | `open-webui[azure]` | `backend/requirements-azure.txt` | `ENABLE_AZURE=true` |
+| LDAP authentication | `open-webui[ldap]` | `backend/requirements-ldap.txt` | `ENABLE_LDAP=true` |
+| `open-webui` CLI (typer) | `open-webui[cli]` | `backend/requirements-cli.txt` | — |
+
+> The `open-webui serve` CLI is optional even for native installs; the container
+> starts uvicorn directly (`backend/start.sh`) and does not need typer/rich.
+
+Native install example:
 
 ```bash
-pip install open-webui
+pip install -r backend/requirements-min.txt -r backend/requirements-postgres.txt
+# or: pip install "open-webui[postgres,redis]"
+```
+
+Container build example:
+
+```bash
+podman build \
+  --build-arg ENABLE_POSTGRES=true \
+  --build-arg ENABLE_REDIS=true \
+  -t localhost/open-webui:full .
+
+# or via compose environment variables (see podman-compose.yaml):
+WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true \
+  podman compose -f podman-compose.yaml up -d --build
+```
+
+The same applies to compose: `podman-compose.yaml` forwards
+`WEBUI_ENABLE_POSTGRES`, `WEBUI_ENABLE_REDIS`, `WEBUI_ENABLE_AZURE` and
+`WEBUI_ENABLE_LDAP` (all default to `false`).
+
+PostgreSQL support uses **Psycopg 3 exclusively** (`postgresql+psycopg://`);
+psycopg2 is not required. Migrations and existing SQLite data are untouched —
+the optional split only changes which driver packages are installed.
+
+## Installation
+
+Use Python 3.11 or 3.12 for a native installation. The `open-webui` CLI is an
+opt-in extra; without it, run the server with uvicorn:
+
+```bash
+# with the CLI
+pip install "open-webui[cli]"
 open-webui serve
+
+# or without the CLI (lighter)
+pip install open-webui
+python -m uvicorn open_webui.main:app --host 0.0.0.0 --port 8080
 ```
 
 The server listens on `http://localhost:8080` by default.

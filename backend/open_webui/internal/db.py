@@ -142,12 +142,47 @@ class JSONField(types.TypeDecorator):  # TEXT-backed JSON storage
         return JSONField(length=self.impl.length)
 
 
-# Normalize SSL params from the URL once; the sync engine needs them
-# reattached in canonical libpq form for psycopg2.
+# Normalize SSL params from the URL once. Both the sync engine (Alembic) and
+# the async engine use Psycopg 3, which speaks libpq natively.
 _url_without_ssl, _ssl_dict = extract_ssl_params_from_url(DATABASE_URL)
 
-# For psycopg2 (sync engine), re-append sslmode + cert-file params.
-SQLALCHEMY_DATABASE_URL = reattach_ssl_params_to_url(_url_without_ssl, _ssl_dict) if _ssl_dict else DATABASE_URL
+
+def make_sync_url(url: str) -> str:
+    """Normalize a database URL for the synchronous engine / Alembic.
+
+    PostgreSQL URLs are pinned to Psycopg 3 (``postgresql+psycopg://``) so the
+    optional dependency set never needs psycopg2.
+    """
+    if url.startswith('postgresql+psycopg2://'):
+        return url.replace('postgresql+psycopg2://', 'postgresql+psycopg://', 1)
+    if url.startswith('postgresql://'):
+        return url.replace('postgresql://', 'postgresql+psycopg://', 1)
+    if url.startswith('postgres://'):
+        return url.replace('postgres://', 'postgresql+psycopg://', 1)
+    return url
+
+
+SQLALCHEMY_DATABASE_URL = make_sync_url(
+    reattach_ssl_params_to_url(_url_without_ssl, _ssl_dict) if _ssl_dict else DATABASE_URL
+)
+
+
+def _ensure_postgres_driver() -> None:
+    """Fail fast with an actionable message when PostgreSQL is configured
+    without the optional Psycopg 3 driver installed."""
+    if not _is_postgres_url(SQLALCHEMY_DATABASE_URL):
+        return
+    try:
+        import psycopg  # noqa: F401
+    except ImportError as e:
+        raise RuntimeError(
+            'DATABASE_URL points at PostgreSQL but the optional Psycopg 3 driver is not installed. '
+            'Install it with `pip install -r backend/requirements-postgres.txt` '
+            'or `pip install "open-webui[postgres]"`.'
+        ) from e
+
+
+_ensure_postgres_driver()
 
 
 class RDSIAMTokenAuth:

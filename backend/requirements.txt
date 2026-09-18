@@ -1,4 +1,9 @@
+# Default install: SQLite only. This is the same set the default image uses.
+#
+# PostgreSQL / Redis / Azure / LDAP are optional and installed separately:
+#   -r requirements-postgres.txt
+#   -r requirements-redis.txt
+#   -r requirements-azure.txt
+#   -r requirements-ldap.txt
+#   -r requirements-optional.txt   (all of the above)
 -r requirements-min.txt
-
-# Optional database driver used by PostgreSQL deployments that need it.
-psycopg2-binary==2.9.12

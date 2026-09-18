@@ -1,0 +1,8 @@
+# Optional Redis support (multi-instance deployments only).
+#
+# Install together with the default dependencies:
+#   pip install -r requirements-min.txt -r requirements-redis.txt
+# or as an extra:
+#   pip install "open-webui[redis]"
+redis==8.0.1
+hiredis==3.4.0

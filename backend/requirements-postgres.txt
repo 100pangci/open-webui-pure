@@ -1,0 +1,7 @@
+# Optional PostgreSQL driver (Psycopg 3 — no psycopg2).
+#
+# Install together with the default dependencies:
+#   pip install -r requirements-min.txt -r requirements-postgres.txt
+# or as an extra:
+#   pip install "open-webui[postgres]"
+psycopg[binary]==3.3.4

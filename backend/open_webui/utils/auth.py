@@ -7,12 +7,11 @@ import hmac
 import logging
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 
 import bcrypt
 import jwt
-import pytz
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -40,7 +39,6 @@ from open_webui.models.users import Users
 from open_webui.utils.access_control import has_permission
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.misc import parse_duration
-from pytz import UTC
 
 log = logging.getLogger(__name__)
 
@@ -229,11 +227,11 @@ def create_token(data: dict, expires_delta: Union[timedelta, None] = None) -> st
     payload = data.copy()
 
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
         payload.update({'exp': expire})
 
     jti = str(uuid.uuid4())
-    payload.update({'jti': jti, 'iat': datetime.now(UTC)})
+    payload.update({'jti': jti, 'iat': datetime.now(timezone.utc)})
 
     encoded_jwt = jwt.encode(payload, SESSION_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
@@ -292,7 +290,7 @@ async def invalidate_token(request, token):
         exp = decoded.get('exp')
 
         if jti and exp:
-            ttl = exp - int(datetime.now(UTC).timestamp())  # Calculate time-to-live for the token
+            ttl = exp - int(datetime.now(timezone.utc).timestamp())  # Calculate time-to-live for the token
 
             if ttl > 0:
                 # Store the revoked token in Redis with an expiration time
@@ -319,7 +317,7 @@ async def revoke_user_tokens(request, user_id: str):
 
     await redis.set(
         f'{REDIS_KEY_PREFIX}:auth:user:{user_id}:revoked_at',
-        str(int(datetime.now(UTC).timestamp())),
+        str(int(datetime.now(timezone.utc).timestamp())),
         ex=int(expires_delta.total_seconds()) if expires_delta else None,
     )
 

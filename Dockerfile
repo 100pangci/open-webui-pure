@@ -12,6 +12,15 @@ RUN npm run build
 
 FROM python:3.11-slim-bookworm
 
+# Optional feature toggles. The default image ships SQLite only and stays lean;
+# turn these on (build args / compose args) only when the deployment needs them.
+#
+#   podman build --build-arg ENABLE_POSTGRES=true --build-arg ENABLE_REDIS=true .
+ARG ENABLE_POSTGRES=false
+ARG ENABLE_REDIS=false
+ARG ENABLE_AZURE=false
+ARG ENABLE_LDAP=false
+
 ENV PYTHONUNBUFFERED=1 \
     ENV=prod \
     PORT=8080 \
@@ -31,16 +40,25 @@ RUN apt-get update && \
     groupadd --gid 1000 app && \
     useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash app
 
-COPY backend/requirements.txt backend/requirements-min.txt ./
+COPY backend/requirements*.txt ./
 RUN python -m pip install --no-cache-dir --upgrade pip && \
-    python -m pip install --no-cache-dir -r requirements.txt
+    python -m pip install --no-cache-dir -r requirements-min.txt && \
+    if [ "$ENABLE_POSTGRES" = "true" ]; then python -m pip install --no-cache-dir -r requirements-postgres.txt; fi && \
+    if [ "$ENABLE_REDIS" = "true" ]; then python -m pip install --no-cache-dir -r requirements-redis.txt; fi && \
+    if [ "$ENABLE_AZURE" = "true" ]; then python -m pip install --no-cache-dir -r requirements-azure.txt; fi && \
+    if [ "$ENABLE_LDAP" = "true" ]; then python -m pip install --no-cache-dir -r requirements-ldap.txt; fi && \
+    python -m pip uninstall -y pip setuptools wheel && \
+    rm -rf /root/.cache
 
 COPY --from=frontend --chown=app:app /app/build /app/build
 COPY --from=frontend --chown=app:app /app/package.json /app/package.json
 COPY --from=frontend --chown=app:app /app/CHANGELOG.md /app/CHANGELOG.md
 COPY --chown=app:app backend/ ./
 
-RUN mkdir -p /app/backend/data && chown -R app:app /app
+# Only the persistent data dir needs to be writable by the app user. Everything
+# else was copied with --chown, so no recursive chown layer is needed (a
+# `chown -R /app` here used to duplicate the whole tree into a new layer).
+RUN mkdir -p /app/backend/data && chown app:app /app/backend/data
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

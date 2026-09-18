@@ -19,6 +19,62 @@
 - 必须保留 Open WebUI 品牌、LICENSE 及相关标识。
 - 没有创建 commit。
 
+## Round 2 — 2026-09-18: default SQLite / lean image / optional features
+
+### Results
+
+| 指标 | Round 1 | Round 2 | 说明 |
+| --- | --- | --- | --- |
+| image | 750 MB | **420 MB** | `localhost/open-webui:lite`（r2c，`b59536c4`） |
+| fresh idle（cgroup） | ~207 MB | **103 MB** | podman stats 102.7MB |
+| fresh idle（RSS） | ~207 MB | **124 MB** | PSS_Anon 96 MB |
+| 真实部署 idle | 207~225 MB | 161 MB stats / 183 MB RSS | 含 `models.base_models_cache` 启动预取 + 用户浏览 |
+| startup → /health | — | **1.5~1.7 s** | 空配置；真实配置因模型预取 ~10s（原有行为） |
+
+功能回归 **16/16 通过**（fresh volume + mock OpenAI）：注册/登录、`/api/config`、模型列表、流式+非流式聊天、文件上传/下载、图片生成、图片编辑、图片配置、`/api/changelog`（懒解析）、`code/format`（懒 black）、PDF（懒 fpdf）、LDAP 未装降级 400、OAuth 路由懒加载 404。
+
+真实 compose 升级验证：原 `open-webui_open-webui` volume 数据零变化（users 1 / chats 1 / chat_message 4 / alembic `d4c1a8e37b62`），`.webui_secret_key` 保留，`/static/*` 品牌资源 200。
+
+### 镜像瘦身来源
+
+- **`chown -R /app` 重复层（155 MB）** → 只 `chown app:app /app/backend/data`（COPY 已带 `--chown`），最大单项。
+- `vite.config.ts` `sourcemap: false`：build 83 MB → 45 MB（其中 map 37 MB）。
+- 可选依赖剥离进独立 requirements：psycopg2-binary+psycopg(≈35MB)、redis+hiredis(≈7MB)、azure-identity(≈8MB)、ldap3(≈5MB)、openai SDK(≈14MB，实测完全未被 import)、typer/rich/pygments(≈14MB，CLI 改可选)、brotlicffi、python-mimeparse、pytz、pyyaml/watchfiles/python-dotenv（uvicorn[standard]/httpx[cli] 拆掉）。
+- pip/setuptools/wheel 在安装后卸载（≈18 MB）。
+- `.dockerignore` 排除 `backend/open_webui/static/fonts/*-Variable.ttf`（≈38 MB）：PDF 只 `add_font` Regular/Bold/Italic，`pdf-style.css` 的 @font-face 不会被 fpdf 读取（已核对 fpdf 源码无 font-face 处理）。
+
+### 依赖拆分 / 可选功能
+
+- `backend/requirements-min.txt`：默认（SQLite）；`requirements-postgres.txt`（仅 Psycopg 3）/`-redis.txt`/`-azure.txt`/`-ldap.txt`/`-optional.txt`/`-cli.txt`；`requirements.txt` 保留为 compat（= min）。
+- `pyproject.toml` extras：`postgres`/`redis`/`azure`/`ldap`/`cli`/`all`；`uv.lock` 已更新。
+- Dockerfile build args：`ENABLE_POSTGRES/ENABLE_REDIS/ENABLE_AZURE/ENABLE_LDAP`（compose 由 `WEBUI_ENABLE_*` 传递，默认 false）。
+- PG 只用 Psycopg 3：sync/async/Alembic URL 统一改写 `postgresql+psycopg://`（`internal/db.make_sync_url`，`migrations/env.py` 复用）；未装驱动时启动即报带安装指引的 RuntimeError（已实测）。
+
+### 懒加载 / 常驻内存
+
+- CHANGELOG：导入时 0.57s + 约 36 MB（soup 被模块级变量滞留）→ `env.get_changelog()` 按需解析、缓存结果、释放中间对象。
+- 按需导入（功能保留）：`fpdf`/PDFGenerator、`PIL`（图片编辑归一化失败时优雅跳过）、`black`、`azure.identity`、`ldap3`。
+- Redis：`utils/redis.py`、`tasks.py`、`main.py` 的 `RedisStore` 全部去掉顶层 import；未配置 `REDIS_URL` 时既不 import 也不启动 listener；requirements 默认不含 redis/hiredis。配置了 Redis 但没装包时日志给出明确指引。
+- OAuth：`utils/oauth.py`（authlib/joserfc）懒加载；`config.py` 的 `OAuth` 改 `TYPE_CHECKING`；新增 `utils/oauth_manager.py:get_oauth_manager()` 首次使用时创建并缓存到 `app.state`。
+- CLI：`open_webui/__init__.py` 用 `__getattr__` 懒加载 typer（实现移到 `cli.py`），`typer` 改为 optional extra；避免 typer→rich→pygments 常驻，也让 `httpx._main` 不再加载 rich/pygments。
+- 移除未使用的 `openai` SDK；`pytz` → `datetime.timezone.utc`。
+
+### 前端 / 静态资源
+
+- `package.json` 删除确认未引用：`@sveltejs/adapter-auto`、`@sveltejs/adapter-node`、`sass-embedded`、`tslib`、`xlsx`、`prosemirror-keymap`；lock 已重生成，`vitest` 8/8 通过。
+- 保留原版 UI 与 emojis（18 MB）/welcome 视频等实际使用的素材；未重写界面。
+
+### 本轮踩坑（勿重蹈）
+
+1. **`static/static/` 不是冗余目录**：`config.py` 启动时会**清空 `backend/open_webui/static` 顶层文件**，再从 `FRONTEND_BUILD_DIR/static`（由仓库 `static/static/` 经 SvelteKit 产出）拷回。删除它会导致 `/static/logo.png`、favicon、splash 等全部 404（本次已踩，已恢复）。
+2. **本地（非容器）跑 `open_webui.main` 会改动宿主仓库**：同样的同步逻辑会把宿主 `backend/open_webui/static` 顶层文件删除并从本机 `build/static` 重拷。若未先 `npm run build`，这些文件会直接消失（本次根因）。在仓库里跑本地 app 前先构建前端，或接受这些文件被重建。
+3. 图片生成/编辑的 base URL 是 `IMAGES_OPENAI_API_BASE_URL`；而 `config.py` 末尾会把 `OPENAI_API_BASE_URL` 强制为 `https://api.openai.com/v1`。只配置外部 OpenAI-compatible 连接时，必须显式设置 `IMAGES_OPENAI_API_BASE_URL`/`IMAGES_OPENAI_API_KEY`（或在管理设置里配置图片引擎），否则图片请求会走公网。
+4. 跨容器访问宿主端口受本机 firewalld 策略影响（默认 `podman` bridge → 宿主 LAN IP:19000 被拒；compose 网络正常）。测试 mock 时用宿主 LAN IP 并放在 compose 网络对应的路径更真实；不能依赖容器内 `127.0.0.1`。
+
+### 安全未动
+
+多用户隔离、Auth、SSRF 防护、文件访问权限、数据库迁移均未削弱；本轮只调整依赖可选性与导入时机，migration 历史与 SQLite 数据未删除、未改动。
+
 ## Current State
 
 ### Completed
@@ -118,15 +174,24 @@
 
 ## Next Move
 
-1. 可选收尾：
-   - `npm run check` 与基线对比（确认未新增类型错误）。
-   - `src/lib/components/admin/Settings/{General,Authentication}.svelte`、`layout/SearchModal.svelte` 等少量旧文案（功能已不可达）。
+1. Round 2 已完成并验证（见上）。可选后续：
+   - 若要把 idle 进一步压到 <100MB：主要剩余常驻是 socketio/engineio（~20MB）与 FastAPI/pydantic（~35MB），需要功能层取舍（如仅轮询）而不只是导入调整，建议单独评估。
+   - `npm run check` 与基线对比（上游类型噪声仍在）。
    - i18n locale 文件仍是上游全量文案，未清理。
 2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui` volume。
+3. 本地跑 `open_webui.main` 前先 `npm run build`，否则 `backend/open_webui/static` 顶层文件会被启动流程清掉（见 Round 2 踩坑）。
 
 ## Relevant Files
 
 - `HANDOFF.md`: 本交接文档。
+- `backend/requirements-min.txt`：默认依赖（唯一装入默认镜像的清单）；
+  `requirements-postgres/redis/azure/ldap/optional/cli.txt` 为可选功能依赖。
+- `Dockerfile`：多阶段构建；`ENABLE_*` build args；只 chown data 目录；安装后卸载 pip/setuptools/wheel。
+- `podman-compose.yaml`：`WEBUI_ENABLE_*` build args 透传；`WEBUI_SECRET_KEY_FILE` 持久化 JWT 密钥。
+- `backend/open_webui/cli.py`：typer CLI；`__init__.py` 仅 `__getattr__` 懒加载，保持包导入轻量。
+- `backend/open_webui/env.py`：`get_changelog()` 懒解析（原模块级 soup 占 ~36MB）。
+- `backend/open_webui/utils/oauth_manager.py`：OAuth manager 懒创建入口（authlib 不常驻）。
+- `backend/open_webui/internal/db.py`：`make_sync_url()` 将 PG 统一为 `postgresql+psycopg://`；未装 psycopg 时报可操作错误。
 - `backend/open_webui/main.py`: FastAPI 装配（1744 行）。
 - `backend/open_webui/config.py`: 配置默认值与种子、迁移入口、静态资源拷贝。
 - `backend/open_webui/env.py`: 环境配置。

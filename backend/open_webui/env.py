@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
-import markdown
-from bs4 import BeautifulSoup
 from cryptography.hazmat.primitives import serialization
 
 ####################################
@@ -37,7 +35,8 @@ try:
 
     load_dotenv(find_dotenv(str(BASE_DIR / '.env')))
 except ImportError:
-    print('dotenv not installed, skipping...')
+    # python-dotenv is a dev convenience only; deployments pass real env vars.
+    pass
 
 DOCKER = os.getenv('DOCKER', 'False').lower() == 'true'
 
@@ -148,48 +147,67 @@ def parse_section(section):
     return items
 
 
-try:
-    changelog_path = BASE_DIR / 'CHANGELOG.md'
-    with open(str(changelog_path.absolute()), encoding='utf8') as file:
-        changelog_content = file.read()
+_CHANGELOG_CACHE: dict[str, Any] | None = None
 
-except Exception:
+
+def get_changelog() -> dict[str, Any]:
+    """Parse CHANGELOG.md lazily and cache the result.
+
+    Parsing the full changelog costs ~0.5s of startup time and retains tens of
+    megabytes of parsed HTML. Most deployments never open the changelog dialog,
+    so markdown/BeautifulSoup are imported and the tree is built on first use
+    only, and the intermediate HTML/soup objects are released afterwards.
+    """
+    global _CHANGELOG_CACHE
+    if _CHANGELOG_CACHE is not None:
+        return _CHANGELOG_CACHE
+
+    import markdown
+    from bs4 import BeautifulSoup
+
     try:
-        changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
+        changelog_path = BASE_DIR / 'CHANGELOG.md'
+        with open(str(changelog_path.absolute()), encoding='utf8') as file:
+            changelog_content = file.read()
+
     except Exception:
-        changelog_content = ''
+        try:
+            changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
+        except Exception:
+            changelog_content = ''
 
-# Convert markdown content to HTML
-html_content = markdown.markdown(changelog_content)
+    # Convert markdown content to HTML
+    html_content = markdown.markdown(changelog_content)
 
-# Parse the HTML content
-soup = BeautifulSoup(html_content, 'html.parser')
+    # Parse the HTML content
+    soup = BeautifulSoup(html_content, 'html.parser')
 
-# Initialize JSON structure
-changelog_json = {}
+    # Initialize JSON structure
+    changelog_json: dict[str, Any] = {}
 
-# Iterate over each version
-for version in soup.find_all('h2'):
-    version_number = version.get_text().strip().split(' - ')[0][1:-1]  # Remove brackets
-    date = version.get_text().strip().split(' - ')[1]
+    # Iterate over each version
+    for version in soup.find_all('h2'):
+        version_number = version.get_text().strip().split(' - ')[0][1:-1]  # Remove brackets
+        date = version.get_text().strip().split(' - ')[1]
 
-    version_data = {'date': date}
+        version_data = {'date': date}
 
-    # Find the next sibling that is a h3 tag (section title)
-    current = version.find_next_sibling()
+        # Find the next sibling that is a h3 tag (section title)
+        current = version.find_next_sibling()
 
-    while current and current.name != 'h2':
-        if current.name == 'h3':
-            section_title = current.get_text().lower()  # e.g., "added", "fixed"
-            section_items = parse_section(current.find_next_sibling('ul'))
-            version_data[section_title] = section_items
+        while current and current.name != 'h2':
+            if current.name == 'h3':
+                section_title = current.get_text().lower()  # e.g., "added", "fixed"
+                section_items = parse_section(current.find_next_sibling('ul'))
+                version_data[section_title] = section_items
 
-        # Move to the next element
-        current = current.find_next_sibling()
+            # Move to the next element
+            current = current.find_next_sibling()
 
-    changelog_json[version_number] = version_data
+        changelog_json[version_number] = version_data
 
-CHANGELOG = changelog_json
+    _CHANGELOG_CACHE = changelog_json
+    return changelog_json
 
 ####################################
 # DATA/FRONTEND BUILD DIR

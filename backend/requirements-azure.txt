@@ -1,0 +1,7 @@
+# Optional Azure / Microsoft Entra ID authentication support.
+#
+# Install together with the default dependencies:
+#   pip install -r requirements-min.txt -r requirements-azure.txt
+# or as an extra:
+#   pip install "open-webui[azure]"
+azure-identity==1.25.3

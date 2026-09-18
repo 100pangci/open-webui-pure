@@ -1,0 +1,7 @@
+# Optional `open-webui` CLI (typer). The server itself does not need it:
+# `python -m uvicorn open_webui.main:app` (or backend/start.sh) is enough.
+#
+#   pip install -r requirements-min.txt -r requirements-cli.txt
+# or:
+#   pip install "open-webui[cli]"
+typer==0.25.1

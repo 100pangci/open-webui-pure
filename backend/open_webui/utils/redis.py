@@ -13,7 +13,6 @@ import time
 from typing import Any
 from urllib.parse import ParseResult, urlparse
 
-import redis as _redis_sync
 from open_webui.env import (
     REDIS_CLUSTER,
     REDIS_HEALTH_CHECK_INTERVAL,
@@ -30,13 +29,40 @@ from open_webui.env import (
 log = logging.getLogger(__name__)
 
 _ACCEPTED_SCHEMES = frozenset({'redis', 'rediss'})
-_SENTINEL_RETRYABLE = (
-    _redis_sync.exceptions.ConnectionError,
-    _redis_sync.exceptions.ReadOnlyError,
-    _redis_sync.exceptions.TimeoutError,
-)
 _FACTORY_METHODS = frozenset({'pipeline', 'pubsub', 'monitor', 'client', 'transaction'})
 _CONNECTION_POOL: dict[tuple, Any] = {}
+
+
+def _require_redis_sync():
+    """Import the sync ``redis`` package, or raise a helpful error.
+
+    The package is an optional dependency: deployments that do not configure
+    Redis never import it.
+    """
+    try:
+        import redis
+    except ImportError as e:
+        raise ImportError(
+            'Redis support requires the "redis" package. Install it with '
+            '`pip install -r backend/requirements-redis.txt` or `pip install open-webui[redis]`.'
+        ) from e
+    return redis
+
+
+_SENTINEL_RETRYABLE_CACHE: tuple[type[BaseException], ...] | None = None
+
+
+def _sentinel_retryable() -> tuple[type[BaseException], ...]:
+    """Return the redis exception classes that trigger a Sentinel retry."""
+    global _SENTINEL_RETRYABLE_CACHE
+    if _SENTINEL_RETRYABLE_CACHE is None:
+        redis = _require_redis_sync()
+        _SENTINEL_RETRYABLE_CACHE = (
+            redis.exceptions.ConnectionError,
+            redis.exceptions.ReadOnlyError,
+            redis.exceptions.TimeoutError,
+        )
+    return _SENTINEL_RETRYABLE_CACHE
 
 
 def parse_redis_url(url: str) -> dict[str, Any]:
@@ -100,6 +126,9 @@ def get_redis_client(async_mode: bool = False) -> Any | None:
             redis_cluster=REDIS_CLUSTER,
             async_mode=async_mode,
         )
+    except ImportError as e:
+        log.error('Redis is configured but the optional redis package is missing: %s', e)
+        return None
     except Exception:
         log.debug('Could not establish Redis connection', exc_info=True)
         return None
@@ -179,6 +208,7 @@ class SentinelRedisProxy:
 
     def _wrap_async_gen(self, name: str) -> Any:
         proxy = self
+        retryable = _sentinel_retryable()
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             async def _inner():
@@ -188,7 +218,7 @@ class SentinelRedisProxy:
                         async for value in method(*args, **kwargs):
                             yield value
                         return
-                    except _SENTINEL_RETRYABLE as exc:
+                    except retryable as exc:
                         if proxy._should_retry(attempt):
                             proxy._log_retry(exc, attempt)
                             proxy._clear_master()
@@ -204,6 +234,7 @@ class SentinelRedisProxy:
 
     def _wrap_async_call(self, name: str) -> Any:
         proxy = self
+        retryable = _sentinel_retryable()
 
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             for attempt in range(REDIS_SENTINEL_MAX_RETRY_COUNT):
@@ -213,7 +244,7 @@ class SentinelRedisProxy:
                     if inspect.iscoroutine(result):
                         return await result
                     return result
-                except _SENTINEL_RETRYABLE as exc:
+                except retryable as exc:
                     if proxy._should_retry(attempt):
                         proxy._log_retry(exc, attempt)
                         proxy._clear_master()
@@ -229,13 +260,14 @@ class SentinelRedisProxy:
 
     def _wrap_sync(self, name: str) -> Any:
         proxy = self
+        retryable = _sentinel_retryable()
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             for attempt in range(REDIS_SENTINEL_MAX_RETRY_COUNT):
                 try:
                     method = getattr(proxy._resolve_master(), name)
                     return method(*args, **kwargs)
-                except _SENTINEL_RETRYABLE as exc:
+                except retryable as exc:
                     if proxy._should_retry(attempt):
                         proxy._log_retry(exc, attempt)
                         proxy._clear_master()
@@ -320,7 +352,7 @@ def get_redis_connection(
     if async_mode:
         import redis.asyncio as redis_mod
     else:
-        import redis as redis_mod  # type: ignore[no-redef]
+        redis_mod = _require_redis_sync()  # type: ignore[assignment]
 
     if redis_sentinels:
         connection = _build_sentinel(redis_mod, redis_url, redis_sentinels, decode_responses, async_mode)

@@ -1,0 +1,7 @@
+# Optional LDAP authentication support.
+#
+# Install together with the default dependencies:
+#   pip install -r requirements-min.txt -r requirements-ldap.txt
+# or as an extra:
+#   pip install "open-webui[ldap]"
+ldap3==2.9.1

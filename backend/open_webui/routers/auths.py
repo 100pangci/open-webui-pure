@@ -12,9 +12,6 @@ from ssl import CERT_NONE, CERT_REQUIRED, PROTOCOL_TLS
 from aiohttp import BasicAuth, ClientSession
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
-from ldap3 import NONE, Connection, Server, Tls
-from ldap3.utils.conv import escape_filter_chars
-from ldap3.utils.dn import parse_dn
 from open_webui.config import (
     ENABLE_PASSWORD_AUTH,
     OAUTH_PROVIDERS,
@@ -76,6 +73,7 @@ from open_webui.utils.auth import (
 )
 from open_webui.utils.groups import apply_default_group_assignment
 from open_webui.utils.misc import parse_duration, validate_email_format
+from open_webui.utils.oauth_manager import get_oauth_manager
 from open_webui.utils.rate_limit import RateLimiter
 from open_webui.utils.redis import get_redis_client
 from pydantic import BaseModel
@@ -451,6 +449,9 @@ def extract_group_cn_from_dn(group_dn: str) -> str | None:
     name contains a comma) are handled correctly instead of naively splitting
     on ``,``.
     """
+    # ldap3 is optional; callers only reach here from the LDAP auth flow.
+    from ldap3.utils.dn import parse_dn
+
     for attr_type, attr_value, _ in parse_dn(group_dn):
         if attr_type.upper() == 'CN':
             return _unescape_ldap_dn_value(attr_value)
@@ -484,6 +485,16 @@ async def ldap_auth(
     # which would grant access without valid credentials.
     if not form_data.password or not form_data.password.strip():
         raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+
+    # ldap3 is an optional dependency: import it only when LDAP auth is used.
+    try:
+        from ldap3 import NONE, Connection, Server, Tls
+        from ldap3.utils.conv import escape_filter_chars
+    except ImportError as e:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail='LDAP support is not installed. Install the "ldap3" package (backend/requirements-ldap.txt) to enable it.',
+        ) from e
 
     # NOW load LDAP config variables
     LDAP_SERVER_LABEL = await Config.get('ldap.server.label')
@@ -997,7 +1008,7 @@ async def signout(request: Request, response: Response, db: AsyncSession = Depen
 
         openid_provider_url = await Config.get('oauth.provider_url')
         oauth_server_metadata_url = (
-            request.app.state.oauth_manager.get_server_metadata_url(session.provider) if session else None
+            get_oauth_manager(request).get_server_metadata_url(session.provider) if session else None
         ) or openid_provider_url
 
         if session and oauth_server_metadata_url:
@@ -1591,7 +1602,7 @@ async def token_exchange(
             detail=ERROR_MESSAGES.OAUTH_NOT_CONFIGURED(provider),
         )
     # Get the OAuth client for this provider
-    oauth_manager = request.app.state.oauth_manager
+    oauth_manager = get_oauth_manager(request)
     client = oauth_manager.get_client(provider)
     if not client:
         raise HTTPException(

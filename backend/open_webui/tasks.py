@@ -2,9 +2,8 @@
 import asyncio
 import logging
 from contextlib import suppress
+from typing import Any
 from uuid import uuid4
-
-from redis.asyncio import Redis
 
 from open_webui.env import REDIS_KEY_PREFIX, REDIS_RESPONSE_STREAM_TTL
 from open_webui.utils.json_codec import JSONCodec, dumps_bytes
@@ -26,7 +25,7 @@ REDIS_PUBSUB_MAX_RECONNECT_INTERVAL = 30.0
 
 
 async def redis_task_command_listener(app):
-    redis: Redis = app.state.redis
+    redis: Any = app.state.redis
     reconnect_interval = REDIS_PUBSUB_RECONNECT_INTERVAL
 
     while True:
@@ -71,7 +70,7 @@ async def redis_task_command_listener(app):
 ### ------------------------------
 
 
-async def redis_save_task(redis: Redis, task_id: str, item_id: str | None):
+async def redis_save_task(redis: Any, task_id: str, item_id: str | None):
     pipe = redis.pipeline()
     pipe.hset(REDIS_TASKS_KEY, task_id, item_id or '')
     if item_id:
@@ -79,7 +78,7 @@ async def redis_save_task(redis: Redis, task_id: str, item_id: str | None):
     await pipe.execute()
 
 
-async def redis_cleanup_task(redis: Redis, task_id: str, item_id: str | None):
+async def redis_cleanup_task(redis: Any, task_id: str, item_id: str | None):
     pipe = redis.pipeline()
     pipe.hdel(REDIS_TASKS_KEY, task_id)
     pipe.hdel(REDIS_RESPONSE_STREAMS_KEY, task_id)
@@ -93,15 +92,15 @@ async def redis_cleanup_task(redis: Redis, task_id: str, item_id: str | None):
         await pipe.execute()
 
 
-async def redis_list_tasks(redis: Redis) -> list[str]:
+async def redis_list_tasks(redis: Any) -> list[str]:
     return list(await redis.hkeys(REDIS_TASKS_KEY))
 
 
-async def redis_list_item_tasks(redis: Redis, item_id: str) -> list[str]:
+async def redis_list_item_tasks(redis: Any, item_id: str) -> list[str]:
     return list(await redis.smembers(f'{REDIS_ITEM_TASKS_KEY}:{item_id}'))
 
 
-async def redis_send_command(redis: Redis, command: dict):
+async def redis_send_command(redis: Any, command: dict):
     command_json = dumps_bytes(command)
     # RedisCluster doesn't expose publish() directly, but the
     # PUBLISH command broadcasts across all cluster nodes server-side.
@@ -266,7 +265,7 @@ async def stop_task(redis, task_id: str):
     return {'status': True, 'message': f'Cancellation requested for {task_id}.'}
 
 
-async def stop_item_tasks(redis: Redis, item_id: str):
+async def stop_item_tasks(redis: Any, item_id: str):
     """
     Stop all tasks associated with a specific item ID.
     """
