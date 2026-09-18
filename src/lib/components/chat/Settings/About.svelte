@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getVersionUpdates } from '$lib/apis';
-	import { WEBUI_BUILD_HASH, WEBUI_VERSION } from '$lib/constants';
+	import { APP_RELEASES_URL, WEBUI_BUILD_HASH, WEBUI_VERSION } from '$lib/constants';
 	import { WEBUI_NAME, config, showChangelog } from '$lib/stores';
 	import { compareVersion } from '$lib/utils';
 	import { onMount, getContext } from 'svelte';
@@ -59,10 +59,7 @@
 						</Tooltip>
 
 						{#if $config?.features?.enable_version_update_check}
-							<a
-								href="https://github.com/open-webui/open-webui/releases/tag/v{version.latest}"
-								target="_blank"
-							>
+							<a href={APP_RELEASES_URL} target="_blank">
 								{updateAvailable === null
 									? $i18n.t('Checking for updates...')
 									: updateAvailable

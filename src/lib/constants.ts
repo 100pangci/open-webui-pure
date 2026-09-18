@@ -6,6 +6,10 @@
 // https://docs.openwebui.com/license.
 export const APP_NAME = 'Open WebUI';
 
+// Update checks and release links point at this fork, not upstream.
+export const APP_REPO_URL = 'https://github.com/100pangci/open-webui-pure';
+export const APP_RELEASES_URL = `${APP_REPO_URL}/releases`;
+
 export const WEBUI_HOSTNAME = '';
 export const WEBUI_BASE_URL = '';
 export const WEBUI_API_BASE_URL = `${WEBUI_BASE_URL}/api/v1`;

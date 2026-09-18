@@ -659,3 +659,23 @@ def stream_chunks_handler(stream: aiohttp.StreamReader):
             yield bytes(buffer)
 
     return yield_safe_stream_chunks()
+
+
+def get_latest_semver_tag(tags: list) -> str | None:
+    """Return the highest semantic-version tag, without a leading 'v'.
+
+    Non-semver tags are ignored; suffixes such as '0.11.4-pure' are kept.
+    """
+    best_key = None
+    best_tag = None
+    for tag in tags or []:
+        if not isinstance(tag, str):
+            continue
+        match = re.match(r'^v?(\d+)\.(\d+)\.(\d+)', tag.strip())
+        if not match:
+            continue
+        key = tuple(int(part) for part in match.groups())
+        if best_key is None or key > best_key:
+            best_key = key
+            best_tag = tag.strip().lstrip('v')
+    return best_tag

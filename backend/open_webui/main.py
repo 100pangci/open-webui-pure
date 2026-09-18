@@ -93,6 +93,7 @@ from open_webui.env import (
     REDIS_URL,
     RESET_CONFIG_ON_START,
     SAFE_MODE,
+    UPDATE_CHECK_REPO,
     VERSION,
     WEBSOCKET_HEARTBEAT_INTERVAL,
     get_changelog,
@@ -186,7 +187,7 @@ from open_webui.utils.middleware import (
     process_chat_payload,
     process_chat_response,
 )
-from open_webui.utils.misc import get_response_error_detail, merge_model_params
+from open_webui.utils.misc import get_latest_semver_tag, get_response_error_detail, merge_model_params
 from open_webui.utils.models import (
     check_model_access,
     get_all_base_models,
@@ -1560,24 +1561,28 @@ async def get_app_version():
 
 @app.get('/api/version/updates')
 async def get_app_latest_release_version(user=Depends(get_verified_user)):
-    if not ENABLE_VERSION_UPDATE_CHECK:
-        log.debug(f'Version update check is disabled, returning current version as latest version')
+    if not ENABLE_VERSION_UPDATE_CHECK or not UPDATE_CHECK_REPO:
+        log.debug('Version update check is disabled, returning current version as latest version')
         return {'current': VERSION, 'latest': VERSION}
     try:
-        timeout = aiohttp.ClientTimeout(total=1)
+        timeout = aiohttp.ClientTimeout(total=3)
         async with aiohttp.ClientSession(timeout=timeout, trust_env=True) as session:
+            # The fork may not have GitHub releases, so the newest semver tag is
+            # the source of truth (tags are also what publishes the image).
             async with session.get(
-                'https://api.github.com/repos/open-webui/open-webui/releases/latest',
+                f'https://api.github.com/repos/{UPDATE_CHECK_REPO}/tags?per_page=100',
                 ssl=AIOHTTP_CLIENT_SESSION_SSL,
             ) as response:
                 response.raise_for_status()
-                data = await response.json()
-                latest_version = data['tag_name']
+                tags = await response.json()
 
-                return {'current': VERSION, 'latest': latest_version[1:]}
+        latest_version = get_latest_semver_tag([tag.get('name') for tag in tags if isinstance(tag, dict)])
+        if latest_version:
+            return {'current': VERSION, 'latest': latest_version}
     except Exception as e:
         log.debug(e)
-        return {'current': VERSION, 'latest': VERSION}
+
+    return {'current': VERSION, 'latest': VERSION}
 
 
 @app.get('/api/changelog')

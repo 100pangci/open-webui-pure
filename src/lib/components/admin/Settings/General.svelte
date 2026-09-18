@@ -9,7 +9,7 @@
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { WEBUI_BUILD_HASH, WEBUI_VERSION } from '$lib/constants';
+	import { APP_RELEASES_URL, WEBUI_BUILD_HASH, WEBUI_VERSION } from '$lib/constants';
 	import { banners as _banners, config, showChangelog } from '$lib/stores';
 	import type { Banner } from '$lib/types';
 	import { compareVersion } from '$lib/utils';
@@ -112,7 +112,7 @@
 
 							{#if $config?.features?.enable_version_update_check}
 								<a
-									href="https://github.com/open-webui/open-webui/releases/tag/v{version.latest}"
+									href={APP_RELEASES_URL}
 									target="_blank"
 									class="text-gray-500 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
 								>

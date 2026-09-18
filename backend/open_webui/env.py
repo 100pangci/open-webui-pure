@@ -937,6 +937,9 @@ else:
 ####################################
 
 ENABLE_VERSION_UPDATE_CHECK = os.getenv('ENABLE_VERSION_UPDATE_CHECK', 'true').lower() == 'true'
+# GitHub repository the update check compares against. Defaults to this fork;
+# set WEBUI_UPDATE_CHECK_REPO to follow another repository (empty disables it).
+UPDATE_CHECK_REPO = os.getenv('WEBUI_UPDATE_CHECK_REPO', '100pangci/open-webui-pure')
 OFFLINE_MODE = os.getenv('OFFLINE_MODE', 'false').lower() == 'true'
 
 if OFFLINE_MODE:

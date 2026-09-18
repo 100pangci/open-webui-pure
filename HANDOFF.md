@@ -161,6 +161,11 @@ After a dependency or Dockerfile change, run `pip check` inside the image
   (`backend/open_webui/utils/ssrf.py`); do not replace it with plain
   `aiohttp`/`requests` calls.
 - **Swagger UI is kept** for `ENV=dev` `/docs`; it is not served in `prod`.
+- **The update check follows the fork.** `/api/version/updates` reads the
+  newest semver tag from `WEBUI_UPDATE_CHECK_REPO` (default
+  `100pangci/open-webui-pure`) instead of upstream GitHub releases. When
+  syncing an upstream version, tag the repository (`v*`); the same tag also
+  triggers the Docker Hub image publish.
 - Container-to-host networking: `127.0.0.1` inside the container is the
   container itself. Use `host.containers.internal` or the host LAN IP for
   providers/proxies running on the host.
