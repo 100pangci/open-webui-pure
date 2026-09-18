@@ -26,24 +26,28 @@ provider configured):
 
 | Metric | Value |
 | --- | --- |
-| Image size | **~331 MB** |
+| Image size | **~300 MB** |
 | Fresh idle (podman stats / cgroup) | **~105 MB** |
-| Fresh idle (RSS / PSS) | ~120 MB / ~108 MB |
+| Fresh idle (RSS / PSS) | ~120 MB / ~112 MB |
 | Fresh idle (Private_Dirty — genuinely private) | **~94 MB** |
 | Startup to `/health` | **~1.6 s** |
 | After real use (login, chats, images) | ~113 MB stats, ~133 MB RSS |
-| Seeded 78 MB SQLite (400 chats), after browsing | ~203 MB RSS (mostly reclaimable file pages), flat over 5 min idle and repeat browsing |
+| Seeded 78 MB SQLite (400 chats), after browsing | ~209 MB RSS (mostly reclaimable file pages), flat while idle and on repeat browsing |
 
 The footprint is kept small with deliberate choices instead of feature loss:
 
 - **Optional dependencies are opt-in** — PostgreSQL, Redis, Azure, LDAP, PDF
   export, code formatting and Pillow normalization only enter the image when
-  their build arg / extra is enabled (see the table above).
+  their build arg / extra is enabled (see the table above). The ~25 MB of
+  PDF-only fonts are copied in only for `ENABLE_PDF=true` builds.
 - **Lazy imports** for rarely used features (changelog, OAuth, PDF, black,
   Pillow, Redis, Azure, LDAP) — they are not resident at idle.
-- **Build-time changelog JSON** (`backend/open_webui/utils/changelog.py`), so
-  `beautifulsoup4`/`Markdown` are not runtime dependencies; `zstandard` is not
-  installed either (brotli + gzip compression remain).
+- **Build-time changelog JSON** (`backend/open_webui/utils/changelog.py`)
+  read directly at runtime, so `beautifulsoup4`/`Markdown` are not runtime
+  dependencies; `CHANGELOG.md` stays in the image only as a fallback.
+- **Local Brotli/gzip middleware** (`backend/open_webui/utils/compression.py`)
+  replaces `starlette-compress`, so `zstandard` is not installed and
+  `pip check` stays clean (the build fails on broken requirements).
 - **Benchmarked SQLite defaults**: 16 MiB page cache and 64 MiB mmap. Personal
   databases behave identically to more aggressive values while large databases
   are bounded; raise them for big multi-user instances with

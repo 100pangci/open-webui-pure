@@ -1,6 +1,10 @@
 """Tests for the stdlib changelog parser used by ``/api/changelog``."""
 
-from open_webui.utils.changelog import parse_changelog
+import json
+
+import pytest
+
+from open_webui.utils.changelog import load_changelog_json, parse_changelog
 
 SAMPLE = """# Changelog
 
@@ -58,3 +62,28 @@ def test_html_is_escaped():
 
 def test_empty_changelog():
     assert parse_changelog('') == {}
+
+
+def test_json_roundtrip(tmp_path):
+    data = parse_changelog(SAMPLE)
+    path = tmp_path / 'latest-changelog.json'
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+    assert load_changelog_json(path) == data
+
+
+def test_json_rejects_non_object(tmp_path):
+    path = tmp_path / 'latest-changelog.json'
+    path.write_text('[1, 2, 3]', encoding='utf-8')
+    with pytest.raises(ValueError):
+        load_changelog_json(path)
+
+
+def test_generated_json_is_not_parsed_as_markdown(tmp_path):
+    # Regression: the build-time JSON must be loaded with json.loads. Feeding
+    # it to parse_changelog silently returned {} and made the runtime fall
+    # back to reading and parsing the 1.2 MB CHANGELOG.md.
+    data = parse_changelog(SAMPLE)
+    path = tmp_path / 'latest-changelog.json'
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+    assert parse_changelog(path.read_text(encoding='utf-8')) == {}
+    assert load_changelog_json(path) == data

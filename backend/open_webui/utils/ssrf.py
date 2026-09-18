@@ -214,32 +214,6 @@ def validate_url(
             raise SSRFBlockedError(f'Blocked address {address} for host {host!r}')
 
 
-async def resolve_connect_addresses(
-    host: str,
-    port: int,
-    family: int = socket.AF_INET,
-) -> list[dict]:
-    """Resolve ``host`` and reject blocked addresses at connect time."""
-    loop = asyncio.get_running_loop()
-    infos = await loop.getaddrinfo(host, port, family=family, type=socket.SOCK_STREAM)
-    results = []
-    for family_, type_, proto_, _canonname, sockaddr in infos:
-        address = sockaddr[0].split('%', 1)[0]
-        ip = ipaddress.ip_address(address)
-        if _is_ip_blocked(ip):
-            raise SSRFBlockedError(f'Blocked connect address {ip} for host {host!r}')
-        results.append(
-            {
-                'hostname': address,
-                'port': port,
-                'family': family_,
-                'proto': proto_,
-                'flags': 0,
-            }
-        )
-    return results
-
-
 class SSRFResolver(aiohttp.abc.AbstractResolver):
     """``aiohttp`` resolver that refuses internal addresses at connect time.
 
@@ -278,7 +252,14 @@ class SSRFResolver(aiohttp.abc.AbstractResolver):
             return results
 
         for result in results:
-            ip = ipaddress.ip_address(result['hostname'].split('%', 1)[0])
+            # aiohttp's ``ResolveResult`` carries the queried name in
+            # ``hostname`` and the resolved address in ``host``; only the
+            # latter can be parsed as an IP address.
+            address = result['host'].split('%', 1)[0]
+            try:
+                ip = ipaddress.ip_address(address)
+            except ValueError as e:
+                raise SSRFBlockedError(f'Invalid resolved address {address!r} for {host!r}') from e
             if _is_ip_blocked(ip):
                 raise SSRFBlockedError(f'Blocked connect address {ip} for host {host!r}')
         return results

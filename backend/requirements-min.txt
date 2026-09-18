@@ -11,13 +11,9 @@
 #
 # Keep this list lean: everything here is paid for by every deployment.
 #
-# starlette-compress hard-depends on zstandard; the Dockerfile removes that
-# package and main.py disables zstd compression (brotli + gzip remain), which
-# saves ~23 MB of image size with no client-visible change.
-#
-# starlette-compress hard-depends on zstandard; the Dockerfile removes that
-# package and main.py disables zstd compression (brotli + gzip remain), which
-# saves ~23 MB of image size with no client-visible change.
+# Response compression (Brotli + gzip) is implemented locally in
+# open_webui/utils/compression.py. The previous starlette-compress package
+# hard-depends on zstandard (~23 MB); zstd is intentionally not shipped.
 
 fastapi==0.136.3
 uvicorn==0.51.0
@@ -47,7 +43,6 @@ httpx==0.28.1
 aiohttp==3.13.5
 aiocache==0.12.3
 aiofiles==25.1.0
-starlette-compress==1.7.1
 Brotli==1.2.0
 starsessions==2.2.1
 

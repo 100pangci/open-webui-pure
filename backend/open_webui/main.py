@@ -32,7 +32,7 @@ from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import Response, StreamingResponse
-from starlette_compress import CompressMiddleware
+from open_webui.utils.compression import CompressMiddleware
 from starsessions import (
     SessionAutoloadMiddleware,
 )
@@ -479,7 +479,7 @@ if audit_level != AuditLevel.NONE:
     )
 
 if ENABLE_COMPRESSION_MIDDLEWARE:
-    app.add_middleware(CompressMiddleware, zstd=False)
+    app.add_middleware(CompressMiddleware)
 
 
 # All HTTP middlewares below are pure-ASGI implementations. The previous

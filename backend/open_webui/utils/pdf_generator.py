@@ -40,10 +40,10 @@ class PDFGenerator:
     def _build_html_message(self, message: Dict[str, Any]) -> str:
         """Build HTML for a single message."""
         role = escape(message.get('role', 'user'))
-        content = escape(message.get('content', ''))
+        content = escape(message.get('content') or '')
         timestamp = message.get('timestamp')
 
-        model = escape(message.get('model') if role == 'assistant' else '')
+        model = escape((message.get('model') or '') if role == 'assistant' else '')
 
         date_str = escape(self.format_timestamp(timestamp) if timestamp else '')
 

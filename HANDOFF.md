@@ -19,6 +19,86 @@
 - 必须保留 Open WebUI 品牌、LICENSE 及相关标识。
 - 没有创建 commit。
 
+## Round 4 — 2026-09-18: SSRF resolver 修复 / PDF-only 字体 / 本地 gzip+brotli / 331→300 MB
+
+### Results（同一台机器，rootless podman）
+
+| 指标 | Round 3（pure） | Round 4（pure） | 说明 |
+| --- | --- | --- | --- |
+| image | 331 MB | **300 MB** | PDF 字体 ~24.5 MB + 镜像内陈旧 .pyc ~4.9 MB 移出；CHANGELOG.md 按用户要求保留（+1.2 MB） |
+| fresh idle（cgroup） | 104.8 MB | **104.6 MB** | |
+| fresh idle（anon） | 97.0 MB | **97 MB** | |
+| fresh idle（RSS / PSS） | 120.3 / 108.4 MB | **120.8 / 112.2 MB** | RSS 含共享库映射 |
+| fresh idle（Private_Dirty） | 93.8 MB | **93.8 MB** | 与 r3 持平 |
+| startup → /health | 1.57 s | **1.59 s** | 空配置 |
+| 400 chats×20 msgs（78 MB 库）浏览后 | RSS 202.8 / PD 116.0 | **RSS 209.2 / PD 121.1** | 60s 空闲后 RSS 195.8（文件页可回收）、PD 121.0；重复浏览无增长 |
+| 回归（fresh volume + mock OpenAI） | 20/20 | **20/20** | |
+| SSRF 集成（HTTP 级） | 8/8 | **8/8** | |
+| pip check（构建期） | 未跑 | **No broken requirements found** | Dockerfile 内置，失败即构建失败 |
+
+### 1. SSRFResolver 修复（优先级 1，正确性 bug）
+
+- `SSRFResolver.resolve()` 之前读取 `result['hostname']`（客户端查询的域名）当 IP 解析：
+  对真实域名 `ipaddress.ip_address('example.com')` 抛 `ValueError` → **公网域名抓取直接失败**，
+  内网域名也只是「以异常方式被拒」。改为读取 aiohttp `ResolveResult['host']`（真正要连接的地址），
+  保留 IPv6 zone-id 剥离；解析不出 IP 时抛 `SSRFBlockedError` 而不是 `ValueError`。
+- 删除未使用、字段结构还不同的 `resolve_connect_addresses()`，不再保留两套 resolver。
+- 测试 59 → **65**：stub 改为真实 `ResolveResult` 结构（`hostname`/`host` 分离）、
+  新增真实 `ThreadedResolver` 回归（`localhost` 拒绝 / `example.com` 放行，DNS 不可用自动 skip）、
+  zone-id、非法 host 字段；新增双 origin 测试：跨源 redirect 剥离
+  `Authorization`/`Cookie`/`Proxy-Authorization`，同源 redirect 保留。
+- 人工验证：`ssrf_safe_get('https://example.com/')` → 200（修复前必失败）；
+  loopback / metadata / RFC1918 全部仍被 `SSRFBlockedError` 拒绝。
+
+### 2. PDF-only 字体移出默认镜像（~24.5 MB）
+
+- 11 个字体全部从 `backend/open_webui/static/fonts/` 移到仓库根 `pdf-fonts/`
+  （其中 7 个是 PDFGenerator 显式加载的运行时字体，4 个 Variable 从未被使用）。
+- Dockerfile 新增 `pdf-fonts` stage：默认 build 传给 runtime 的是空目录；
+  `ENABLE_PDF=true` 时才把 7 个字体复制到 `/app/backend/open_webui/static/fonts/`。
+- `env.py`：`FONTS_DIR` 找不到 ttf 时回退 `BASE_DIR/pdf-fonts`，源码运行照常可用。
+- 前端 UI 字体（`static/assets/fonts/Inter|Vazirmatn`、emojis）未动。
+- 验证：默认镜像 `static/fonts` 为空；`ENABLE_PDF=true` 构建（379 MB）字体齐全，
+  `/api/v1/utils/pdf` 含 CJK+emoji 返回 200（21 KB 有效 PDF）。
+
+### 3. CHANGELOG 读取修复（CHANGELOG.md 保留为兜底）
+
+- 旧 `env.get_changelog()` 调 `load_changelog()`（Markdown 解析器）去读 JSON →
+  永远解析为空 → 回退解析 1.2 MB `CHANGELOG.md`（r3 的「正常」全靠这个回退，JSON 从未被使用）。
+- 新增 `load_changelog_json()`（`json.loads` + dict 类型校验），正常路径只读 496 KB JSON
+  （按需加载；解析后约 2 MB，RSS +2.8 MB）；`CHANGELOG.md` 按用户要求继续随镜像发布作为 fallback。
+- 回归明确验证 `/api/changelog` 来自生成 JSON（versions 0.11.3/0.11.2/0.11.1…）。
+
+### 4. starlette-compress / zstandard 清理（pip check 干净）
+
+- 删除 `starlette-compress==1.7.1`，新增自研 `backend/open_webui/utils/compression.py`
+  （ASGI Brotli+gzip：流式压缩、q 值/通配符、content-type 白名单、SSE 不压缩、`Vary`）。
+- 不再需要「装 zstandard 再卸」的 hack；Dockerfile 移除 `zstandard` 卸载项，
+  并新增构建期 `python -m pip check`（不完整依赖会让构建失败）。
+- 单测 14 项；容器内实测 `/` 页面：identity 10.9 KB → brotli 2.9 KB / gzip 3.1 KB，
+  `Accept-Encoding: zstd` 的客户端正确回退 identity。
+
+### 5. 镜像审计（最终 300 MB）
+
+- `/app` 53 MB（backend 5.2 MB + frontend build 46 MB）；site-packages 约 105 MB。
+- 最大文件：cryptography `_rust` 13.8 MB、uvloop 13.1 MB、libpython 5.4 MB、`_brotli` 5.2 MB、
+  pydantic_core 4.7 MB、perl 3.8 MB（基础镜像）、aiohttp .so 2.9 MB、Swagger UI 2.4 MB、
+  welcome.mp4 1.9 MB、CHANGELOG.md 1.2 MB、latest-changelog.json 0.5 MB。
+- Python 包：SQLAlchemy 22.9 / cryptography 15.0 / uvloop 13.6 / aiohttp 7.6 /
+  pydantic_core 5.2 / brotli 5.2 / pydantic 4.0 / greenlet 2.4 / alembic 2.3 / authlib 1.9（MB）。
+- 宿主机 Python 3.12/3.14 的陈旧 `.pyc`（4.9 MB）已通过 `.dockerignore` 的
+  `**/__pycache__` / `**/*.pyc` 排除（最终镜像内 0 个 pyc）；同时排除 `.venv`、`build/` 上下文。
+- 未删除：UI / emoji / i18n / Socket.IO / Auth / 多用户 / 文件与图片 / OpenAI-compatible 全部保留。
+- 额外修复：`PDFGenerator` 对 `content`/`model` 为 `None` 的消息不再崩溃
+  （`'NoneType' object has no attribute 'replace'`）。
+
+### 6. 可选低风险优化（未做，供后续）
+
+- Swagger UI 2.4 MB：仅 `/docs` 使用，删除会失去 API 文档页面。
+- uvloop 13.1 MB：可退回 asyncio 事件循环，但牺牲异步 I/O 性能。
+- `python:3.11-alpine` 基础镜像（63.6 MB vs slim 135 MB）：可再省 ~70 MB，wheel/兼容性风险大。
+- `backend/open_webui/test` 148 KB 随镜像发布，对运行无影响。
+
 ## Round 3 — 2026-09-18: SSRF 加固 / SQLite 调参 / 镜像 331 MB / 纯 pure 命名
 
 > 命名：Round 2 的镜像标签 `lite` 从本轮起统一为 **`pure`**（compose 默认
@@ -290,26 +370,39 @@
 
 ## Next Move
 
-1. Round 3 已完成并验证（见顶部 Round 3 章节）。可选后续：
+1. Round 4 已完成并验证（见顶部 Round 4 章节）。可选后续：
+   - Swagger UI 2.4 MB：删除会失去 `/docs` API 文档页，按需决定。
+   - uvloop 13.1 MB：改用 asyncio 事件循环可省，但牺牲异步 I/O 性能；不建议默认改。
+   - alpine 基础镜像（63.6 MB vs slim 135 MB）：可再省 ~70 MB，需全量 wheel 兼容性验证。
    - Socket.IO ultra-lite（SSE）≈ 12 MB；只有必须 <100 MiB cgroup idle 时才建议评估。
-   - PDF 字体 24 MB 需移动字体在上下文中的位置才能真省；Swagger 2.4 MB / CHANGELOG 1.2 MB 可按需删。
    - `npm run check` 与基线对比（上游类型噪声仍在）；i18n 死 key 清理。
-2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui` volume。
+2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui_open-webui` volume（compose 实际卷名）。
 3. 本地跑 `open_webui.main` 前先 `npm run build`，否则 `backend/open_webui/static` 顶层文件会被启动流程清掉（见 Round 2 踩坑）。
-4. 当前线上容器仍是旧的 `lite` 镜像；下次 `podman-up.sh` / `podman compose up -d` 会因 tag 变化自动重建为 `pure`（volume 不变，已验证迁移兼容）。
+4. 线上容器当前仍运行 Round 3 的 `pure`（331 MB，r3 镜像 ID `fec50870`）；下次 `podman-up.sh` / `podman compose up -d --build` 会重建为 Round 4 的 300 MB 版本（volume 不变，已用真实 volume 副本验证兼容）。
+5. 默认镜像已不含 PDF 字体；需要后端 PDF 导出时用
+   `podman build --build-arg ENABLE_PDF=true -t localhost/open-webui:pure-pdf .`（已验证，380 MB）。
 
 ## Relevant Files
 
 - `HANDOFF.md`: 本交接文档。
 - `backend/requirements-min.txt`：默认依赖（唯一装入默认镜像的清单）；
   `requirements-postgres/redis/azure/ldap/pdf/code-format/pillow/optional/cli.txt` 为可选功能依赖。
-- `Dockerfile`：多阶段构建（frontend / changelog / runtime）；`ENABLE_*` build args；只 chown data 目录；安装后卸载 pip/setuptools/wheel/zstandard 与 ensurepip。
-- `backend/open_webui/utils/ssrf.py`：SSRF 防护（validate_url / SSRFResolver / ssrf_safe_get / is_trusted_origin）。
-- `backend/open_webui/test/test_ssrf.py`、`test_changelog.py`：SSRF 与 changelog 解析回归测试（`uv run --frozen pytest backend/open_webui/test -q`）。
-- `backend/open_webui/utils/changelog.py`：stdlib changelog 解析器，兼构建期 CLI（生成 `latest-changelog.json`）。
+- `Dockerfile`：多阶段构建（frontend / changelog / pdf-fonts / runtime）；`ENABLE_*` build args；
+  只 chown data 目录；安装后 `pip check`、卸载 pip/setuptools/wheel 与 ensurepip；
+  PDF 字体仅 `ENABLE_PDF=true` 时从 `pdf-fonts/` stage 复制。
+- `pdf-fonts/`：PDF 专用字体（7 个运行时字体 + 4 个 Variable 参考文件），默认不进镜像。
+- `backend/open_webui/utils/ssrf.py`：SSRF 防护（validate_url / SSRFResolver / ssrf_safe_get / is_trusted_origin；
+  resolver 读 `ResolveResult['host']`）。
+- `backend/open_webui/utils/compression.py`：本地 Brotli+gzip ASGI 中间件（替代 starlette-compress）。
+- `backend/open_webui/test/test_ssrf.py`、`test_compression.py`、`test_changelog.py`：回归测试
+  （`uv run --frozen pytest backend/open_webui/test -q`，共 88 项）。
+- `backend/open_webui/utils/changelog.py`：stdlib changelog 解析器（`parse_changelog` / `load_changelog_json`），
+  兼构建期 CLI（生成 `latest-changelog.json`）。
 - `podman-compose.yaml`：默认 tag `pure`；`WEBUI_ENABLE_*` build args 透传；`WEBUI_SECRET_KEY_FILE` 持久化 JWT 密钥。
 - `backend/open_webui/cli.py`：typer CLI；`__init__.py` 仅 `__getattr__` 懒加载，保持包导入轻量。
-- `backend/open_webui/env.py`：`get_changelog()` 懒解析（原模块级 soup 占 ~36MB）。
+- `backend/open_webui/env.py`：`get_changelog()` 懒加载 JSON（兜底解析 CHANGELOG.md）；
+  `FONTS_DIR` 回退仓库 `pdf-fonts/`。
+- `backend/open_webui/utils/pdf_generator.py`：PDF 导出；`content`/`model` 为 None 时不再崩溃。
 - `backend/open_webui/utils/oauth_manager.py`：OAuth manager 懒创建入口（authlib 不常驻）。
 - `backend/open_webui/internal/db.py`：`make_sync_url()` 将 PG 统一为 `postgresql+psycopg://`；未装 psycopg 时报可操作错误。
 - `backend/open_webui/main.py`: FastAPI 装配（1744 行）。

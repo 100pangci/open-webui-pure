@@ -27,7 +27,6 @@ dependencies = [
     "aiohttp==3.13.5",
     "aiocache==0.12.3",
     "aiofiles==25.1.0",
-    "starlette-compress==1.7.1",
     "Brotli==1.2.0",
     "starsessions==2.2.1",
     "sqlalchemy[asyncio]==2.0.50",

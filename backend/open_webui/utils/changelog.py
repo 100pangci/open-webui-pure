@@ -114,7 +114,21 @@ def parse_changelog(content: str, limit: int | None = DEFAULT_LIMIT) -> dict[str
 
 
 def load_changelog(path: str | Path, limit: int | None = DEFAULT_LIMIT) -> dict[str, Any]:
+    """Parse a raw ``CHANGELOG.md`` file (source checkouts)."""
     return parse_changelog(Path(path).read_text(encoding='utf-8'), limit=limit)
+
+
+def load_changelog_json(path: str | Path) -> dict[str, Any]:
+    """Load the JSON produced by the build-time CLI (``main``).
+
+    The generated file already has the ``{version: {date, section: [...]}}``
+    shape, so it must be loaded with ``json.loads`` — *not* fed through
+    ``parse_changelog``, which expects Markdown.
+    """
+    data = json.loads(Path(path).read_text(encoding='utf-8'))
+    if not isinstance(data, dict):
+        raise ValueError('changelog JSON must contain an object')
+    return data
 
 
 def main(argv: list[str] | None = None) -> int:

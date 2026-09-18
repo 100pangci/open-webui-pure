@@ -136,19 +136,20 @@ def get_changelog() -> dict[str, Any]:
 
     The default image ships ``latest-changelog.json`` generated at build time
     (see ``utils/changelog.py``), so this is a small JSON read.  When the file
-    is missing (running from a source checkout) the changelog is parsed from
-    ``CHANGELOG.md`` with the same stdlib-only parser instead.
+    is missing or unreadable (e.g. running from a source checkout) the
+    changelog is parsed from ``CHANGELOG.md`` with the same parser; the image
+    keeps that file as a fallback, but the normal path never reads it.
     """
     global _CHANGELOG_CACHE
     if _CHANGELOG_CACHE is not None:
         return _CHANGELOG_CACHE
 
-    from open_webui.utils.changelog import load_changelog, parse_changelog
+    from open_webui.utils.changelog import load_changelog_json, parse_changelog
 
     changelog_json: dict[str, Any] = {}
     generated_path = OPEN_WEBUI_DIR / 'latest-changelog.json'
     try:
-        changelog_json = load_changelog(generated_path)
+        changelog_json = load_changelog_json(generated_path)
     except Exception:
         changelog_json = {}
 
@@ -199,6 +200,14 @@ if FROM_INIT_PY:
 STATIC_DIR = Path(os.getenv('STATIC_DIR', OPEN_WEBUI_DIR / 'static'))
 
 FONTS_DIR = Path(os.getenv('FONTS_DIR', OPEN_WEBUI_DIR / 'static' / 'fonts'))
+
+# PDF-only fonts live in `pdf-fonts/` at the repository root so the default
+# container image does not carry them.  ENABLE_PDF=true builds copy them into
+# the static fonts directory; a source checkout falls back to the repo copy.
+if not any(FONTS_DIR.glob('*.ttf')):
+    _repo_pdf_fonts = BASE_DIR / 'pdf-fonts'
+    if any(_repo_pdf_fonts.glob('*.ttf')):
+        FONTS_DIR = _repo_pdf_fonts
 
 FRONTEND_BUILD_DIR = Path(os.getenv('FRONTEND_BUILD_DIR', BASE_DIR / 'build')).resolve()
 

@@ -4,6 +4,7 @@ Run with:
     uv run --frozen pytest backend/open_webui/test/test_ssrf.py -q
 """
 
+import ipaddress
 import socket
 
 import pytest
@@ -14,6 +15,7 @@ from open_webui.utils.ssrf import (
     SSRFBlockedError,
     SSRFResolver,
     TooManyRedirectsError,
+    _is_ip_blocked,
     create_ssrf_safe_connector,
     is_trusted_origin,
     ssrf_safe_get,
@@ -183,14 +185,27 @@ class _StubDelegate:
         pass
 
 
-def _result(address, port=80, family=socket.AF_INET):
-    return {'hostname': address, 'port': port, 'family': family, 'proto': socket.IPPROTO_TCP, 'flags': 0}
+def _result(hostname, host, port=80, family=socket.AF_INET):
+    """Build a real aiohttp ``ResolveResult``.
+
+    ``hostname`` is the queried name, ``host`` is the address aiohttp will
+    actually connect to; keeping them distinct is what catches regressions
+    that read the wrong field.
+    """
+    return {
+        'hostname': hostname,
+        'host': host,
+        'port': port,
+        'family': family,
+        'proto': socket.IPPROTO_TCP,
+        'flags': 0,
+    }
 
 
 @pytest.mark.asyncio
 async def test_resolver_blocks_private_address():
     resolver = SSRFResolver()
-    resolver._delegate = _StubDelegate([_result('127.0.0.1')])
+    resolver._delegate = _StubDelegate([_result('rebind.example', '127.0.0.1')])
     with pytest.raises(SSRFBlockedError):
         await resolver.resolve('rebind.example', 80)
 
@@ -198,7 +213,9 @@ async def test_resolver_blocks_private_address():
 @pytest.mark.asyncio
 async def test_resolver_blocks_mixed_addresses():
     resolver = SSRFResolver()
-    resolver._delegate = _StubDelegate([_result(PUBLIC_IP), _result('10.0.0.5')])
+    resolver._delegate = _StubDelegate(
+        [_result('rebind.example', PUBLIC_IP), _result('rebind.example', '10.0.0.5')]
+    )
     with pytest.raises(SSRFBlockedError):
         await resolver.resolve('rebind.example', 80)
 
@@ -206,14 +223,79 @@ async def test_resolver_blocks_mixed_addresses():
 @pytest.mark.asyncio
 async def test_resolver_allows_public_address():
     resolver = SSRFResolver()
-    resolver._delegate = _StubDelegate([_result(PUBLIC_IP)])
-    assert await resolver.resolve('cdn.example', 443) == [_result(PUBLIC_IP)]
+    results = [_result('cdn.example', PUBLIC_IP)]
+    resolver._delegate = _StubDelegate(results)
+    assert await resolver.resolve('cdn.example', 443) == results
+
+
+@pytest.mark.asyncio
+async def test_resolver_checks_host_not_hostname():
+    # Regression: the resolver must validate ``result['host']`` (the address
+    # aiohttp connects to), not ``result['hostname']`` (the queried name).
+    # The old code parsed the hostname as an IP and raised ValueError for
+    # every domain, breaking real hostname fetches.
+    resolver = SSRFResolver()
+    resolver._delegate = _StubDelegate([_result('cdn.example', PUBLIC_IP)])
+    assert await resolver.resolve('cdn.example', 443)
+
+    # A public-looking hostname resolving to a private *host* must still be
+    # blocked.
+    resolver._delegate = _StubDelegate([_result('cdn.example', '192.168.1.7')])
+    with pytest.raises(SSRFBlockedError):
+        await resolver.resolve('cdn.example', 443)
+
+
+@pytest.mark.asyncio
+async def test_resolver_strips_ipv6_zone_id():
+    resolver = SSRFResolver()
+    resolver._delegate = _StubDelegate([_result('rebind.example', 'fe80::1%eth0')])
+    with pytest.raises(SSRFBlockedError):
+        await resolver.resolve('rebind.example', 80)
+
+
+@pytest.mark.asyncio
+async def test_resolver_invalid_host_field_rejected():
+    resolver = SSRFResolver()
+    resolver._delegate = _StubDelegate([_result('cdn.example', 'not-an-ip')])
+    with pytest.raises(SSRFBlockedError):
+        await resolver.resolve('cdn.example', 80)
+
+
+@pytest.mark.asyncio
+async def test_resolver_real_hostname_localhost_blocked():
+    # Real ThreadedResolver (hosts file), real ResolveResult shape: a hostname
+    # that resolves to a loopback address must raise SSRFBlockedError, not a
+    # ValueError from parsing the queried name.
+    resolver = SSRFResolver()
+    try:
+        with pytest.raises(SSRFBlockedError):
+            await resolver.resolve('localhost', 80)
+    finally:
+        await resolver.close()
+
+
+@pytest.mark.asyncio
+async def test_resolver_real_hostname_public_allowed():
+    # Requires working DNS; skipped where resolution is unavailable.
+    resolver = SSRFResolver()
+    try:
+        try:
+            results = await resolver.resolve('example.com', 443)
+        except socket.gaierror:
+            pytest.skip('DNS resolution unavailable')
+    finally:
+        await resolver.close()
+
+    assert results
+    for result in results:
+        assert result['hostname'] == 'example.com'
+        assert not _is_ip_blocked(ipaddress.ip_address(result['host'].split('%', 1)[0]))
 
 
 @pytest.mark.asyncio
 async def test_resolver_allows_private_for_trusted_host_only():
     resolver = SSRFResolver(['http://backend.lan:8000'])
-    resolver._delegate = _StubDelegate([_result('192.168.1.9', 8000)])
+    resolver._delegate = _StubDelegate([_result('backend.lan', '192.168.1.9', 8000)])
     assert await resolver.resolve('backend.lan', 8000)
 
     with pytest.raises(SSRFBlockedError):
@@ -322,17 +404,86 @@ async def test_too_many_redirects(redirect_server):
     assert MAX_REDIRECTS >= 1
 
 
+# Two live origins (same host, different ports -> different origins) so that a
+# cross-origin redirect can actually be followed and its headers inspected.
+@pytest.fixture
+async def redirect_pair():
+    target_app = web.Application()
+
+    async def target_echo(request):
+        return web.json_response({'headers': {k.lower(): v for k, v in request.headers.items()}})
+
+    target_app.router.add_get('/echo', target_echo)
+    target_runner = web.AppRunner(target_app)
+    await target_runner.setup()
+    target_site = web.TCPSite(target_runner, '127.0.0.1', 0)
+    await target_site.start()
+    target_port = target_site._server.sockets[0].getsockname()[1]
+    target_origin = f'http://127.0.0.1:{target_port}'
+
+    source_app = web.Application()
+
+    async def source_echo(request):
+        return web.json_response({'headers': {k.lower(): v for k, v in request.headers.items()}})
+
+    async def same_origin_redirect(request):
+        raise web.HTTPFound('/echo')
+
+    async def cross_origin_redirect(request):
+        raise web.HTTPFound(f'{target_origin}/echo')
+
+    source_app.router.add_get('/echo', source_echo)
+    source_app.router.add_get('/same', same_origin_redirect)
+    source_app.router.add_get('/cross', cross_origin_redirect)
+
+    source_runner = web.AppRunner(source_app)
+    await source_runner.setup()
+    source_site = web.TCPSite(source_runner, '127.0.0.1', 0)
+    await source_site.start()
+    source_port = source_site._server.sockets[0].getsockname()[1]
+    source_origin = f'http://127.0.0.1:{source_port}'
+
+    try:
+        yield {'source': source_origin, 'target': target_origin}
+    finally:
+        await source_runner.cleanup()
+        await target_runner.cleanup()
+
+
 @pytest.mark.asyncio
-async def test_cross_origin_redirect_drops_authorization(redirect_server):
-    # Redirect within the same trusted origin keeps headers; the cross-host
-    # redirect is blocked before any request is made, so we only assert the
-    # block here (header dropping is covered by the no-leak path).
-    headers = {'Authorization': 'Bearer secret'}
-    with pytest.raises(SSRFBlockedError):
-        async with ssrf_safe_get(
-            f'{redirect_server}/cross-host',
-            headers=headers,
-            trusted_origins=[redirect_server],
-            allow_redirects=True,
-        ):
-            pass
+async def test_cross_origin_redirect_drops_credentials(redirect_pair):
+    headers = {
+        'Authorization': 'Bearer secret',
+        'Cookie': 'session=abc',
+        'Proxy-Authorization': 'Basic cHJveHk=',
+        'X-Trace': 'keep-me',
+    }
+    async with ssrf_safe_get(
+        f'{redirect_pair["source"]}/cross',
+        headers=headers,
+        trusted_origins=[redirect_pair['source'], redirect_pair['target']],
+        allow_redirects=True,
+    ) as response:
+        assert response.status == 200
+        received = (await response.json())['headers']
+
+    assert 'authorization' not in received
+    assert 'cookie' not in received
+    assert 'proxy-authorization' not in received
+    assert received.get('x-trace') == 'keep-me'
+
+
+@pytest.mark.asyncio
+async def test_same_origin_redirect_keeps_credentials(redirect_pair):
+    headers = {'Authorization': 'Bearer secret', 'X-Trace': 'keep-me'}
+    async with ssrf_safe_get(
+        f'{redirect_pair["source"]}/same',
+        headers=headers,
+        trusted_origins=[redirect_pair['source'], redirect_pair['target']],
+        allow_redirects=True,
+    ) as response:
+        assert response.status == 200
+        received = (await response.json())['headers']
+
+    assert received.get('authorization') == 'Bearer secret'
+    assert received.get('x-trace') == 'keep-me'
