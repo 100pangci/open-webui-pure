@@ -68,14 +68,12 @@
 	};
 
 	export let id;
-	export let chatId = '';
-	export let content;
+		export let content;
 	/** @type {import('./structuredOutput').OutputItem[]} */
 	export let output = [];
 
 	export let history;
-	export let messageId;
-
+	
 	export let selectedModels = [];
 
 	export let done = true;
@@ -92,8 +90,6 @@
 
 	export let onSave = (e) => {};
 	export let onSourceClick = (e) => {};
-	export let onTaskClick = (e) => {};
-	export let onToolCallResolved = (e) => {};
 	export let onSetInputText = (text) => {};
 
 	let contentContainerElement;
@@ -285,8 +281,6 @@
 	{#if output?.length}
 		<StructuredOutputRenderer
 			{id}
-			{chatId}
-			{messageId}
 			{output}
 			{model}
 			{save}
@@ -299,8 +293,6 @@
 			renderMarkdown={$settings?.renderMarkdownInAssistantMessages ?? true}
 			{formatMessageContent}
 			{onSourceClick}
-			{onTaskClick}
-			{onToolCallResolved}
 			{onSave}
 			onUpdate={markdownUpdateHandler}
 			onPreview={previewHandler}
@@ -309,8 +301,6 @@
 		<div class="markdown-prose">
 			<Markdown
 				{id}
-				{chatId}
-				{messageId}
 				content={formatMessageContent(content)}
 				{model}
 				{save}
@@ -321,8 +311,6 @@
 				{topPadding}
 				{sourceIds}
 				{onSourceClick}
-				{onTaskClick}
-				{onToolCallResolved}
 				{onSave}
 				onUpdate={markdownUpdateHandler}
 				onPreview={previewHandler}
@@ -336,14 +324,11 @@
 			<div class="markdown-prose">
 				<Markdown
 					{id}
-					{chatId}
-					{messageId}
 					content={extracted.detailsContent}
 					{save}
 					{preview}
 					{compactPreview}
 					{done}
-					{onToolCallResolved}
 				/>
 			</div>
 		{/if}

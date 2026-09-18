@@ -36,8 +36,6 @@
 	let splitLargeChunks = false;
 	let scrollOnBranchChange = true;
 	let scrollOnResponseGeneration = true;
-	let showFilesOnTerminalSelect = true;
-	let terminalFileDisplay: 'sidebar' | 'inline' = 'sidebar';
 	let userLocation = false;
 
 	// Interface
@@ -52,7 +50,6 @@
 	let richTextInput = true;
 	let showFormattingToolbar = false;
 	let insertPromptAsRichText = false;
-	let promptAutocomplete = false;
 
 	let largeTextAsFile = false;
 
@@ -87,7 +84,6 @@
 		width: '',
 		height: ''
 	};
-	let imageCompressionInChannels = true;
 
 	// chat export
 	let stylizedPdfExport = true;
@@ -96,20 +92,13 @@
 	let showUpdateToast = true;
 	let showChangelog = true;
 
-	// File
-	let defaultUploadContext: 'full' | 'focused' = 'focused';
 
-	let showEmojiInCall = false;
-	let voiceInterruption = false;
 	let hapticFeedback = false;
-
-	let webSearch: string | null = null;
 
 	let iframeSandboxAllowScripts = true;
 	let iframeSandboxAllowSameOrigin = false;
 	let iframeSandboxAllowForms = true;
 	let iframeSandboxAllowDownloads = true;
-	let terminalPreviewAllowSameOrigin = false;
 
 	let showManageFloatingActionButtonsModal = false;
 	let showManageImageCompressionModal = false;
@@ -252,11 +241,6 @@
 		});
 	};
 
-	const toggleWebSearch = async () => {
-		webSearch = webSearch === null ? 'always' : null;
-		saveSettings({ webSearch: webSearch });
-	};
-
 	const setTextScaleHandler = (scale: number) => {
 		textScale = scale;
 
@@ -326,16 +310,12 @@
 		showUpdateToast = currentSettings?.showUpdateToast ?? true;
 		showChangelog = currentSettings?.showChangelog ?? true;
 
-		showEmojiInCall = currentSettings?.showEmojiInCall ?? false;
-		voiceInterruption = currentSettings?.voiceInterruption ?? false;
-
 		displayMultiModelResponsesInTabs = currentSettings?.displayMultiModelResponsesInTabs ?? false;
 		chatFadeStreamingText = currentSettings?.chatFadeStreamingText ?? true;
 
 		richTextInput = currentSettings?.richTextInput ?? true;
 		showFormattingToolbar = currentSettings?.showFormattingToolbar ?? false;
 		insertPromptAsRichText = currentSettings?.insertPromptAsRichText ?? false;
-		promptAutocomplete = currentSettings?.promptAutocomplete ?? false;
 
 		insertSuggestionPrompt = currentSettings?.insertSuggestionPrompt ?? false;
 		keepFollowUpPrompts = currentSettings?.keepFollowUpPrompts ?? false;
@@ -360,8 +340,6 @@
 		splitLargeChunks = currentSettings?.splitLargeChunks ?? false;
 		scrollOnBranchChange = currentSettings?.scrollOnBranchChange ?? true;
 		scrollOnResponseGeneration = currentSettings?.scrollOnResponseGeneration ?? true;
-		showFilesOnTerminalSelect = currentSettings?.showFilesOnTerminalSelect ?? true;
-		terminalFileDisplay = currentSettings?.terminalFileDisplay === 'inline' ? 'inline' : 'sidebar';
 
 		temporaryChatByDefault = currentSettings?.temporaryChatByDefault ?? false;
 		chatDirection = currentSettings?.chatDirection ?? 'auto';
@@ -372,7 +350,6 @@
 		iframeSandboxAllowSameOrigin = currentSettings?.iframeSandboxAllowSameOrigin ?? false;
 		iframeSandboxAllowForms = currentSettings?.iframeSandboxAllowForms ?? true;
 		iframeSandboxAllowDownloads = currentSettings?.iframeSandboxAllowDownloads ?? true;
-		terminalPreviewAllowSameOrigin = currentSettings?.terminalPreviewAllowSameOrigin ?? false;
 
 		stylizedPdfExport = currentSettings?.stylizedPdfExport ?? true;
 
@@ -384,7 +361,6 @@
 
 		imageCompression = currentSettings?.imageCompression ?? false;
 		imageCompressionSize = currentSettings?.imageCompressionSize ?? { width: '', height: '' };
-		imageCompressionInChannels = currentSettings?.imageCompressionInChannels ?? true;
 
 		defaultModelId = currentSettings?.models?.at(0) ?? '';
 		if ($config?.default_models) {
@@ -392,7 +368,6 @@
 		}
 
 		backgroundImageUrl = currentSettings?.backgroundImageUrl ?? null;
-		webSearch = currentSettings?.webSearch ?? null;
 
 		textScale = currentSettings?.textScale ?? null;
 		fontFamily = normalizeAppFontFamily(currentSettings?.fontFamily) || null;
@@ -400,7 +375,6 @@
 		showTextScaleSlider = false;
 		showFontFamilyInput = false;
 
-		defaultUploadContext = currentSettings?.defaultUploadContext ?? 'focused';
 	};
 
 	let lastSettingsValue = settingsValue;
@@ -1365,77 +1339,6 @@
 
 	<div>
 		<div class={settingRowClass}>
-			<div id="terminal-file-display-label" class={settingLabelClass}>
-				{$i18n.t('Terminal File Display')}
-			</div>
-
-			<button
-				aria-labelledby="terminal-file-display-label terminal-file-display-state"
-				class={actionButtonClass}
-				on:click={() => {
-					terminalFileDisplay = terminalFileDisplay === 'inline' ? 'sidebar' : 'inline';
-					saveSettings({ terminalFileDisplay });
-				}}
-				type="button"
-			>
-				<span id="terminal-file-display-state">
-					{terminalFileDisplay === 'inline' ? $i18n.t('Inline') : $i18n.t('Sidebar')}
-				</span>
-			</button>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Choose where terminal display_file results appear by default.')}
-		</p>
-	</div>
-
-	<div>
-		<div class={settingRowClass}>
-			<div id="show-files-on-terminal-select-label" class={settingLabelClass}>
-				{$i18n.t('Show Files on Terminal Select')}
-			</div>
-
-			<div class={settingControlClass}>
-				<Switch
-					ariaLabelledbyId="show-files-on-terminal-select-label"
-					tooltip={true}
-					bind:state={showFilesOnTerminalSelect}
-					inherited={isDefaultSetting('showFilesOnTerminalSelect')}
-					on:change={() => {
-						saveSettings({ showFilesOnTerminalSelect });
-					}}
-				/>
-			</div>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Open the file browser after selecting a terminal.')}
-		</p>
-	</div>
-
-	<div>
-		<div class={settingRowClass}>
-			<div id="terminal-preview-allow-same-origin-label" class={settingLabelClass}>
-				{$i18n.t('Terminal Preview Allow Same Origin')}
-			</div>
-
-			<div class={settingControlClass}>
-				<Switch
-					ariaLabelledbyId="terminal-preview-allow-same-origin-label"
-					tooltip={true}
-					bind:state={terminalPreviewAllowSameOrigin}
-					inherited={isDefaultSetting('terminalPreviewAllowSameOrigin')}
-					on:change={() => {
-						saveSettings({ terminalPreviewAllowSameOrigin });
-					}}
-				/>
-			</div>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Allow terminal previews to access same-origin browser APIs.')}
-		</p>
-	</div>
-
-	<div>
-		<div class={settingRowClass}>
 			<div id="stylized-pdf-export-label" class={settingLabelClass}>
 				{$i18n.t('Stylized PDF Export')}
 			</div>
@@ -1493,30 +1396,6 @@
 		</p>
 	</div>
 
-	<div>
-		<div class={settingRowClass}>
-			<div id="web-search-in-chat-label" class={settingLabelClass}>
-				{$i18n.t('Web Search in Chat')}
-			</div>
-
-			<button
-				aria-labelledby="web-search-in-chat-label web-search-state"
-				class={actionButtonClass}
-				on:click={() => {
-					toggleWebSearch();
-				}}
-				type="button"
-			>
-				<span id="web-search-state"
-					>{webSearch === 'always' ? $i18n.t('Always') : $i18n.t('Default')}</span
-				>
-			</button>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Set web search availability for new chats.')}
-		</p>
-	</div>
-
 	<div class={sectionHeadingClass}>{$i18n.t('Input')}</div>
 
 	<div>
@@ -1568,30 +1447,6 @@
 		</p>
 	</div>
 
-	{#if $config?.features?.enable_autocomplete_generation}
-		<div>
-			<div class={settingRowClass}>
-				<div id="prompt-autocompletion-label" class={settingLabelClass}>
-					{$i18n.t('Prompt Autocompletion')}
-				</div>
-
-				<div class={settingControlClass}>
-					<Switch
-						ariaLabelledbyId="prompt-autocompletion-label"
-						tooltip={true}
-						bind:state={promptAutocomplete}
-						inherited={isDefaultSetting('promptAutocomplete')}
-						on:change={() => {
-							saveSettings({ promptAutocomplete });
-						}}
-					/>
-				</div>
-			</div>
-			<p class={settingDescriptionClass}>
-				{$i18n.t('Suggest completions while composing prompts.')}
-			</p>
-		</div>
-	{/if}
 
 	{#if richTextInput}
 		<div>
@@ -1781,82 +1636,7 @@
 		</p>
 	</div>
 
-	<div class={sectionHeadingClass}>{$i18n.t('Voice')}</div>
-
-	<div>
-		<div class={settingRowClass}>
-			<div class={settingLabelClass} id="allow-voice-interruption-in-call-label">
-				{$i18n.t('Allow Voice Interruption in Call')}
-			</div>
-
-			<div class={settingControlClass}>
-				<Switch
-					ariaLabelledbyId="allow-voice-interruption-in-call-label"
-					tooltip={true}
-					bind:state={voiceInterruption}
-					inherited={isDefaultSetting('voiceInterruption')}
-					on:change={() => {
-						saveSettings({ voiceInterruption });
-					}}
-				/>
-			</div>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Let speech interrupt the assistant during a voice call.')}
-		</p>
-	</div>
-
-	<div>
-		<div class={settingRowClass}>
-			<div id="display-emoji-label" class={settingLabelClass}>
-				{$i18n.t('Display Emoji in Call')}
-			</div>
-
-			<div class={settingControlClass}>
-				<Switch
-					ariaLabelledbyId="display-emoji-label"
-					tooltip={true}
-					bind:state={showEmojiInCall}
-					inherited={isDefaultSetting('showEmojiInCall')}
-					on:change={() => {
-						saveSettings({ showEmojiInCall });
-					}}
-				/>
-			</div>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Show emoji feedback in the call interface.')}
-		</p>
-	</div>
-
 	<div class={sectionHeadingClass}>{$i18n.t('File')}</div>
-
-	<div>
-		<div class={settingRowClass}>
-			<div id="default-upload-mode-label" class={settingLabelClass}>
-				{$i18n.t('Default Upload Mode')}
-			</div>
-
-			<button
-				aria-labelledby="default-upload-mode-label default-upload-mode-state"
-				class={actionButtonClass}
-				on:click={() => {
-					defaultUploadContext = defaultUploadContext === 'full' ? 'focused' : 'full';
-					saveSettings({ defaultUploadContext });
-				}}
-				type="button"
-			>
-				<span id="default-upload-mode-state">
-					{defaultUploadContext === 'full'
-						? $i18n.t('Using Entire Document')
-						: $i18n.t('Using Focused Retrieval')}
-				</span>
-			</button>
-		</div>
-		<p class={settingDescriptionClass}>
-			{$i18n.t('Attach files with full content or focused retrieval by default.')}
-		</p>
-	</div>
 
 	<div>
 		<div class={settingRowClass}>
@@ -1894,28 +1674,5 @@
 		</p>
 	</div>
 
-	{#if imageCompression}
-		<div>
-			<div class={settingRowClass}>
-				<div id="image-compression-in-channels-label" class={settingLabelClass}>
-					{$i18n.t('Compress Images in Channels')}
-				</div>
 
-				<div class={settingControlClass}>
-					<Switch
-						ariaLabelledbyId="image-compression-in-channels-label"
-						tooltip={true}
-						bind:state={imageCompressionInChannels}
-						inherited={isDefaultSetting('imageCompressionInChannels')}
-						on:change={() => {
-							saveSettings({ imageCompressionInChannels });
-						}}
-					/>
-				</div>
-			</div>
-			<p class={settingDescriptionClass}>
-				{$i18n.t('Apply image compression to channel uploads too.')}
-			</p>
-		</div>
-	{/if}
 </div>

@@ -5,9 +5,7 @@
 	import { getContext } from 'svelte';
 
 	import { goto } from '$app/navigation';
-	import { channels, models } from '$lib/stores';
-	import UserStatus from '$lib/components/channel/Messages/Message/UserStatus.svelte';
-	import UserStatusLinkPreview from '$lib/components/channel/Messages/Message/UserStatusLinkPreview.svelte';
+	import { models } from '$lib/stores';
 
 	const i18n = getContext('i18n');
 
@@ -53,19 +51,7 @@
 
 		label = token?.label ?? id;
 
-		if (triggerChar === '#') {
-			if (idType === 'C') {
-				// Channel
-				const channel = $channels.find((c) => c.id === id);
-				if (channel) {
-					label = channel.name;
-				} else {
-					label = $i18n.t('Unknown');
-				}
-			} else if (idType === 'T') {
-				// Thread
-			}
-		} else if (triggerChar === '@') {
+		if (triggerChar === '@') {
 			if (idType === 'U') {
 				// User
 			} else if (idType === 'M') {
@@ -98,14 +84,7 @@
 						await goto(`/?model=${id}`);
 					}
 				} else if (triggerChar === '#') {
-					if (idType === 'C') {
-						// Open channel
-						if ($channels.find((c) => c.id === id)) {
-							await goto(`/channels/${id}`);
-						}
-					} else if (idType === 'T') {
-						// Open thread
-					}
+					console.log('Clicked mention', id);
 				} else {
 					// Unknown trigger char, just log
 					console.log('Clicked mention', id);
@@ -116,7 +95,4 @@
 		</span>
 	</LinkPreview.Trigger>
 
-	{#if triggerChar === '@' && idType === 'U'}
-		<UserStatusLinkPreview {id} />
-	{/if}
 </LinkPreview.Root>

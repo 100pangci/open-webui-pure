@@ -12,8 +12,8 @@
 #
 # Usage:
 #   ./scripts/generate-sbom.sh              # generate sbom.cdx.json from manifests
-#   ./scripts/generate-sbom.sh docker       # generate from Docker image (best license coverage)
-#   ./scripts/generate-sbom.sh docker IMG   # generate from a specific image
+#   ./scripts/generate-sbom.sh podman       # generate from a Podman image (best license coverage)
+#   ./scripts/generate-sbom.sh podman IMG   # generate from a specific image
 #   ./scripts/generate-sbom.sh validate     # validate existing SBOM
 #
 # Requirements:
@@ -102,9 +102,9 @@ print(f'  Timestamp: {data.get(\"metadata\", {}).get(\"timestamp\", \"none\")}')
     info "SBOM written → sbom.cdx.json"
 }
 
-generate_docker() {
+generate_podman() {
     local IMAGE="${1:-ghcr.io/open-webui/open-webui:latest}"
-    info "Generating SBOM from Docker image: $IMAGE"
+    info "Generating SBOM from Podman image: $IMAGE"
 
     if ! command -v syft &>/dev/null; then
         warn "syft is not installed. Install with: brew install syft"
@@ -112,7 +112,7 @@ generate_docker() {
     fi
 
     dim "Pulling and scanning image..."
-    syft scan "docker:$IMAGE" \
+    syft scan "podman:$IMAGE" \
         --output "cyclonedx-json=$OUTPUT" \
         --quiet
 
@@ -181,11 +181,11 @@ TARGET="${1:-generate}"
 
 case "$TARGET" in
     generate) generate ;;
-    docker)   generate_docker "${2:-}" ;;
+    podman)   generate_podman "${2:-}" ;;
     validate) validate ;;
     *)
         warn "Unknown target: $TARGET"
-        echo "Usage: $0 [generate|docker [IMAGE]|validate]"
+        echo "Usage: $0 [generate|podman [IMAGE]|validate]"
         exit 1
         ;;
 esac

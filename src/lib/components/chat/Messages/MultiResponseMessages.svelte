@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, tick, getContext } from 'svelte';
-	import { createEventDispatcher } from 'svelte';
 
 	import { mobile, models, settings } from '$lib/stores';
 
@@ -37,8 +36,6 @@
 	export let updateChat: Function;
 	export let editMessage: Function;
 	export let saveMessage: Function;
-	export let rateMessage: Function;
-	export let actionMessage: Function;
 
 	export let submitMessage: Function;
 	export let deleteMessage: Function;
@@ -48,15 +45,11 @@
 	export let mergeResponses: Function;
 
 	export let addMessages: Function;
-	export let onToolCallResolved: Function = () => {};
 	export let forkHandler: Function | null = null;
 
 	export let triggerScroll: Function;
 
 	export let topPadding = false;
-	export let onInsertToNote: ((content: string) => void) | null = null;
-
-	const dispatch = createEventDispatcher();
 
 	let currentMessageId;
 	let parentMessage;
@@ -317,9 +310,7 @@
 									{updateChat}
 									{editMessage}
 									{saveMessage}
-									{rateMessage}
 									{deleteMessage}
-									{actionMessage}
 									{submitMessage}
 									{continueResponse}
 									regenerateResponse={async (message, prompt = null) => {
@@ -329,12 +320,10 @@
 											groupedMessageIds[selectedModelIdx].messageIds.length - 1;
 									}}
 									{addMessages}
-									{onToolCallResolved}
 									{forkHandler}
 									{readOnly}
 									{compactPreview}
 									{topPadding}
-									{onInsertToNote}
 								/>
 							{/if}
 						{/key}
@@ -380,10 +369,8 @@
 										{updateChat}
 										{editMessage}
 										{saveMessage}
-										{rateMessage}
 										{deleteMessage}
 										{allowDelete}
-										{actionMessage}
 										{submitMessage}
 										{continueResponse}
 										regenerateResponse={async (message, prompt = null) => {
@@ -393,13 +380,11 @@
 												groupedMessageIds[modelIdx].messageIds.length - 1;
 										}}
 										{addMessages}
-										{onToolCallResolved}
 										{forkHandler}
 										{readOnly}
 										{compactPreview}
 										{editCodeBlock}
 										{topPadding}
-										{onInsertToNote}
 									/>
 								{/if}
 							{/key}

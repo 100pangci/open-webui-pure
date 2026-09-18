@@ -1,32 +1,23 @@
 import asyncio
 import base64
-import io
 import mimetypes
 import re
 from pathlib import Path
 from typing import Optional
 
 import aiofiles
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Request,
-    UploadFile,
-)
 from open_webui.env import (
     AIOHTTP_CLIENT_ALLOW_REDIRECTS,
     AIOHTTP_CLIENT_SESSION_SSL,
     ENABLE_IMAGE_CONTENT_TYPE_EXTENSION_FALLBACK,
 )
-from open_webui.models.chats import Chats
 from open_webui.models.files import Files
-from open_webui.retrieval.web.utils import get_ssrf_safe_session, validate_url
-from open_webui.routers.files import upload_file_handler
 from open_webui.utils.access_control.files import has_access_to_file
 from open_webui.routers.images import (
     get_image_data,
+    get_ssrf_safe_session,
     upload_image,
+    validate_url,
 )
 from open_webui.storage.provider import Storage
 
@@ -58,7 +49,7 @@ async def get_image_base64_from_url(url: str, user=None) -> Optional[str]:
 
             max_bytes = None
             try:
-                max_size_mb = int(await Config.get('rag.file.max_size') or 0)
+                max_size_mb = int(await Config.get('file.max_size') or 0)
             except (TypeError, ValueError):
                 max_size_mb = 0
             if max_size_mb > 0:
@@ -137,63 +128,9 @@ async def convert_markdown_base64_images(request, content: str, metadata, user):
     return ''.join(result_parts)
 
 
-def load_b64_audio_data(b64_str):
-    try:
-        if ',' in b64_str:
-            header, b64_data = b64_str.split(',', 1)
-        else:
-            b64_data = b64_str
-            header = 'data:audio/wav;base64'
-        audio_data = base64.b64decode(b64_data)
-        content_type = header.split(';')[0].split(':')[1] if ';' in header else 'audio/wav'
-        return audio_data, content_type
-    except Exception as e:
-        print(f'Error decoding base64 audio data: {e}')
-        return None, None
-
-
-async def upload_audio(request, audio_data, content_type, metadata, user):
-    audio_format = mimetypes.guess_extension(content_type)
-    file = UploadFile(
-        file=io.BytesIO(audio_data),
-        filename=f'generated-{audio_format}',  # will be converted to a unique ID on upload_file
-        headers={
-            'content-type': content_type,
-        },
-    )
-    file_item = await upload_file_handler(
-        request,
-        file=file,
-        metadata=metadata,
-        process=False,
-        user=user,
-    )
-    url = request.app.url_path_for('get_file_content_by_id', id=file_item.id)
-    return url
-
-
-async def get_audio_url_from_base64(request, base64_audio_string, metadata, user):
-    if 'data:audio/wav;base64' in base64_audio_string:
-        audio_url = ''
-        # Extract base64 audio data from the line
-        audio_data, content_type = load_b64_audio_data(base64_audio_string)
-        if audio_data is not None:
-            audio_url = await upload_audio(
-                request,
-                audio_data,
-                content_type,
-                metadata,
-                user,
-            )
-        return audio_url
-    return None
-
-
 async def get_file_url_from_base64(request, base64_file_string, metadata, user):
     if BASE64_IMAGE_URL_PREFIX.match(base64_file_string):
         return await get_image_url_from_base64(request, base64_file_string, metadata, user)
-    elif 'data:audio/wav;base64' in base64_file_string:
-        return await get_audio_url_from_base64(request, base64_file_string, metadata, user)
     return None
 
 

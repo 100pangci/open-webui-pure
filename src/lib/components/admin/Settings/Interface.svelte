@@ -35,12 +35,6 @@
 		AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE: '',
 		TAGS_GENERATION_PROMPT_TEMPLATE: '',
 		ENABLE_TAGS_GENERATION: true,
-		ENABLE_SEARCH_QUERY_GENERATION: true,
-		ENABLE_RETRIEVAL_QUERY_GENERATION: true,
-		QUERY_GENERATION_PROMPT_TEMPLATE: '',
-		TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE: '',
-		ENABLE_VOICE_MODE_PROMPT: true,
-		VOICE_MODE_PROMPT_TEMPLATE: ''
 	};
 
 	let chatConfig = {
@@ -49,8 +43,7 @@
 		CONTEXT_COMPACTION_TOKEN_THRESHOLD: 80000,
 		CONTEXT_COMPACTION_TOKEN_CAP: 80000,
 		CONTEXT_COMPACTION_RETENTION_PERCENTAGE: 40,
-		CONTEXT_COMPACTION_PROMPT_TEMPLATE: '',
-		ENABLE_TOOL_PERMISSIONS: false
+		CONTEXT_COMPACTION_PROMPT_TEMPLATE: ''
 	};
 	let showTaskParameters = false;
 
@@ -77,8 +70,7 @@
 						...current,
 						features: {
 							...current.features,
-							enable_context_compaction: chatConfig.ENABLE_CONTEXT_COMPACTION,
-							enable_tool_permissions: chatConfig.ENABLE_TOOL_PERMISSIONS
+							enable_context_compaction: chatConfig.ENABLE_CONTEXT_COMPACTION
 						}
 					}
 				: current
@@ -257,18 +249,6 @@
 
 			<AdminSettingSection title={$i18n.t('Chat')}>
 				<AdminSettingRow
-					label={$i18n.t('Tool Permissions')}
-					description={$i18n.t('Show Full access and Ask for approval in the chat input menu.')}
-					let:labelId
-				>
-					<div slot="label" class="flex items-center gap-2">
-						<span>{$i18n.t('Tool Permissions')}</span>
-						<ExperimentalBadge />
-					</div>
-					<Switch bind:state={chatConfig.ENABLE_TOOL_PERMISSIONS} ariaLabelledbyId={labelId} />
-				</AdminSettingRow>
-
-				<AdminSettingRow
 					label={$i18n.t('Context Compaction')}
 					description={$i18n.t(
 						'Summarize older chat history when the conversation context grows large.'
@@ -401,29 +381,6 @@
 				{/if}
 
 				<AdminSettingRow
-					label={$i18n.t('Voice Mode Prompt')}
-					description={$i18n.t('Apply voice-specific instructions while voice mode is active.')}
-					let:labelId
-				>
-					<Switch bind:state={taskConfig.ENABLE_VOICE_MODE_PROMPT} ariaLabelledbyId={labelId} />
-				</AdminSettingRow>
-
-				{#if taskConfig.ENABLE_VOICE_MODE_PROMPT}
-					<AdminSettingField
-						label={$i18n.t('Prompt Template')}
-						description={$i18n.t('Defines the behavior used for spoken conversations.')}
-					>
-						<Textarea
-							className={textareaClass}
-							bind:value={taskConfig.VOICE_MODE_PROMPT_TEMPLATE}
-							placeholder={$i18n.t(
-								'Leave empty to use the default prompt, or enter a custom prompt'
-							)}
-						/>
-					</AdminSettingField>
-				{/if}
-
-				<AdminSettingRow
 					label={$i18n.t('Follow Up Generation')}
 					description={$i18n.t('Show suggested next questions after assistant responses.')}
 					let:labelId
@@ -468,39 +425,6 @@
 						/>
 					</AdminSettingField>
 				{/if}
-
-				<AdminSettingRow
-					label={$i18n.t('Retrieval Query Generation')}
-					description={$i18n.t('Rewrite user requests for knowledge retrieval.')}
-					let:labelId
-				>
-					<Switch
-						bind:state={taskConfig.ENABLE_RETRIEVAL_QUERY_GENERATION}
-						ariaLabelledbyId={labelId}
-					/>
-				</AdminSettingRow>
-
-				<AdminSettingRow
-					label={$i18n.t('Web Search Query Generation')}
-					description={$i18n.t('Rewrite user requests into web-search queries.')}
-					let:labelId
-				>
-					<Switch
-						bind:state={taskConfig.ENABLE_SEARCH_QUERY_GENERATION}
-						ariaLabelledbyId={labelId}
-					/>
-				</AdminSettingRow>
-
-				<AdminSettingField
-					label={$i18n.t('Query Generation Prompt')}
-					description={$i18n.t('Shared prompt for retrieval and web-search query rewriting.')}
-				>
-					<Textarea
-						className={textareaClass}
-						bind:value={taskConfig.QUERY_GENERATION_PROMPT_TEMPLATE}
-						placeholder={$i18n.t('Leave empty to use the default prompt, or enter a custom prompt')}
-					/>
-				</AdminSettingField>
 
 				<AdminSettingRow
 					label={$i18n.t('Autocomplete Generation')}
@@ -553,16 +477,6 @@
 					/>
 				</AdminSettingField>
 
-				<AdminSettingField
-					label={$i18n.t('Tools Function Calling Prompt')}
-					description={$i18n.t('Guides how the assistant formats tool and function calls.')}
-				>
-					<Textarea
-						className={textareaClass}
-						bind:value={taskConfig.TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE}
-						placeholder={$i18n.t('Leave empty to use the default prompt, or enter a custom prompt')}
-					/>
-				</AdminSettingField>
 			</AdminSettingSection>
 		</div>
 

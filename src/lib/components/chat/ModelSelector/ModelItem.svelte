@@ -2,20 +2,17 @@
 	import { marked } from 'marked';
 
 	import { getContext, tick } from 'svelte';
-	import dayjs from '$lib/dayjs';
 
-	import { mobile, settings, user } from '$lib/stores';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { settings, user } from '$lib/stores';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { copyToClipboard, sanitizeResponseContent } from '$lib/utils';
-	import ArrowUpTray from '$lib/components/icons/ArrowUpTray.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 	import ModelItemMenu from './ModelItemMenu.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import { toast } from 'svelte-sonner';
 	import Tag from '$lib/components/icons/Tag.svelte';
-	import Label from '$lib/components/icons/Label.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -26,9 +23,7 @@
 	export let selectedValues: string[] = [];
 	export let compareEnabled = false;
 
-	export let unloadModelHandler: (model: any) => void = () => {};
 	export let pinModelHandler: (modelId: string) => void = () => {};
-	export let deleteModelHandler: (model: any) => void = () => {};
 	export let selectionOnly = false;
 
 	export let onClick: () => void = () => {};
@@ -43,8 +38,6 @@
 			toast.error($i18n.t('Failed to copy link'));
 		}
 	};
-
-	const formatSize = (size?: number) => (size ? `(${(size / 1024 ** 3).toFixed(1)}GB)` : '');
 
 	let showMenu = false;
 	$: isSelected = compareEnabled ? selectedValues.includes(item.value) : value === item.value;
@@ -117,75 +110,6 @@
 			</div>
 
 			<div class="flex shrink-0 items-center gap-1.5">
-				{#if item.model.owned_by === 'ollama'}
-					{#if (item.model.ollama?.details?.parameter_size ?? '') !== ''}
-						<div class="flex items-center translate-y-[0.5px]">
-							<Tooltip
-								content={`${
-									item.model.ollama?.details?.quantization_level
-										? item.model.ollama?.details?.quantization_level + ' '
-										: ''
-								}${
-									item.model.ollama?.size
-										? `(${(item.model.ollama?.size / 1024 ** 3).toFixed(1)}GB)`
-										: ''
-								}`}
-								className="self-end"
-							>
-								<span
-									class="line-clamp-1 text-[0.6875rem] font-normal text-gray-500 dark:text-gray-400"
-									>{item.model.ollama?.details?.parameter_size ?? ''}</span
-								>
-							</Tooltip>
-						</div>
-					{/if}
-				{:else if item.model.provider === 'lmstudio' || item.model.provider === 'llama.cpp'}
-					{@const parameterSize =
-						item.model.params_string ?? item.model.details?.parameter_size ?? ''}
-					{@const quantization =
-						item.model.quantization?.name ?? item.model.details?.quantization_level ?? ''}
-					{@const size = item.model.size_bytes ?? item.model.size}
-					{#if parameterSize || quantization || size}
-						<div class="flex items-center translate-y-[0.5px]">
-							<Tooltip
-								content={`${quantization ? `${quantization} ` : ''}${formatSize(size)}`}
-								className="self-end"
-							>
-								<span
-									class="line-clamp-1 text-[0.6875rem] font-normal text-gray-500 dark:text-gray-400"
-								>
-									{parameterSize || quantization || formatSize(size)}
-								</span>
-							</Tooltip>
-						</div>
-					{/if}
-				{/if}
-
-				{#if item.model.loaded}
-					<div class="flex items-center px-0.5">
-						<Tooltip
-							content={item.model.ollama?.expires_at &&
-							new Date(item.model.ollama?.expires_at * 1000) > new Date()
-								? `${$i18n.t('Unloads {{FROM_NOW}}', {
-										FROM_NOW: dayjs(item.model.ollama?.expires_at * 1000).fromNow()
-									})}`
-								: `${$i18n.t('Loaded')}`}
-							className="self-end"
-						>
-							<div class=" flex items-center">
-								<span class="relative flex size-1.5">
-									<span
-										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-									/>
-									<span class="relative inline-flex size-1.5 rounded-full bg-green-500" />
-								</span>
-							</div>
-						</Tooltip>
-					</div>
-				{/if}
-
-				<!-- {JSON.stringify(item.info)} -->
-
 				{#if (item?.model?.tags ?? []).length > 0}
 					{#key item.model.id}
 						<Tooltip elementId="tags-{item.model.id}">
@@ -276,31 +200,11 @@
 	</div>
 
 	<div class="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
-		{#if !selectionOnly && $user?.role === 'admin' && item.model.loaded}
-			<Tooltip
-				content={`${$i18n.t('Eject')}`}
-				className="flex-shrink-0 group-hover/item:opacity-100 opacity-0 "
-			>
-				<button
-					class="focus-ring flex"
-					aria-label={$i18n.t('Eject model')}
-					on:click={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						unloadModelHandler(item.value);
-					}}
-				>
-					<ArrowUpTray className="size-3" />
-				</button>
-			</Tooltip>
-		{/if}
-
 		{#if !selectionOnly}
 			<ModelItemMenu
 				bind:show={showMenu}
 				model={item.model}
 				{pinModelHandler}
-				{deleteModelHandler}
 				copyLinkHandler={() => {
 					copyLinkHandler(item.model);
 				}}

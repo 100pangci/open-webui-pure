@@ -32,7 +32,6 @@
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Banner from '$lib/components/common/Banner.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
 	import UserPreviewModal from '$lib/components/admin/UserPreviewModal.svelte';
 
 	const i18n = getContext('i18n');
@@ -349,7 +348,7 @@
 					<tr class="dark:border-gray-850 text-xs">
 						<td class="px-3 py-1 font-normal text-gray-900 dark:text-white max-w-48">
 							<div class="flex items-center gap-2">
-								<ProfilePreview {user} side="right" align="center" sideOffset={6}>
+								<div>
 									<img
 										class="rounded-full size-5.5 object-cover flex-shrink-0"
 										src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
@@ -361,7 +360,7 @@
 											e.currentTarget.src = '/favicon.png';
 										}}
 									/>
-								</ProfilePreview>
+								</div>
 
 								<div class="font-normal truncate">{user.name}</div>
 

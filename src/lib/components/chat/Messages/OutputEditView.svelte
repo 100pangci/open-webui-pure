@@ -90,21 +90,13 @@
 	// --- Display items ---
 
 	interface DisplayItem {
-		type: 'message' | 'reasoning' | 'function_call' | 'code_interpreter' | 'openai_tool';
+		type: 'message' | 'reasoning';
 		indices: number[];
 		item: any;
-		outputItem?: any;
 	}
 
 	function buildDisplayItems(items: any[]): DisplayItem[] {
 		const result: DisplayItem[] = [];
-		const outputByCallId: Record<string, { item: any; index: number }> = {};
-
-		for (let i = 0; i < items.length; i++) {
-			if (items[i]?.type === 'function_call_output') {
-				outputByCallId[items[i].call_id] = { item: items[i], index: i };
-			}
-		}
 
 		for (let i = 0; i < items.length; i++) {
 			const item = items[i];
@@ -113,20 +105,6 @@
 				result.push({ type: 'message', indices: [i], item });
 			} else if (t === 'reasoning') {
 				result.push({ type: 'reasoning', indices: [i], item });
-			} else if (t === 'function_call') {
-				const paired = outputByCallId[item.call_id];
-				result.push({
-					type: 'function_call',
-					indices: paired ? [i, paired.index] : [i],
-					item,
-					outputItem: paired?.item
-				});
-			} else if (t === 'function_call_output') {
-				// grouped with function_call
-			} else if (t === 'open_webui:code_interpreter') {
-				result.push({ type: 'code_interpreter', indices: [i], item });
-			} else if (['web_search_call', 'file_search_call', 'computer_call'].includes(t)) {
-				result.push({ type: 'openai_tool', indices: [i], item });
 			}
 		}
 		return result;
@@ -178,15 +156,6 @@
 		onChange(output);
 	}
 
-	function formatArgs(args: any): string {
-		if (!args) return '';
-		try {
-			return typeof args === 'string' ? args : JSON.stringify(args, null, 2);
-		} catch {
-			return String(args);
-		}
-	}
-
 	function resizeEl(el: HTMLTextAreaElement) {
 		const c = document.getElementById('messages-container');
 		const s = c?.scrollTop;
@@ -205,26 +174,7 @@
 	}
 
 	function getItemLabel(di: DisplayItem): string {
-		switch (di.type) {
-			case 'message':
-				return 'Text';
-			case 'reasoning':
-				return 'Thought';
-			case 'function_call':
-				return di.item.name ?? 'Tool';
-			case 'code_interpreter':
-				return 'Code';
-			case 'openai_tool': {
-				const names: Record<string, string> = {
-					web_search_call: 'Search',
-					file_search_call: 'Files',
-					computer_call: 'Computer'
-				};
-				return names[di.item.type] ?? di.item.type;
-			}
-			default:
-				return 'Item';
-		}
+		return di.type === 'message' ? 'Text' : 'Thought';
 	}
 </script>
 
@@ -293,44 +243,6 @@
 								placeholder={$i18n.t('Reasoning text...')}
 								rows="1"
 							/>
-						{:else if di.type === 'function_call'}
-							<div class="text-[0.9375rem] p-1.5 text-gray-500 dark:text-gray-400">
-								{#if di.item.arguments}
-									<pre
-										class="text-xs font-mono whitespace-pre-wrap overflow-x-auto pb-0.5">{formatArgs(
-											di.item.arguments
-										)}</pre>
-								{/if}
-								{#if di.outputItem}
-									<pre
-										class="text-xs font-mono whitespace-pre-wrap overflow-x-auto mt-1 max-h-32 overflow-y-auto">{JSON.stringify(
-											di.outputItem.output,
-											null,
-											2
-										)}</pre>
-								{/if}
-							</div>
-						{:else if di.type === 'code_interpreter'}
-							<div class="text-[0.9375rem] p-1.5 text-gray-500 dark:text-gray-400">
-								{#if di.item.code}
-									<pre class="text-xs font-mono whitespace-pre overflow-x-auto">{di.item.code}</pre>
-								{/if}
-								{#if di.item.output}
-									<pre
-										class="text-xs font-mono whitespace-pre-wrap overflow-x-auto mt-1 max-h-32 overflow-y-auto">{typeof di
-											.item.output === 'object'
-											? JSON.stringify(di.item.output, null, 2)
-											: di.item.output}</pre>
-								{/if}
-							</div>
-						{:else if di.type === 'openai_tool'}
-							<div class="text-[0.9375rem] p-1.5 text-gray-500 dark:text-gray-400">
-								{#if di.item.action?.queries || di.item.queries}
-									<span class="text-xs"
-										>{(di.item.action?.queries ?? di.item.queries ?? []).join(', ')}</span
-									>
-								{/if}
-							</div>
 						{/if}
 					</div>
 

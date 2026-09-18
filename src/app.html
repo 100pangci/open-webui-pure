@@ -36,6 +36,14 @@
 		<meta name="robots" content="noindex,nofollow" />
 
 		<script src="/static/loader.js" defer crossorigin="use-credentials"></script>
+		<script>
+			// After a redeploy, old cached pages may request chunks that no longer
+			// exist. Reload once so the browser picks up the new build instead of
+			// showing a broken UI.
+			window.addEventListener('vite:preloadError', () => {
+				window.location.reload();
+			});
+		</script>
 		<link rel="stylesheet" href="/static/custom.css" crossorigin="use-credentials" />
 
 		<script>

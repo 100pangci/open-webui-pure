@@ -40,7 +40,6 @@ from open_webui.models.groups import Groups
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
-from open_webui.utils.anthropic import ANTHROPIC_VERSION, get_anthropic_models, is_anthropic_url
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.json_codec import JSONCodec
@@ -125,8 +124,6 @@ async def get_models_request(
     user: UserModel = None,
     config=None,
 ):
-    if is_anthropic_url(url):
-        return await get_anthropic_models(url, key, user=user)
     return await send_get_request(request, f'{url}/models', key, user=user, config=config)
 
 
@@ -451,96 +448,6 @@ async def send_model_management_request(
     finally:
         if not streaming:
             await cleanup_response(response)
-
-
-async def get_anthropic_request_target(request: Request, form_data: dict, user: UserModel):
-    """Resolve the upstream connection, payload and auth headers for a native Anthropic request."""
-    requested_model = form_data.get('model')
-    if not requested_model:
-        raise HTTPException(status_code=400, detail='model is required')
-
-    payload = {**form_data}
-    model_id = requested_model
-    model_info = await Models.get_model_by_id(model_id)
-    await check_model_access(user, model_info, BYPASS_MODEL_ACCESS_CONTROL)
-
-    if model_info and model_info.base_model_id:
-        model_id = model_info.base_model_id
-        payload['model'] = model_id
-
-    models = request.app.state.OPENAI_MODELS
-    if not models or model_id not in models:
-        await get_all_models(request, user=user)
-        models = request.app.state.OPENAI_MODELS
-
-    model = models.get(model_id)
-    if not model or 'urlIdx' not in model:
-        raise HTTPException(status_code=404, detail=ERROR_MESSAGES.MODEL_NOT_FOUND())
-
-    url, key, api_config = await get_openai_connection(model['urlIdx'])
-    prefix_id = api_config.get('prefix_id')
-    payload['model'] = strip_provider_model_prefix(payload['model'], prefix_id)
-
-    headers, cookies = await get_headers_and_cookies(request, url, key, api_config, user=user)
-
-    # Anthropic's native endpoints reject bearer auth, the key belongs in x-api-key.
-    if is_anthropic_url(url):
-        headers.setdefault('anthropic-version', ANTHROPIC_VERSION)
-        if api_config.get('auth_type') in (None, 'bearer'):
-            headers.pop('Authorization', None)
-            headers.setdefault('x-api-key', key)
-
-    return requested_model, payload, url, key, headers, cookies
-
-
-async def count_anthropic_tokens(request: Request, form_data: dict, user: UserModel) -> int:
-    """Forward an Anthropic token-count request through an OpenAI-compatible connection."""
-    requested_model, payload, url, key, headers, cookies = await get_anthropic_request_target(request, form_data, user)
-    request_url = f'{url.rstrip("/")}/messages/count_tokens'
-    response = None
-
-    try:
-        session = await get_session()
-        response = await session.request(
-            method='POST',
-            url=request_url,
-            data=JSONCodec.dumps(payload),
-            headers=headers,
-            cookies=cookies,
-            ssl=AIOHTTP_CLIENT_SESSION_SSL,
-            timeout=get_client_timeout(),
-        )
-
-        try:
-            response_data = await response.json(loads=JSONCodec.loads)
-        except Exception:
-            response_data = await response.text()
-
-        if response.status >= 400:
-            await publish_model_provider_request_failed(
-                request,
-                actor=user,
-                provider='openai-compatible',
-                base_url=url,
-                api_key=key,
-                status=response.status,
-                requested_model=requested_model,
-                upstream_error=response_data,
-            )
-            raise HTTPException(status_code=response.status, detail=response_data)
-
-        input_tokens = response_data.get('input_tokens') if isinstance(response_data, dict) else None
-        if isinstance(input_tokens, bool) or not isinstance(input_tokens, int) or input_tokens < 0:
-            raise HTTPException(status_code=502, detail='Invalid token-count response from upstream provider')
-
-        return input_tokens
-    except HTTPException:
-        raise
-    except Exception:
-        log.exception('Failed to count Anthropic tokens for model %s', requested_model)
-        raise HTTPException(status_code=502, detail=ERROR_MESSAGES.SERVER_CONNECTION_ERROR)
-    finally:
-        await cleanup_response(response)
 
 
 @router.get('/config')
@@ -891,10 +798,6 @@ async def get_models(request: Request, url_idx: int | None = None, user=Depends(
                         'data': api_config.get('model_ids', []) or [],
                         'object': 'list',
                     }
-                elif is_anthropic_url(url):
-                    models = await get_anthropic_models(url, key, user=user)
-                    if models is None:
-                        raise Exception('Failed to connect to Anthropic API')
                 else:
                     async with session.get(
                         f'{url}/models',
@@ -1114,13 +1017,6 @@ async def verify_connection(
                             return PlainTextResponse(status_code=r.status, content=response_data)
 
                     return response_data
-            elif is_anthropic_url(url):
-                result = await get_anthropic_models(url, key)
-                if result is None:
-                    raise HTTPException(status_code=500, detail=ERROR_MESSAGES.SERVER_CONNECTION_ERROR)
-                if 'error' in result:
-                    raise HTTPException(status_code=500, detail=result['error'])
-                return result
             else:
                 async with session.get(
                     f'{url}/models',
@@ -1299,47 +1195,6 @@ def convert_to_responses_payload(payload: dict) -> dict:
                 system_content = content
             elif isinstance(content, list):
                 system_content = '\n'.join(p.get('text', '') for p in content if p.get('type') == 'text')
-            continue
-
-        # Handle assistant messages with tool_calls (from convert_output_to_messages)
-        if role == 'assistant' and msg.get('tool_calls'):
-            # Add text content as message if present
-            if content:
-                text = (
-                    content
-                    if isinstance(content, str)
-                    else '\n'.join(p.get('text', '') for p in content if p.get('type') == 'text')
-                )
-                if text.strip():
-                    input_items.append(
-                        {
-                            'type': 'message',
-                            'role': 'assistant',
-                            'content': [{'type': 'output_text', 'text': text}],
-                        }
-                    )
-            # Convert each tool_call to a function_call input item
-            for tool_call in msg['tool_calls']:
-                func = tool_call.get('function', {})
-                input_items.append(
-                    {
-                        'type': 'function_call',
-                        'call_id': tool_call.get('id', ''),
-                        'name': func.get('name', ''),
-                        'arguments': func.get('arguments', '{}'),
-                    }
-                )
-            continue
-
-        # Handle tool result messages
-        if role == 'tool':
-            input_items.append(
-                {
-                    'type': 'function_call_output',
-                    'call_id': msg.get('tool_call_id', ''),
-                    'output': msg.get('content', ''),
-                }
-            )
             continue
 
         # Convert content format
@@ -1533,15 +1388,6 @@ async def generate_chat_completion(
 
     prefix_id = api_config.get('prefix_id', None)
     payload['model'] = strip_provider_model_prefix(payload['model'], prefix_id)
-
-    # Add user info to the payload if the model is a pipeline
-    if 'pipeline' in model and model.get('pipeline'):
-        payload['user'] = {
-            'name': user.name,
-            'id': user.id,
-            'email': user.email,
-            'role': user.role,
-        }
 
     # Check if model is a reasoning model that needs special handling
     if is_openai_new_model(payload['model']):

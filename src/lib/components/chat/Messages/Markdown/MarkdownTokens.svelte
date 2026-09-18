@@ -8,18 +8,15 @@
 
 	import { marked, type Token } from 'marked';
 	import { copyToClipboard, unescapeHtml } from '$lib/utils';
-	import { resolveChatMessageToolCall } from '$lib/apis/chats';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { settings } from '$lib/stores';
-	import { toast } from 'svelte-sonner';
 
 	import CodeBlock from '$lib/components/chat/Messages/CodeBlock.svelte';
 	import MarkdownInlineTokens from '$lib/components/chat/Messages/Markdown/MarkdownInlineTokens.svelte';
 	import KatexRenderer from './KatexRenderer.svelte';
 	import AlertRenderer, { alertComponent } from './AlertRenderer.svelte';
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
-	import ToolCallDisplay from '$lib/components/common/ToolCallDisplay.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
 	import ConsecutiveDetailsGroup from './ConsecutiveDetailsGroup.svelte';
@@ -29,8 +26,6 @@
 	import ColonFenceBlock from './ColonFenceBlock.svelte';
 
 	export let id: string;
-	export let chatId = '';
-	export let messageId = '';
 	export let tokens: Token[];
 	export let top = true;
 	export let attributes = {};
@@ -46,21 +41,18 @@
 
 	export let editCodeBlock = true;
 	export let topPadding = false;
-	export let allowEmbeds = true;
 
 	export let onSave: Function = () => {};
 	export let onUpdate: Function = () => {};
 	export let onPreview: Function = () => {};
 
-	export let onTaskClick: Function = () => {};
 	export let onSourceClick: Function = () => {};
-	export let onToolCallResolved: Function = () => {};
 
 	const headerComponent = (depth: number) => {
 		return 'h' + depth;
 	};
 
-	const GROUPABLE_DETAIL_TYPES = new Set(['tool_calls', 'reasoning', 'code_interpreter']);
+	const GROUPABLE_DETAIL_TYPES = new Set(['reasoning']);
 
 	const isGroupableDetailToken = (token: Token & { attributes?: { type?: string } }) => {
 		return token?.type === 'details' && GROUPABLE_DETAIL_TYPES.has(token?.attributes?.type ?? '');
@@ -101,30 +93,6 @@
 		return decode(token?.text || '')
 			.replace(/<summary>.*?<\/summary>/gi, '')
 			.trim();
-	};
-
-	let resolvingCallId = '';
-
-	const resolveToolCall = async (callId: string, approved: boolean) => {
-		if (!chatId || !messageId || !callId || resolvingCallId) {
-			return;
-		}
-
-		resolvingCallId = callId;
-		try {
-			const res = await resolveChatMessageToolCall(
-				localStorage.token,
-				chatId,
-				messageId,
-				callId,
-				approved ? 'approve' : 'reject'
-			);
-			onToolCallResolved(res);
-		} catch (err) {
-			toast.error(String(err));
-		} finally {
-			resolvingCallId = '';
-		}
 	};
 
 	$: detailButtonClassName = `py-0.5 ${
@@ -308,18 +276,14 @@
 			<blockquote dir="auto">
 				<svelte:self
 					id={`${id}-${tokenIdx}`}
-					{chatId}
-					{messageId}
 					tokens={token.tokens}
 					{done}
 					{save}
 					{preview}
 					{compactPreview}
 					{editCodeBlock}
-					{onTaskClick}
 					{sourceIds}
 					{onSourceClick}
-					{onToolCallResolved}
 				/>
 			</blockquote>
 		{/if}
@@ -333,23 +297,12 @@
 								class=" translate-y-[1px] -translate-x-1 flex-shrink-0"
 								type="checkbox"
 								checked={item.checked}
-								on:change={(e) => {
-									onTaskClick({
-										id: id,
-										token: token,
-										tokenIdx: tokenIdx,
-										item: item,
-										itemIdx: itemIdx,
-										checked: e.target.checked
-									});
-								}}
+								disabled
 							/>
 						{/if}
 
 						<svelte:self
 							id={`${id}-${tokenIdx}-${itemIdx}`}
-							{chatId}
-							{messageId}
 							tokens={item.tokens}
 							top={token.loose}
 							{done}
@@ -357,7 +310,6 @@
 							{preview}
 							{compactPreview}
 							{editCodeBlock}
-							{onTaskClick}
 							{sourceIds}
 							{onSourceClick}
 						/>
@@ -373,23 +325,12 @@
 								class="flex-shrink-0"
 								type="checkbox"
 								checked={item.checked}
-								on:change={(e) => {
-									onTaskClick({
-										id: id,
-										token: token,
-										tokenIdx: tokenIdx,
-										item: item,
-										itemIdx: itemIdx,
-										checked: e.target.checked
-									});
-								}}
+								disabled
 							/>
 
 							<div>
 								<svelte:self
 									id={`${id}-${tokenIdx}-${itemIdx}`}
-									{chatId}
-									{messageId}
 									tokens={item.tokens}
 									top={token.loose}
 									{done}
@@ -397,7 +338,6 @@
 									{preview}
 									{compactPreview}
 									{editCodeBlock}
-									{onTaskClick}
 									{sourceIds}
 									{onSourceClick}
 								/>
@@ -405,8 +345,6 @@
 						{:else}
 							<svelte:self
 								id={`${id}-${tokenIdx}-${itemIdx}`}
-								{chatId}
-								{messageId}
 								tokens={item.tokens}
 								top={token.loose}
 								{done}
@@ -414,7 +352,6 @@
 								{preview}
 								{compactPreview}
 								{editCodeBlock}
-								{onTaskClick}
 								{sourceIds}
 								{onSourceClick}
 							/>
@@ -429,29 +366,12 @@
 			tokens={token.items}
 			messageDone={done}
 			{compactPreview}
-			{allowEmbeds}
-			resolvable={!!chatId && !!messageId && save}
-			{resolvingCallId}
-			onResolve={resolveToolCall}
 		>
 			<div slot="content">
 				{#each token.items as detailToken, detailIdx}
 					{@const textContent = getDetailTextContent(detailToken)}
 
-					{#if detailToken?.attributes?.type === 'tool_calls'}
-						<ToolCallDisplay
-							id={`${id}-${tokenIdx}-${detailIdx}-tc`}
-							attributes={detailToken.attributes}
-							resultContent={getDetailTextContent(detailToken)}
-							grouped={true}
-							resolvable={!!chatId && !!messageId && save}
-							resolving={resolvingCallId === detailToken.attributes?.id}
-							onResolve={(approved) => resolveToolCall(detailToken.attributes?.id ?? '', approved)}
-							open={$settings?.expandDetails ?? false}
-							className="w-full"
-							buttonClassName={detailButtonClassName}
-						/>
-					{:else if textContent.length > 0}
+					{#if textContent.length > 0}
 						<Collapsible
 							title={detailToken.summary}
 							open={$settings?.expandDetails ?? false}
@@ -464,8 +384,6 @@
 							<div class="mb-1.5" slot="content">
 								<svelte:self
 									id={`${id}-${tokenIdx}-${detailIdx}-d`}
-									{chatId}
-									{messageId}
 									tokens={marked.lexer(decode(detailToken.text))}
 									attributes={detailToken?.attributes}
 									{done}
@@ -473,7 +391,6 @@
 									{preview}
 									{compactPreview}
 									{editCodeBlock}
-									{onTaskClick}
 									{sourceIds}
 									{onSourceClick}
 								/>
@@ -497,20 +414,7 @@
 	{:else if token.type === 'details'}
 		{@const textContent = getDetailTextContent(token)}
 
-		{#if token?.attributes?.type === 'tool_calls'}
-			<!-- Tool calls have dedicated handling with ToolCallDisplay component -->
-			<ToolCallDisplay
-				id={`${id}-${tokenIdx}-tc`}
-				attributes={token.attributes}
-				resultContent={getDetailTextContent(token)}
-				resolvable={!!chatId && !!messageId && save}
-				resolving={resolvingCallId === token.attributes?.id}
-				onResolve={(approved) => resolveToolCall(token.attributes?.id ?? '', approved)}
-				open={$settings?.expandDetails ?? false}
-				className="w-full space-y-2"
-				buttonClassName={detailButtonClassName}
-			/>
-		{:else if textContent.length > 0}
+		{#if textContent.length > 0}
 			<Collapsible
 				title={token.summary}
 				open={$settings?.expandDetails ?? false}
@@ -523,8 +427,6 @@
 				<div class=" mb-1.5" slot="content">
 					<svelte:self
 						id={`${id}-${tokenIdx}-d`}
-						{chatId}
-						{messageId}
 						tokens={marked.lexer(decode(token.text))}
 						attributes={token?.attributes}
 						{done}
@@ -532,7 +434,6 @@
 						{preview}
 						{compactPreview}
 						{editCodeBlock}
-						{onTaskClick}
 						{sourceIds}
 						{onSourceClick}
 					/>
@@ -629,7 +530,6 @@
 			{done}
 			{editCodeBlock}
 			{sourceIds}
-			{onTaskClick}
 			{onSourceClick}
 		/>
 	{:else if token.type === 'space'}

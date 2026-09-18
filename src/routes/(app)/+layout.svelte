@@ -9,14 +9,12 @@
 	import { page } from '$app/stores';
 	import { fade } from 'svelte/transition';
 
-	import { getModels, getToolServersData, getVersionUpdates } from '$lib/apis';
-	import { getTools } from '$lib/apis/tools';
+	import { getModels, getVersionUpdates } from '$lib/apis';
 	import { getBanners } from '$lib/apis/configs';
-	import { getTerminalServers } from '$lib/apis/terminal';
 	import { getUserSettings } from '$lib/apis/users';
 	import { setAppFontFamily, setTextScale } from '$lib/utils/text-scale';
 
-	import { WEBUI_VERSION, WEBUI_API_BASE_URL } from '$lib/constants';
+	import { WEBUI_VERSION } from '$lib/constants';
 	import { compareVersion } from '$lib/utils';
 
 	import {
@@ -24,23 +22,17 @@
 		user,
 		settings,
 		models,
-		knowledge,
-		tools,
-		functions,
-		tags,
 		banners,
 		showSettings,
 		showChangelog,
 		temporaryChatEnabled,
-		toolServers,
-		terminalServers,
-		selectedTerminalId,
 		showSearch,
 		showSidebar,
 		showControls,
 		mobile,
 		chatId,
-		chats
+		chats,
+		sessionReady
 	} from '$lib/stores';
 
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
@@ -109,83 +101,16 @@
 		models.set(
 			await getModels(
 				localStorage.token,
-				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
+				$config?.features?.enable_direct_connections
+					? (($settings as any)?.directConnections ?? null)
+					: null
 			)
 		);
-	};
-
-	const setToolServers = async () => {
-		let toolServersData = await getToolServersData($settings?.toolServers ?? []);
-		toolServersData = toolServersData.filter((data) => {
-			if (!data || data.error) {
-				toast.error(
-					$i18n.t(`Failed to connect to {{URL}} OpenAPI tool server`, {
-						URL: data?.url
-					})
-				);
-				return false;
-			}
-			return true;
-		});
-		toolServers.set(toolServersData);
-
-		// Inject enabled terminal servers as always-on tool servers
-		const enabledTerminals = (($settings as any)?.terminalServers ?? []).filter(
-			(s: any) => s.enabled || s.url === $selectedTerminalId
-		);
-
-		// Fetch terminal servers the user has access to (for FileNav + terminal_id)
-		const systemTerminals = await getTerminalServers(localStorage.token);
-		terminalServers.set([
-			...(enabledTerminals.length > 0
-				? (
-						await getToolServersData(
-							enabledTerminals.map((t: any) => ({
-								url: t.url,
-								auth_type: t.auth_type ?? 'bearer',
-								key: t.key ?? '',
-								path: t.path ?? '/openapi.json',
-								config: { enable: true }
-							}))
-						)
-					)
-						.filter((data) => {
-							if (!data || data.error) {
-								toast.error(
-									$i18n.t(`Failed to connect to {{URL}} terminal server`, {
-										URL: data?.url
-									})
-								);
-								return false;
-							}
-							return true;
-						})
-						.map((data, i) => ({
-							...data,
-							key: enabledTerminals[i]?.key ?? '',
-							config: enabledTerminals[i]?.config ?? data?.config ?? {}
-						}))
-				: []),
-			// Store with proxy URL and session key for FileNav file browsing
-			...systemTerminals.map((t) => ({
-				id: t.id,
-				url: `${WEBUI_API_BASE_URL}/terminals/${t.id}`,
-				name: t.name,
-				key: localStorage.token,
-				contexts: t.contexts ?? {},
-				config: t.config ?? {}
-			}))
-		]);
 	};
 
 	const setBanners = async () => {
 		const bannersData = await getBanners(localStorage.token);
 		banners.set(bannersData);
-	};
-
-	const setTools = async () => {
-		const toolsData = await getTools(localStorage.token);
-		tools.set(toolsData);
 	};
 
 	const openSettingsFromUrl = async () => {
@@ -236,7 +161,10 @@
 	};
 
 	onMount(async () => {
-		if ($user === undefined || $user === null) {
+		// Desktop: show the chat history sidebar by default (mobile keeps it closed).
+		if (window.innerWidth >= 768) showSidebar.set(true);
+
+		if ($sessionReady && ($user === undefined || $user === null)) {
 			await gotoAuth();
 			return;
 		}
@@ -249,7 +177,6 @@
 			await Promise.all([
 				checkLocalDBChats(),
 				setBanners().catch((e) => console.error('Failed to load banners:', e)),
-				setTools().catch((e) => console.error('Failed to load tools:', e)),
 				setUserSettings(async () => {
 					await setModels().catch((e) => console.error('Failed to load models:', e));
 				})
@@ -258,19 +185,6 @@
 			console.error('Failed to load user settings:', e);
 			toast.error($i18n.t('Failed to load Interface settings'));
 			return;
-		}
-
-		selectedTerminalId.set(localStorage.selectedTerminalId ?? null);
-
-		const loadToolServers = setToolServers().catch((e) => {
-			console.error('Failed to load tool servers:', e);
-			terminalServers.set([]);
-		});
-		if (
-			$page.url.searchParams.get('q') &&
-			($page.url.searchParams.get('submit') ?? 'true') === 'true'
-		) {
-			await loadToolServers;
 		}
 
 		const setupKeyboardShortcuts = () => {
@@ -352,24 +266,6 @@
 					console.log('Shortcut triggered: GENERATE_MESSAGE_PAIR');
 					event.preventDefault();
 					document.getElementById('generate-message-pair-button')?.click();
-				} else if (shortcut === Shortcut.ALLOW_TOOL_CALL) {
-					const button = [...document.getElementsByClassName('tool-call-allow-button')]
-						.reverse()
-						.find((el) => !(el as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
-					if (button) {
-						console.log('Shortcut triggered: ALLOW_TOOL_CALL');
-						event.preventDefault();
-						button.click();
-					}
-				} else if (shortcut === Shortcut.DENY_TOOL_CALL) {
-					const button = [...document.getElementsByClassName('tool-call-deny-button')]
-						.reverse()
-						.find((el) => !(el as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
-					if (button) {
-						console.log('Shortcut triggered: DENY_TOOL_CALL');
-						event.preventDefault();
-						button.click();
-					}
 				} else if (
 					shortcut === Shortcut.REGENERATE_RESPONSE &&
 					document.activeElement?.id === 'chat-input'
@@ -417,15 +313,6 @@
 			localStorage.showControls = value ? 'true' : 'false';
 		});
 
-		// Persist selectedTerminalId across page loads
-		selectedTerminalId.subscribe((value) => {
-			if (value === null) {
-				delete localStorage.selectedTerminalId;
-			} else {
-				localStorage.selectedTerminalId = value;
-			}
-		});
-
 		await tick();
 
 		loaded = true;
@@ -438,7 +325,9 @@
 		void openSettingsFromUrl();
 	}
 
-	$: if (loaded && ($user === undefined || $user === null)) {
+	// Wait for the root layout to finish restoring the session before deciding:
+	// otherwise a logged-in user would be bounced to /auth on every reload.
+	$: if ($sessionReady && ($user === undefined || $user === null)) {
 		void gotoAuth();
 	}
 

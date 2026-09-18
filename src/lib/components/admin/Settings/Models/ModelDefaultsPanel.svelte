@@ -12,7 +12,6 @@
 	import AdvancedParams from '$lib/components/chat/Settings/Advanced/AdvancedParams.svelte';
 	import Capabilities from '$lib/components/workspace/Models/Capabilities.svelte';
 	import DefaultFeatures from '$lib/components/workspace/Models/DefaultFeatures.svelte';
-	import BuiltinTools from '$lib/components/workspace/Models/BuiltinTools.svelte';
 	import PromptSuggestions from '$lib/components/workspace/Models/PromptSuggestions.svelte';
 
 	export let initHandler = () => {};
@@ -30,7 +29,6 @@
 	let defaultCapabilities = {};
 	let defaultFeatureIds = [];
 	let defaultParams = {};
-	let builtinTools = {};
 	let promptSuggestions = [];
 
 	$: configuredParams = Object.entries(defaultParams ?? {}).filter(
@@ -38,7 +36,7 @@
 	);
 	$: enabledCapabilities = Object.entries(defaultCapabilities ?? {}).filter(([_, value]) => value);
 	$: availableFeatures = enabledCapabilities
-		.filter(([key]) => ['web_search', 'code_interpreter', 'image_generation'].includes(key))
+		.filter(([key]) => ['image_generation'].includes(key))
 		.map(([key]) => key);
 
 	const getSnapshot = () =>
@@ -46,7 +44,6 @@
 			defaultCapabilities,
 			defaultFeatureIds,
 			defaultParams: Object.fromEntries(configuredParams),
-			builtinTools,
 			promptSuggestions: promptSuggestions.filter((p) => p.content !== '')
 		});
 
@@ -65,11 +62,9 @@
 		if (savedMeta && Object.keys(savedMeta).length > 0) {
 			defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
 			defaultFeatureIds = savedMeta.defaultFeatureIds ?? [];
-			builtinTools = savedMeta.builtinTools ?? {};
 		} else {
 			defaultCapabilities = { ...DEFAULT_CAPABILITIES };
 			defaultFeatureIds = [];
-			builtinTools = {};
 		}
 
 		defaultParams = config?.DEFAULT_MODEL_PARAMS ?? {};
@@ -87,7 +82,6 @@
 		const metadata = {
 			capabilities: defaultCapabilities,
 			...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
-			...(Object.keys(builtinTools).length > 0 ? { builtinTools } : {})
 		};
 
 		const res = await setModelsConfig(localStorage.token, {
@@ -181,11 +175,6 @@
 								</div>
 							{/if}
 
-							{#if defaultCapabilities.builtin_tools}
-								<div class="mt-4">
-									<BuiltinTools bind:builtinTools />
-								</div>
-							{/if}
 						</div>
 					{/if}
 				</div>

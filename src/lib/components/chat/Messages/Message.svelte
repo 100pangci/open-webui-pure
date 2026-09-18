@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { tick, getContext, onMount, createEventDispatcher } from 'svelte';
-	const dispatch = createEventDispatcher();
+	import { tick, getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { settings } from '$lib/stores';
-	import { copyToClipboard } from '$lib/utils';
 
 	import MultiResponseMessages from './MultiResponseMessages.svelte';
 	import ResponseMessage from './ResponseMessage.svelte';
@@ -30,8 +28,6 @@
 	export let editMessage;
 	export let saveMessage;
 	export let deleteMessage;
-	export let rateMessage;
-	export let actionMessage;
 	export let submitMessage;
 
 	export let regenerateResponse;
@@ -39,7 +35,6 @@
 	export let mergeResponses;
 
 	export let addMessages;
-	export let onToolCallResolved: Function = () => {};
 	export let forkHandler: Function | null = null;
 	export let triggerScroll;
 	export let readOnly = false;
@@ -47,7 +42,6 @@
 	export let compactPreview = false;
 	export let editCodeBlock = true;
 	export let topPadding = false;
-	export let onInsertToNote: ((content: string) => void) | null = null;
 
 	// Safari's content-visibility implementation has paint bugs that leave
 	// on-screen messages blank (#26712), so skip virtualization there
@@ -83,7 +77,6 @@
 				{compactPreview}
 				{editCodeBlock}
 				{topPadding}
-				{onInsertToNote}
 			/>
 		{:else if (history.messages[history.messages[messageId].parentId]?.models?.length ?? 1) === 1}
 			<ResponseMessage
@@ -100,15 +93,12 @@
 				{updateChat}
 				{editMessage}
 				{saveMessage}
-				{rateMessage}
-				{actionMessage}
 				{submitMessage}
 				{deleteMessage}
 				{allowDelete}
 				{continueResponse}
 				{regenerateResponse}
 				{addMessages}
-				{onToolCallResolved}
 				{forkHandler}
 				{readOnly}
 				{compactPreview}
@@ -127,8 +117,6 @@
 					{updateChat}
 					{editMessage}
 					{saveMessage}
-					{rateMessage}
-					{actionMessage}
 					{submitMessage}
 					{deleteMessage}
 					{allowDelete}
@@ -137,13 +125,11 @@
 					{mergeResponses}
 					{triggerScroll}
 					{addMessages}
-					{onToolCallResolved}
 					{forkHandler}
 					{readOnly}
 					{compactPreview}
 					{editCodeBlock}
 					{topPadding}
-					{onInsertToNote}
 				/>
 			{/key}
 		{/if}

@@ -3,10 +3,9 @@
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import { formatFileSize } from '$lib/utils';
-	import { settings, showFileNavPath } from '$lib/stores';
+	import { settings } from '$lib/stores';
 
 	import FileItemModal from './FileItemModal.svelte';
-	import GarbageBin from '../icons/GarbageBin.svelte';
 	import Spinner from './Spinner.svelte';
 	import Tooltip from './Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -32,8 +31,6 @@
 	export let size: number;
 
 	import DocumentPage from '../icons/DocumentPage.svelte';
-	import Database from '../icons/Database.svelte';
-	import PageEdit from '../icons/PageEdit.svelte';
 	import ChatBubble from '../icons/ChatBubble.svelte';
 	import Folder from '../icons/Folder.svelte';
 	let showModal = false;
@@ -57,11 +54,7 @@
 		: 'gap-1 rounded-2xl p-1.5'} text-left"
 	type="button"
 	on:click={async () => {
-		const filesystemPath = item?.type === 'filesystem' ? (item.path ?? item.url ?? item.id) : null;
-
-		if (filesystemPath) {
-			showFileNavPath.set(filesystemPath);
-		} else if (item?.file?.data?.content || item?.type === 'file' || item?.content || modal) {
+		if (item?.file?.data?.content || item?.type === 'file' || item?.content || modal) {
 			showModal = !showModal;
 		} else {
 			if (url) {
@@ -109,22 +102,14 @@
 		<div class="shrink-0 text-gray-500 dark:text-gray-400">
 			{#if !loading}
 				<Tooltip
-					content={type === 'collection'
-						? $i18n.t('Collection')
-						: type === 'note'
-							? $i18n.t('Note')
-							: type === 'chat'
-								? $i18n.t('Chat')
-								: type === 'file' || type === 'filesystem'
-									? $i18n.t('File')
-									: $i18n.t('Document')}
+					content={type === 'chat'
+						? $i18n.t('Chat')
+						: type === 'file'
+							? $i18n.t('File')
+							: $i18n.t('Document')}
 					placement="top"
 				>
-					{#if type === 'collection'}
-						<Database className="size-3.5" />
-					{:else if type === 'note'}
-						<PageEdit className="size-3.5" />
-					{:else if type === 'chat'}
+					{#if type === 'chat'}
 						<ChatBubble className="size-3.5" />
 					{:else if type === 'folder'}
 						<Folder className="size-3.5" />
@@ -149,14 +134,10 @@
 					? 'text-gray-800 dark:text-gray-100'
 					: 'text-gray-500'}"
 			>
-				{#if type === 'file' || type === 'filesystem'}
+				{#if type === 'file'}
 					{$i18n.t('File')}
-				{:else if type === 'note'}
-					{$i18n.t('Note')}
 				{:else if type === 'doc'}
 					{$i18n.t('Document')}
-				{:else if type === 'collection'}
-					{$i18n.t('Collection')}
 				{:else}
 					<span class=" capitalize line-clamp-1">{type}</span>
 				{/if}

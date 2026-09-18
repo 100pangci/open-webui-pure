@@ -36,11 +36,9 @@
 	export let regenerateResponse: Function;
 	export let mergeResponses: Function;
 
-	export let chatActionHandler: Function;
 	export let showMessage: Function = () => {};
 	export let submitMessage: Function = () => {};
 	export let addMessages: Function = () => {};
-	export let onToolCallResolved: Function = () => {};
 	export let forkHandler: Function | null = null;
 
 	export let readOnly = false;
@@ -54,7 +52,6 @@
 	export let messagesContainerId = 'messages-container';
 
 	export let onSelect = (e) => {};
-	export let onInsertToNote: ((content: string) => void) | null = null;
 
 	export let messagesCount: number | null = 8;
 	let messagesLoading = false;
@@ -341,15 +338,6 @@
 		}
 	};
 
-	const rateMessage = async (messageId, rating) => {
-		history.messages[messageId].annotation = {
-			...history.messages[messageId].annotation,
-			rating: rating
-		};
-
-		await updateChat();
-	};
-
 	const editMessage = async (messageId, { content, files, output = undefined }, submit = true) => {
 		if ((selectedModels ?? []).filter((id) => id).length === 0) {
 			toast.error($i18n.t('Model not selected'));
@@ -435,10 +423,6 @@
 				await updateChat();
 			}
 		}
-	};
-
-	const actionMessage = async (actionId, message, event = null) => {
-		await chatActionHandler(chatId, actionId, message.model, message.id, event);
 	};
 
 	const saveMessage = async (messageId, message) => {
@@ -554,15 +538,12 @@
 								{updateChat}
 								{editMessage}
 								{deleteMessage}
-								{rateMessage}
-								{actionMessage}
 								{saveMessage}
 								{submitMessage}
 								{regenerateResponse}
 								{continueResponse}
 								{mergeResponses}
 								{addMessages}
-								{onToolCallResolved}
 								{forkHandler}
 								{allowDelete}
 								{triggerScroll}
@@ -570,7 +551,6 @@
 								{compactPreview}
 								{editCodeBlock}
 								{topPadding}
-								{onInsertToNote}
 							/>
 						{/each}
 					</ul>

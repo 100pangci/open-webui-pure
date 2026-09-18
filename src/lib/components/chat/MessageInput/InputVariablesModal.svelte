@@ -8,7 +8,6 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
-	import MapSelector from '$lib/components/common/Valves/MapSelector.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -315,28 +314,6 @@
 														required={variables[variable]?.required ?? false}
 														{...variableAttributes}
 													/>
-												{:else if variables[variable]?.type === 'map'}
-													<!-- EXPERIMENTAL INPUT TYPE, DO NOT USE IN PRODUCTION -->
-													<div class="flex flex-col items-center gap-1">
-														<MapSelector
-															setViewLocation={((variableValues[variable] ?? '').includes(',') ??
-															false)
-																? variableValues[variable].split(',')
-																: null}
-															onClick={(value) => {
-																variableValues[variable] = value;
-															}}
-														/>
-
-														<input
-															type="text"
-															class=" w-full py-1 text-left text-sm dark:text-gray-300 bg-transparent outline-hidden"
-															placeholder={$i18n.t('Enter coordinates (e.g. 51.505, -0.09)')}
-															bind:value={variableValues[variable]}
-															autocomplete="off"
-															required={variables[variable]?.required ?? false}
-														/>
-													</div>
 												{:else}
 													<textarea
 														class="w-full rounded-lg py-2 px-4 text-sm dark:text-gray-300 dark:bg-gray-850 outline-hidden border border-gray-100/30 dark:border-gray-850/30"

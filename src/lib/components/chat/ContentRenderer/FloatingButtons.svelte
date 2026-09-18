@@ -49,19 +49,6 @@
 
 		let prompt = selectedAction?.prompt ?? '';
 
-		// Handle: {{variableId|tool:id="toolId"}} pattern
-		// This regex captures variableId and toolId from {{variableId|tool:id="toolId"}}
-		const varToolPattern = /\{\{(.*?)\|tool:id="([^"]+)"\}\}/g;
-		prompt = prompt.replace(varToolPattern, (match, variableId, toolId) => {
-			return variableId; // Replace with just variableId
-		});
-
-		// legacy {{TOOL:toolId}} pattern (for backward compatibility)
-		let toolIdPattern = /\{\{TOOL:([^\}]+)\}\}/g;
-
-		// Remove all TOOL placeholders from the prompt
-		prompt = prompt.replace(toolIdPattern, '');
-
 		if (prompt.includes('{{INPUT_CONTENT}}') && floatingInput) {
 			prompt = prompt.replace('{{INPUT_CONTENT}}', floatingInputValue);
 			floatingInputValue = '';

@@ -2,35 +2,22 @@
 	import { toast } from 'svelte-sonner';
 
 	import { onMount, getContext, tick } from 'svelte';
-	import { models, tools, functions, user } from '$lib/stores';
+	import { models, user } from '$lib/stores';
 	import { WEBUI_BASE_URL, DEFAULT_CAPABILITIES } from '$lib/constants';
 
-	import { getTools } from '$lib/apis/tools';
-	import { getSkills } from '$lib/apis/skills';
-	import { getFunctions } from '$lib/apis/functions';
 	import { getModelsDefaults } from '$lib/apis/configs';
 	import { getBaseModelTags, getModelTags } from '$lib/apis/models';
-	import { getVoices } from '$lib/apis/audio';
 
 	import AdvancedParams from '$lib/components/chat/Settings/Advanced/AdvancedParams.svelte';
 	import ModelSelector from '$lib/components/chat/ModelSelector/Selector.svelte';
 	import Tags from '$lib/components/common/Tags.svelte';
-	import Knowledge from '$lib/components/workspace/Models/Knowledge.svelte';
-	import ToolsSelector from '$lib/components/workspace/Models/ToolsSelector.svelte';
-	import SkillsSelector from '$lib/components/workspace/Models/SkillsSelector.svelte';
-	import FiltersSelector from '$lib/components/workspace/Models/FiltersSelector.svelte';
-	import ActionsSelector from '$lib/components/workspace/Models/ActionsSelector.svelte';
 	import Capabilities from '$lib/components/workspace/Models/Capabilities.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import AccessControl from '../common/AccessControl.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
-	import DefaultFiltersSelector from './DefaultFiltersSelector.svelte';
 	import DefaultFeatures from './DefaultFeatures.svelte';
-	import BuiltinTools from './BuiltinTools.svelte';
 	import PromptSuggestions from './PromptSuggestions.svelte';
-	import TerminalSelector from './TerminalSelector.svelte';
-	import TTSVoiceInput from './TTSVoiceInput.svelte';
 	import AccessControlModal from '../common/AccessControlModal.svelte';
 	import AccessButton from '$lib/components/common/AccessButton.svelte';
 	import { extractInputVariables } from '$lib/utils';
@@ -98,24 +85,11 @@
 		system: ''
 	};
 
-	let knowledge = [];
-	let toolIds = [];
-	let skillIds = [];
-	let skillsList = [];
-
-	let filterIds = [];
-	let defaultFilterIds = [];
-
 	let capabilities = { ...DEFAULT_CAPABILITIES };
 	let defaultFeatureIds = [];
-	let builtinTools = {};
 
-	let actionIds = [];
 	let accessGrants = [];
-	let terminalId = '';
-	let tts = { voice: '' };
 	export let suggestionTags: { name: string }[] = [];
-	let voices: { id: string; name?: string }[] = [];
 
 	const chatVariableKeyRegex = /^[a-z][a-z0-9_]*$/;
 	const getChatVariablesPreview = (prompt: string) => {
@@ -181,7 +155,6 @@
 						baseModel.id !== currentModelId ||
 						(edit && baseModel.id === info.base_model_id)) &&
 					(!baseModel?.preset || (edit && baseModel.id === info.base_model_id)) &&
-					baseModel?.owned_by !== 'arena' &&
 					!(baseModel?.direct ?? false) &&
 					($user?.role === 'admin' ||
 						!(baseModel?.info?.meta?.hidden ?? false) ||
@@ -199,32 +172,6 @@
 			localStorage.token
 		).catch(() => []);
 		suggestionTags = res.map((tag) => ({ name: tag }));
-	};
-
-	const loadVoices = async () => {
-		const res = await getVoices(localStorage.token).catch(() => null);
-		voices = res?.voices ?? [];
-	};
-
-	const toModelKnowledgeReference = (item: any) => {
-		if (!item || typeof item !== 'object') {
-			return item;
-		}
-
-		return Object.fromEntries(
-			[
-				'id',
-				'name',
-				'type',
-				'description',
-				'context',
-				'legacy',
-				'collection_name',
-				'collection_names'
-			]
-				.filter((key) => item[key] !== undefined && item[key] !== null && item[key] !== '')
-				.map((key) => [key, item[key]])
-		);
 	};
 
 	const submitHandler = async () => {
@@ -254,13 +201,6 @@
 			return;
 		}
 
-		if (knowledge.some((item) => item.status === 'uploading')) {
-			toast.error($i18n.t('Please wait until all files are uploaded.'));
-			loading = false;
-
-			return;
-		}
-
 		info.params = { ...info.params, ...params };
 
 		info.access_grants = accessGrants;
@@ -272,87 +212,11 @@
 			info.meta.description = null;
 		}
 
-		if (knowledge.length > 0) {
-			info.meta.knowledge = knowledge.map(toModelKnowledgeReference);
-		} else {
-			if (info.meta.knowledge) {
-				delete info.meta.knowledge;
-			}
-		}
-
-		if (toolIds.length > 0) {
-			info.meta.toolIds = toolIds;
-		} else {
-			if (info.meta.toolIds) {
-				delete info.meta.toolIds;
-			}
-		}
-
-		if (skillIds.length > 0) {
-			info.meta.skillIds = skillIds;
-		} else {
-			if (info.meta.skillIds) {
-				delete info.meta.skillIds;
-			}
-		}
-
-		if (filterIds.length > 0) {
-			info.meta.filterIds = filterIds;
-		} else {
-			if (info.meta.filterIds) {
-				delete info.meta.filterIds;
-			}
-		}
-
-		if (defaultFilterIds.length > 0) {
-			info.meta.defaultFilterIds = defaultFilterIds;
-		} else {
-			if (info.meta.defaultFilterIds) {
-				delete info.meta.defaultFilterIds;
-			}
-		}
-
-		if (actionIds.length > 0) {
-			info.meta.actionIds = actionIds;
-		} else {
-			if (info.meta.actionIds) {
-				delete info.meta.actionIds;
-			}
-		}
-
 		if (defaultFeatureIds.length > 0) {
 			info.meta.defaultFeatureIds = defaultFeatureIds;
 		} else {
 			if (info.meta.defaultFeatureIds) {
 				delete info.meta.defaultFeatureIds;
-			}
-		}
-
-		if (Object.keys(builtinTools).length > 0) {
-			info.meta.builtinTools = builtinTools;
-		} else {
-			if (info.meta.builtinTools) {
-				delete info.meta.builtinTools;
-			}
-		}
-
-		if (terminalId) {
-			info.meta.terminalId = terminalId;
-		} else {
-			if (info.meta.terminalId) {
-				delete info.meta.terminalId;
-			}
-		}
-
-		if (tts.voice !== '') {
-			if (!info.meta.tts) info.meta.tts = {};
-			info.meta.tts.voice = tts.voice;
-		} else {
-			if (info.meta.tts?.voice) {
-				delete info.meta.tts.voice;
-				if (Object.keys(info.meta.tts).length === 0) {
-					delete info.meta.tts;
-				}
 			}
 		}
 
@@ -375,16 +239,8 @@
 	};
 
 	onMount(async () => {
-		await tools.set((await getTools(localStorage.token).catch(() => null)) ?? []);
-		skillsList = (await getSkills(localStorage.token).catch(() => null)) ?? [];
-		if (!$functions) {
-			await functions.set(await getFunctions(localStorage.token));
-		}
 		if (suggestionTags.length === 0) {
 			await loadSuggestionTags();
-		}
-		if (voices.length === 0) {
-			await loadVoices();
 		}
 
 		// Fetch admin-configured default model metadata so the editor
@@ -395,7 +251,6 @@
 		// Use admin defaults as base, falling back to hardcoded defaults
 		capabilities = { ...DEFAULT_CAPABILITIES, ...(defaultMeta.capabilities ?? {}) };
 		defaultFeatureIds = defaultMeta.defaultFeatureIds ?? [];
-		builtinTools = defaultMeta.builtinTools ?? {};
 
 		// Scroll to top 'workspace-container' element
 		const workspaceContainer = document.getElementById('workspace-container');
@@ -413,9 +268,7 @@
 
 			if (model.base_model_id) {
 				const base_model = $models
-					.filter(
-						(m) => (!m?.preset && !(m?.arena ?? false)) || (edit && m.id === model.base_model_id)
-					)
+					.filter((m) => !m?.preset || (edit && m.id === model.base_model_id))
 					.find((m) => [model.base_model_id, `${model.base_model_id}:latest`].includes(m.id));
 
 				console.log('base_model', base_model);
@@ -436,37 +289,9 @@
 					)
 				: null;
 
-			knowledge = (model?.meta?.knowledge ?? []).map((item) => {
-				if (item?.collection_name && item?.type !== 'file') {
-					return {
-						id: item.collection_name,
-						name: item.name,
-						legacy: true
-					};
-				} else if (item?.collection_names) {
-					return {
-						name: item.name,
-						type: 'collection',
-						collection_names: item.collection_names,
-						legacy: true
-					};
-				} else {
-					return item;
-				}
-			});
-
-			toolIds = model?.meta?.toolIds ?? [];
-			skillIds = model?.meta?.skillIds ?? [];
-			filterIds = model?.meta?.filterIds ?? [];
-			defaultFilterIds = model?.meta?.defaultFilterIds ?? [];
-			actionIds = model?.meta?.actionIds ?? [];
-
 			// Per-model overrides take precedence over admin defaults
 			capabilities = { ...capabilities, ...(model?.meta?.capabilities ?? {}) };
 			defaultFeatureIds = model?.meta?.defaultFeatureIds ?? defaultFeatureIds;
-			builtinTools = model?.meta?.builtinTools ?? builtinTools;
-			terminalId = model?.meta?.terminalId ?? '';
-			tts = { voice: model?.meta?.tts?.voice ?? '' };
 
 			accessGrants = model?.access_grants ?? [];
 
@@ -913,56 +738,6 @@
 							{/if}
 						</section>
 
-						<div class="my-3">
-							<Knowledge bind:selectedItems={knowledge} />
-						</div>
-
-						<div class="my-3">
-							<ToolsSelector bind:selectedToolIds={toolIds} tools={$tools ?? []} />
-						</div>
-
-						<div class="my-3">
-							<SkillsSelector bind:selectedSkillIds={skillIds} skills={skillsList} />
-						</div>
-
-						{#if ($functions ?? []).filter((func) => func.type === 'filter').length > 0 || ($functions ?? []).filter((func) => func.type === 'action').length > 0}
-							<hr class="my-3 border-gray-100/30 dark:border-gray-850/30" />
-
-							{#if ($functions ?? []).filter((func) => func.type === 'filter').length > 0}
-								<div class="my-3">
-									<FiltersSelector
-										bind:selectedFilterIds={filterIds}
-										filters={($functions ?? []).filter((func) => func.type === 'filter')}
-									/>
-								</div>
-
-								{@const toggleableFilters = $functions.filter(
-									(func) =>
-										func.type === 'filter' &&
-										(filterIds.includes(func.id) || func?.is_global) &&
-										func?.meta?.toggle
-								)}
-
-								{#if toggleableFilters.length > 0}
-									<div class="my-3">
-										<DefaultFiltersSelector
-											bind:selectedFilterIds={defaultFilterIds}
-											filters={toggleableFilters}
-										/>
-									</div>
-								{/if}
-							{/if}
-
-							{#if ($functions ?? []).filter((func) => func.type === 'action').length > 0}
-								<div class="my-3">
-									<ActionsSelector
-										bind:selectedActionIds={actionIds}
-										actions={($functions ?? []).filter((func) => func.type === 'action')}
-									/>
-								</div>
-							{/if}
-						{/if}
-
 						<hr class="my-3 border-gray-100/30 dark:border-gray-850/30" />
 
 						<div class="my-3">
@@ -971,10 +746,7 @@
 
 						{#if Object.keys(capabilities).filter((key) => capabilities[key]).length > 0}
 							{@const availableFeatures = Object.entries(capabilities)
-								.filter(
-									([key, value]) =>
-										value && ['web_search', 'code_interpreter', 'image_generation'].includes(key)
-								)
+								.filter(([key, value]) => value && ['image_generation'].includes(key))
 								.map(([key, value]) => key)}
 
 							{#if availableFeatures.length > 0}
@@ -983,31 +755,6 @@
 								</div>
 							{/if}
 						{/if}
-
-						{#if capabilities.builtin_tools}
-							<div class="my-3">
-								<BuiltinTools bind:builtinTools />
-							</div>
-						{/if}
-
-						{#if capabilities.terminal}
-							<div class="my-3">
-								<TerminalSelector bind:terminalId />
-							</div>
-						{/if}
-
-						<div class="my-3">
-							<div class="flex w-full justify-between mb-1">
-								<div class="self-center text-xs font-normal text-gray-500">
-									{$i18n.t('TTS Voice')}
-								</div>
-							</div>
-							<TTSVoiceInput
-								bind:value={tts.voice}
-								{voices}
-								placeholder={$i18n.t('e.g. alloy, echo, shimmer')}
-							/>
-						</div>
 
 						<hr class="my-3 border-gray-100/30 dark:border-gray-850/30" />
 

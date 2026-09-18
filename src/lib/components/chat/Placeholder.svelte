@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { onMount, getContext, tick, createEventDispatcher } from 'svelte';
-	import { blur, fade } from 'svelte/transition';
+	import { getContext, createEventDispatcher } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	const dispatch = createEventDispatcher();
-
-	import { updateFolderById } from '$lib/apis/folders';
 
 	import {
 		config,
@@ -18,8 +15,8 @@
 		selectedFolder
 	} from '$lib/stores';
 	import { refreshChatList, refreshFolderChatLists } from '$lib/stores/chatList';
-	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { sanitizeResponseContent } from '$lib/utils';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import Suggestions from './Suggestions.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -30,13 +27,14 @@
 
 	const i18n = getContext('i18n');
 
-	export let createMessagePair: Function;
+	export let createMessagePair: Function = () => {};
 	export let stopResponse: Function;
 
 	export let autoScroll = false;
 
-	export let atSelectedModel: Model | undefined;
-	export let selectedModels: [''];
+	export let atSelectedModel: any = undefined;
+
+	export let selectedModels: string[] = [];
 
 	export let history;
 
@@ -44,37 +42,15 @@
 	export let files = [];
 	export let messageInput = null;
 
-	export let selectedToolIds = [];
-	export let selectedSkillIds = [];
-	export let selectedFilterIds = [];
-	export let pendingOAuthTools = [];
-
-	export let showCommands = false;
-
 	export let imageGenerationEnabled = false;
-	export let codeInterpreterEnabled = false;
-	export let webSearchEnabled = false;
-	export let toolApprovalMode = 'full';
-	export let onToolApprovalModeChange: Function = () => {};
-	export let oauthRedirectHandler: Function = () => {};
 
-	export let onUpload: Function = (e) => {};
 	export let onUpdate: (data?: { file?: any }) => void = () => {};
 	export let onSelect = (e) => {};
 	export let onChange = (e) => {};
-	export let onWebSearchToggle: Function = () => {};
 	export let messageQueue: { id: string; prompt: string; files: any[] }[] = [];
 	export let onQueueSendNow: (id: string) => void = () => {};
 	export let onQueueEdit: (id: string) => void = () => {};
 	export let onQueueDelete: (id: string) => void = () => {};
-	export let askUser = {
-		show: false,
-		questions: [],
-		allowOther: true,
-		timeoutMs: null,
-		onConfirm: (_value: any) => {},
-		onCancel: () => {}
-	};
 
 	export let dragged = false;
 
@@ -237,31 +213,18 @@
 						bind:files
 						bind:prompt
 						bind:autoScroll
-						bind:selectedToolIds
-						bind:selectedSkillIds
-						bind:selectedFilterIds
 						bind:imageGenerationEnabled
-						bind:codeInterpreterEnabled
-						bind:webSearchEnabled
 						bind:atSelectedModel
-						bind:showCommands
 						bind:dragged
-						{pendingOAuthTools}
-						{oauthRedirectHandler}
-						{toolApprovalMode}
-						{onToolApprovalModeChange}
 						{stopResponse}
 						{createMessagePair}
 						placeholder={$i18n.t('How can I help you today?')}
 						{onChange}
-						{onUpload}
 						{onUpdate}
 						{messageQueue}
 						{onQueueSendNow}
 						{onQueueEdit}
 						{onQueueDelete}
-						{askUser}
-						{onWebSearchToggle}
 						on:chatVariables
 						on:submit={(e) => {
 							dispatch('submit', e.detail);

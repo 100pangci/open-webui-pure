@@ -41,30 +41,7 @@ except ImportError:
 
 DOCKER = os.getenv('DOCKER', 'False').lower() == 'true'
 
-USE_CUDA = os.getenv('USE_CUDA_DOCKER', 'false')
 DEVICE_TYPE = 'cpu'
-_cuda_error: Optional[str] = None
-
-if USE_CUDA.lower() == 'true':
-    try:
-        import torch  # noqa: E402
-
-        if not torch.cuda.is_available():
-            raise RuntimeError('CUDA not available')
-        DEVICE_TYPE = 'cuda'
-    except Exception as exc:
-        _cuda_error = f'CUDA unavailable (USE_CUDA_DOCKER=true), falling back to CPU: {exc}'
-        os.environ['USE_CUDA_DOCKER'] = 'false'
-        USE_CUDA = 'false'
-
-if sys.platform == 'darwin' and DEVICE_TYPE == 'cpu':
-    try:
-        import torch  # noqa: E402
-
-        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-            DEVICE_TYPE = 'mps'
-    except Exception:
-        pass
 
 ####################################
 # LOGGING
@@ -119,10 +96,6 @@ else:
 
 log = logging.getLogger(__name__)
 log.info('GLOBAL_LOG_LEVEL: %s', GLOBAL_LOG_LEVEL)
-
-if _cuda_error:
-    log.error(_cuda_error)
-    _cuda_error = None
 
 SRC_LOG_LEVELS = {}  # Legacy variable, do not remove
 
@@ -181,7 +154,10 @@ try:
         changelog_content = file.read()
 
 except Exception:
-    changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
+    try:
+        changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
+    except Exception:
+        changelog_content = ''
 
 # Convert markdown content to HTML
 html_content = markdown.markdown(changelog_content)
@@ -365,6 +341,8 @@ RESET_CONFIG_ON_START = os.getenv('RESET_CONFIG_ON_START', 'False').lower() == '
 ENABLE_REALTIME_CHAT_SAVE = os.getenv('ENABLE_REALTIME_CHAT_SAVE', 'False').lower() == 'true'
 ENABLE_QUERIES_CACHE = os.getenv('ENABLE_QUERIES_CACHE', 'False').lower() == 'true'
 ENABLE_ADMIN_CHAT_ACCESS = os.getenv('ENABLE_ADMIN_CHAT_ACCESS', 'True').lower() == 'true'
+ENABLE_ADMIN_EXPORT = os.getenv('ENABLE_ADMIN_EXPORT', 'True').lower() == 'true'
+IFRAME_CSP = os.getenv('IFRAME_CSP', '')
 RAG_SYSTEM_CONTEXT = os.getenv('RAG_SYSTEM_CONTEXT', 'False').lower() == 'true'
 
 ####################################
@@ -647,12 +625,6 @@ try:
 except (ValueError, TypeError):
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST = 10
 
-_tool_data_timeout_raw = os.getenv('AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA', '10')
-try:
-    AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA = int(_tool_data_timeout_raw) if _tool_data_timeout_raw else None
-except (ValueError, TypeError):
-    AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA = 10
-
 AIOHTTP_FILE_STREAM_CHUNK_SIZE = os.getenv('AIOHTTP_FILE_STREAM_CHUNK_SIZE', str(1024 * 1024))
 try:
     AIOHTTP_FILE_STREAM_CHUNK_SIZE = int(AIOHTTP_FILE_STREAM_CHUNK_SIZE)
@@ -661,31 +633,6 @@ except Exception:
 
 if AIOHTTP_FILE_STREAM_CHUNK_SIZE <= 0:
     AIOHTTP_FILE_STREAM_CHUNK_SIZE = 1024 * 1024
-
-
-# SSL verification for tool server connections specifically.
-# Accepts "True", "False", or a path to a CA bundle file.
-# When "True", falls back to AIOHTTP_CLIENT_SSL_CERT_FILE if set.
-AIOHTTP_CLIENT_SESSION_TOOL_SERVER_SSL = _parse_ssl_env(os.getenv('AIOHTTP_CLIENT_SESSION_TOOL_SERVER_SSL', 'True'))
-
-AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = os.getenv('AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER', '')
-
-if AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER == '':
-    AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = AIOHTTP_CLIENT_TIMEOUT
-else:
-    try:
-        AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = int(AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER)
-    except Exception:
-        AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER = AIOHTTP_CLIENT_TIMEOUT
-
-# Timeout (in seconds) for the MCP session.initialize() handshake.
-# The handshake performs a list-tools round-trip and can take tens of
-# seconds on cold-start servers or servers exposing many tools.
-MCP_INITIALIZE_TIMEOUT = os.getenv('MCP_INITIALIZE_TIMEOUT', '10')
-try:
-    MCP_INITIALIZE_TIMEOUT = int(MCP_INITIALIZE_TIMEOUT)
-except (ValueError, TypeError):
-    MCP_INITIALIZE_TIMEOUT = 10
 
 
 ####################################
@@ -815,13 +762,11 @@ PASSWORD_VALIDATION_HINT = os.getenv('PASSWORD_VALIDATION_HINT', '')
 
 
 BYPASS_MODEL_ACCESS_CONTROL = os.getenv('BYPASS_MODEL_ACCESS_CONTROL', 'False').lower() == 'true'
-BYPASS_RETRIEVAL_ACCESS_CONTROL = os.getenv('BYPASS_RETRIEVAL_ACCESS_CONTROL', 'False').lower() == 'true'
 
 # When True, collection names that do not match any known file-*, user-memory-*,
 # web-search-*, or knowledge-base collection are allowed through access control
 # for non-admin users.  When False (default), unknown collection names are
 # denied — closing the legacy unscoped namespace.
-ENABLE_RETRIEVAL_UNSCOPED_COLLECTIONS = os.getenv('ENABLE_RETRIEVAL_UNSCOPED_COLLECTIONS', 'False').lower() == 'true'
 
 # Falls back to the upload size limit, because a document cannot legitimately carry more metadata
 # than the file itself is allowed to be. Left unbounded, a small archive that expands enormously
@@ -884,21 +829,6 @@ OAUTH_TOKEN_EXCHANGE_TRUSTED_CLIENT_IDS = [
 # per OpenID Connect Back-Channel Logout 1.0 spec.
 # Requires Redis for JWT revocation.
 ENABLE_OAUTH_BACKCHANNEL_LOGOUT = os.getenv('ENABLE_OAUTH_BACKCHANNEL_LOGOUT', 'False').lower() == 'true'
-
-####################################
-# SCIM Configuration
-####################################
-
-ENABLE_SCIM = os.getenv('ENABLE_SCIM', os.getenv('SCIM_ENABLED', 'False')).lower() == 'true'
-SCIM_TOKEN = os.getenv('SCIM_TOKEN', '')
-SCIM_AUTH_PROVIDER = os.getenv('SCIM_AUTH_PROVIDER', '')
-
-if ENABLE_SCIM and not SCIM_AUTH_PROVIDER:
-    log.warning(
-        'SCIM is enabled but SCIM_AUTH_PROVIDER is not set. '
-        "Set SCIM_AUTH_PROVIDER to the OAuth provider name (e.g. 'microsoft', 'oidc') "
-        'to enable externalId storage.'
-    )
 
 ####################################
 # LICENSE_KEY
@@ -1233,45 +1163,3 @@ AUDIT_INCLUDED_PATHS = [
 
 # When enabled, GET requests are also audited (disabled by default to avoid log noise)
 ENABLE_AUDIT_GET_REQUESTS = os.getenv('ENABLE_AUDIT_GET_REQUESTS', 'False').lower() == 'true'
-
-
-####################################
-# OPENTELEMETRY
-####################################
-
-ENABLE_OTEL = os.getenv('ENABLE_OTEL', 'False').lower() == 'true'
-ENABLE_OTEL_TRACES = os.getenv('ENABLE_OTEL_TRACES', 'False').lower() == 'true'
-ENABLE_OTEL_METRICS = os.getenv('ENABLE_OTEL_METRICS', 'False').lower() == 'true'
-ENABLE_OTEL_LOGS = os.getenv('ENABLE_OTEL_LOGS', 'False').lower() == 'true'
-
-OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://localhost:4317')
-OTEL_METRICS_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_METRICS_EXPORTER_OTLP_ENDPOINT', OTEL_EXPORTER_OTLP_ENDPOINT)
-OTEL_LOGS_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_LOGS_EXPORTER_OTLP_ENDPOINT', OTEL_EXPORTER_OTLP_ENDPOINT)
-OTEL_EXPORTER_OTLP_INSECURE = os.getenv('OTEL_EXPORTER_OTLP_INSECURE', 'False').lower() == 'true'
-OTEL_METRICS_EXPORTER_OTLP_INSECURE = (
-    os.getenv('OTEL_METRICS_EXPORTER_OTLP_INSECURE', str(OTEL_EXPORTER_OTLP_INSECURE)).lower() == 'true'
-)
-OTEL_LOGS_EXPORTER_OTLP_INSECURE = (
-    os.getenv('OTEL_LOGS_EXPORTER_OTLP_INSECURE', str(OTEL_EXPORTER_OTLP_INSECURE)).lower() == 'true'
-)
-OTEL_SERVICE_NAME = os.getenv('OTEL_SERVICE_NAME', 'open-webui')
-OTEL_RESOURCE_ATTRIBUTES = os.getenv('OTEL_RESOURCE_ATTRIBUTES', '')  # e.g. key1=val1,key2=val2
-OTEL_TRACES_SAMPLER = os.getenv('OTEL_TRACES_SAMPLER', 'parentbased_always_on').lower()
-OTEL_BASIC_AUTH_USERNAME = os.getenv('OTEL_BASIC_AUTH_USERNAME', '')
-OTEL_BASIC_AUTH_PASSWORD = os.getenv('OTEL_BASIC_AUTH_PASSWORD', '')
-OTEL_METRICS_EXPORT_INTERVAL_MILLIS = int(os.getenv('OTEL_METRICS_EXPORT_INTERVAL_MILLIS', '10000'))
-
-OTEL_METRICS_BASIC_AUTH_USERNAME = os.getenv('OTEL_METRICS_BASIC_AUTH_USERNAME', OTEL_BASIC_AUTH_USERNAME)
-OTEL_METRICS_BASIC_AUTH_PASSWORD = os.getenv('OTEL_METRICS_BASIC_AUTH_PASSWORD', OTEL_BASIC_AUTH_PASSWORD)
-OTEL_LOGS_BASIC_AUTH_USERNAME = os.getenv('OTEL_LOGS_BASIC_AUTH_USERNAME', OTEL_BASIC_AUTH_USERNAME)
-OTEL_LOGS_BASIC_AUTH_PASSWORD = os.getenv('OTEL_LOGS_BASIC_AUTH_PASSWORD', OTEL_BASIC_AUTH_PASSWORD)
-
-OTEL_OTLP_SPAN_EXPORTER = os.getenv('OTEL_OTLP_SPAN_EXPORTER', 'grpc').lower()  # grpc or http
-
-OTEL_METRICS_OTLP_SPAN_EXPORTER = os.getenv(
-    'OTEL_METRICS_OTLP_SPAN_EXPORTER', OTEL_OTLP_SPAN_EXPORTER
-).lower()  # grpc or http
-
-OTEL_LOGS_OTLP_SPAN_EXPORTER = os.getenv(
-    'OTEL_LOGS_OTLP_SPAN_EXPORTER', OTEL_OTLP_SPAN_EXPORTER
-).lower()  # grpc or http

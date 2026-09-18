@@ -180,9 +180,9 @@
 
 	const loadChat = async () => {
 		if (!chat) {
-			draggable = false;
+			itemElement.draggable = false;
 			chat = await getChatById(localStorage.token, id);
-			draggable = true;
+			itemElement.draggable = true;
 		}
 	};
 

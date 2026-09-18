@@ -20,16 +20,10 @@ from sqlalchemy import JSON, BigInteger, Column, Text, delete, select
 
 log = logging.getLogger(__name__)
 
-API_CONFIG_KEYS = ('openai.api_configs', 'ollama.api_configs')
+API_CONFIG_KEYS = ('openai.api_configs',)
 DICT_CONFIG_KEY_ALIASES = {
     'openai.api_configs': ('OPENAI_API_CONFIGS',),
-    'ollama.api_configs': ('OLLAMA_API_CONFIGS',),
-    'rag.mineru_params': ('MINERU_PARAMS',),
-    'rag.docling_params': ('DOCLING_PARAMS',),
-    'web.search.linkup_search_params': ('LINKUP_SEARCH_PARAMS',),
-    'image_generation.automatic1111.api_params': ('AUTOMATIC1111_PARAMS',),
     'image_generation.openai.params': ('IMAGES_OPENAI_API_PARAMS',),
-    'audio.tts.openai.params': ('AUDIO_TTS_OPENAI_PARAMS',),
     'models.default_metadata': ('DEFAULT_MODEL_METADATA',),
     'models.default_params': ('DEFAULT_MODEL_PARAMS',),
     'task.model.params': ('TASK_MODEL_PARAMS',),
@@ -321,7 +315,11 @@ class Config(Base):
                     continue
 
                 existing = await db.get(Config, config_key)
-                repaired = existing.value if existing and isinstance(existing.value, dict) else {}
+                # Copy the existing dict: mutating it in place and re-assigning the
+                # same object is not tracked by SQLAlchemy for JSON columns, so the
+                # merged value would silently not persist (and the orphan sub-keys
+                # are deleted below).
+                repaired = dict(existing.value) if existing and isinstance(existing.value, dict) else {}
 
                 repaired_any = False
                 for row in rows:

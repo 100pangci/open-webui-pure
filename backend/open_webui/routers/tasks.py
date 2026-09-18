@@ -6,29 +6,23 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from open_webui.config import (
     DEFAULT_AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE,
-    DEFAULT_EMOJI_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_FOLLOW_UP_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_IMAGE_PROMPT_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_MOA_GENERATION_PROMPT_TEMPLATE,
-    DEFAULT_QUERY_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_TAGS_GENERATION_PROMPT_TEMPLATE,
     DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE,
-    DEFAULT_VOICE_MODE_PROMPT_TEMPLATE,
 )
 from open_webui.constants import ERROR_MESSAGES, TASKS
 from open_webui.models.config import Config
-from open_webui.routers.pipelines import process_pipeline_inlet_filter
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.payload import apply_params_to_form_data
 from open_webui.utils.task import (
     autocomplete_generation_template,
-    emoji_generation_template,
     follow_up_generation_template,
     get_task_model_id,
     image_prompt_generation_template,
     moa_response_generation_template,
-    query_generation_template,
     tags_generation_template,
     title_generation_template,
 )
@@ -52,12 +46,6 @@ TASK_CONFIG_KEYS = {
     'ENABLE_FOLLOW_UP_GENERATION': 'task.follow_up.enable',
     'ENABLE_TAGS_GENERATION': 'task.tags.enable',
     'ENABLE_TITLE_GENERATION': 'task.title.enable',
-    'ENABLE_SEARCH_QUERY_GENERATION': 'task.query.search.enable',
-    'ENABLE_RETRIEVAL_QUERY_GENERATION': 'task.query.retrieval.enable',
-    'QUERY_GENERATION_PROMPT_TEMPLATE': 'task.query.prompt_template',
-    'TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE': 'task.tools.prompt_template',
-    'ENABLE_VOICE_MODE_PROMPT': 'task.voice.prompt.enable',
-    'VOICE_MODE_PROMPT_TEMPLATE': 'task.voice.prompt_template',
 }
 
 
@@ -124,12 +112,6 @@ class TaskConfigForm(BaseModel):
     FOLLOW_UP_GENERATION_PROMPT_TEMPLATE: str
     ENABLE_FOLLOW_UP_GENERATION: bool
     ENABLE_TAGS_GENERATION: bool
-    ENABLE_SEARCH_QUERY_GENERATION: bool
-    ENABLE_RETRIEVAL_QUERY_GENERATION: bool
-    QUERY_GENERATION_PROMPT_TEMPLATE: str
-    TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE: str
-    ENABLE_VOICE_MODE_PROMPT: bool
-    VOICE_MODE_PROMPT_TEMPLATE: Optional[str]
 
 
 @router.post('/config/update')
@@ -193,12 +175,6 @@ async def generate_title(request: Request, form_data: dict, user=Depends(get_ver
         },
     }
 
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
     try:
@@ -257,12 +233,6 @@ async def generate_follow_ups(request: Request, form_data: dict, user=Depends(ge
             'chat_id': form_data.get('chat_id', None),
         },
     }
-
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
 
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
@@ -323,12 +293,6 @@ async def generate_chat_tags(request: Request, form_data: dict, user=Depends(get
         },
     }
 
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
     try:
@@ -382,12 +346,6 @@ async def generate_image_prompt(request: Request, form_data: dict, user=Depends(
         },
     }
 
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
     try:
@@ -397,82 +355,6 @@ async def generate_image_prompt(request: Request, form_data: dict, user=Depends(
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={'detail': 'An internal error has occurred.'},
-        )
-
-
-@router.post('/queries/completions')
-async def generate_queries(request: Request, form_data: dict, user=Depends(get_verified_user)):
-    type = form_data.get('type')
-    if type == 'web_search':
-        if not await Config.get('task.query.search.enable'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.FEATURE_DISABLED('Search query generation'),
-            )
-    elif type == 'retrieval':
-        if not await Config.get('task.query.retrieval.enable'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.FEATURE_DISABLED('Query generation'),
-            )
-
-    if getattr(request.state, 'cached_queries', None):
-        log.info('Reusing cached queries: %s', request.state.cached_queries)
-        return request.state.cached_queries
-
-    if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
-        models = {
-            **dict(request.app.state.MODELS.items()),
-            request.state.model['id']: request.state.model,
-        }
-    else:
-        models = request.app.state.MODELS
-
-    model_id = form_data['model']
-    if model_id not in models:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.MODEL_NOT_FOUND(),
-        )
-
-    task_model_id, task_model_params = await get_task_model_generation_config(model_id, models)
-
-    log.debug('generating %s queries using model %s for user %s', type, task_model_id, user.email)
-
-    query_template = await Config.get('task.query.prompt_template')
-    if query_template.strip() != '':
-        template = query_template
-    else:
-        template = DEFAULT_QUERY_GENERATION_PROMPT_TEMPLATE
-
-    content = await query_generation_template(template, form_data['messages'], user)
-
-    payload = {
-        'model': task_model_id,
-        'messages': [{'role': 'user', 'content': content}],
-        'stream': False,
-        'metadata': {
-            **(request.state.metadata if hasattr(request.state, 'metadata') else {}),
-            'task': str(TASKS.QUERY_GENERATION),
-            'task_body': form_data,
-            'chat_id': form_data.get('chat_id', None),
-        },
-    }
-
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
-    payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
-
-    try:
-        return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={'detail': str(e)},
         )
 
 
@@ -535,12 +417,6 @@ async def generate_autocompletion(request: Request, form_data: dict, user=Depend
         },
     }
 
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
     try:
@@ -550,60 +426,6 @@ async def generate_autocompletion(request: Request, form_data: dict, user=Depend
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={'detail': 'An internal error has occurred.'},
-        )
-
-
-@router.post('/emoji/completions')
-async def generate_emoji(request: Request, form_data: dict, user=Depends(get_verified_user)):
-    if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
-        models = {
-            **dict(request.app.state.MODELS.items()),
-            request.state.model['id']: request.state.model,
-        }
-    else:
-        models = request.app.state.MODELS
-
-    model_id = form_data['model']
-    if model_id not in models:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.MODEL_NOT_FOUND(),
-        )
-
-    task_model_id, _ = await get_task_model_generation_config(model_id, models)
-
-    log.debug('generating emoji using model %s for user %s ', task_model_id, user.email)
-
-    template = DEFAULT_EMOJI_GENERATION_PROMPT_TEMPLATE
-
-    content = await emoji_generation_template(template, form_data['prompt'], user)
-
-    payload = {
-        'model': task_model_id,
-        'messages': [{'role': 'user', 'content': content}],
-        'stream': False,
-        'metadata': {
-            **(request.state.metadata if hasattr(request.state, 'metadata') else {}),
-            'task': str(TASKS.EMOJI_GENERATION),
-            'task_body': form_data,
-            'chat_id': form_data.get('chat_id', None),
-        },
-    }
-
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
-
-    payload = apply_task_model_params(payload, models, task_model_id, {'max_tokens': 4})
-
-    try:
-        return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={'detail': str(e)},
         )
 
 
@@ -644,12 +466,6 @@ async def generate_moa_response(request: Request, form_data: dict, user=Depends(
             'task_body': form_data,
         },
     }
-
-    # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)

@@ -13,25 +13,17 @@
 	import About from './Settings/About.svelte';
 	import General from './Settings/General.svelte';
 	import Interface from './Settings/Interface.svelte';
-	import Notifications from './Settings/Notifications.svelte';
 	import Shortcuts from './Settings/Shortcuts.svelte';
-	import Audio from './Settings/Audio.svelte';
 	import DataControls from './Settings/DataControls.svelte';
 	import Usage from './Settings/Usage.svelte';
 	import ArchivedChats from './Settings/ArchivedChats.svelte';
-	import Personalization from './Settings/Personalization.svelte';
 	import Search from '../icons/Search.svelte';
 	import Connections from './Settings/Connections.svelte';
-	import Integrations from './Settings/Integrations.svelte';
 	import DatabaseSettings from '../icons/DatabaseSettings.svelte';
 	import SettingsAlt from '../icons/SettingsAlt.svelte';
 	import Link from '../icons/Link.svelte';
 	import UserCircle from '../icons/UserCircle.svelte';
-	import SoundHigh from '../icons/SoundHigh.svelte';
 	import InfoCircle from '../icons/InfoCircle.svelte';
-	import WrenchAlt from '../icons/WrenchAlt.svelte';
-	import Face from '../icons/Face.svelte';
-	import AppNotification from '../icons/AppNotification.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
 	import ArchiveBox from '../icons/ArchiveBox.svelte';
 	import ChevronLeft from '../icons/ChevronLeft.svelte';
@@ -42,17 +34,8 @@
 	import AdminAuthentication from '$lib/components/admin/Settings/Authentication.svelte';
 	import AdminConnections from '$lib/components/admin/Settings/Connections.svelte';
 	import AdminModels from '$lib/components/admin/Settings/Models.svelte';
-	import AdminSubagents from '$lib/components/admin/Settings/Subagents.svelte';
-	import AdminEvaluations from '$lib/components/admin/Settings/Evaluations.svelte';
-	import AdminAnalytics from '$lib/components/admin/Analytics.svelte';
-	import AdminIntegrations from '$lib/components/admin/Settings/Integrations.svelte';
-	import AdminDocuments from '$lib/components/admin/Settings/Documents.svelte';
-	import AdminWebSearch from '$lib/components/admin/Settings/WebSearch.svelte';
-	import AdminCodeExecution from '$lib/components/admin/Settings/CodeExecution.svelte';
 	import AdminInterface from '$lib/components/admin/Settings/Interface.svelte';
-	import AdminAudio from '$lib/components/admin/Settings/Audio.svelte';
 	import AdminImages from '$lib/components/admin/Settings/Images.svelte';
-	import AdminPipelines from '$lib/components/admin/Settings/Pipelines.svelte';
 	import AdminDatabase from '$lib/components/admin/Settings/Database.svelte';
 
 	const i18n: Writable<any> = getContext('i18n');
@@ -137,12 +120,8 @@
 	const personalSettingGroups: Record<string, string> = {
 		general: 'Basics',
 		interface: 'Basics',
-		notifications: 'Basics',
 		shortcuts: 'Basics',
 		connections: 'Services',
-		tools: 'Services',
-		personalization: 'Preferences',
-		audio: 'Preferences',
 		data_controls: 'Data',
 		usage: 'Data',
 		archived_chats: 'Data',
@@ -154,16 +133,7 @@
 		'admin:authentication': 'System',
 		'admin:connections': 'AI',
 		'admin:models': 'AI',
-		'admin:subagents': 'AI',
-		'admin:evaluations': 'Quality',
-		'admin:analytics': 'Quality',
-		'admin:integrations': 'Tools',
-		'admin:documents': 'Tools',
-		'admin:web': 'Tools',
-		'admin:code-execution': 'Tools',
-		'admin:pipelines': 'Tools',
 		'admin:interface': 'Experience',
-		'admin:audio': 'Experience',
 		'admin:images': 'Experience',
 		'admin:db': 'Data'
 	};
@@ -345,22 +315,6 @@
 			]
 		},
 		{
-			id: 'notifications',
-			title: 'Notifications',
-			keywords: [
-				'browser notifications',
-				'browsernotifications',
-				'chat failed',
-				'chat finished',
-				'notification sound',
-				'notifications',
-				'notify',
-				'webhook',
-				'webhook notifications',
-				'webhooks'
-			]
-		},
-		{
 			id: 'shortcuts',
 			title: 'Keyboard',
 			keywords: [
@@ -386,122 +340,6 @@
 				'manage direct connections',
 				'managedirectconnections',
 				'settings'
-			]
-		},
-		{
-			id: 'tools',
-			title: 'Integrations',
-			keywords: [
-				'addconnection',
-				'add connection',
-				'integrations',
-				'managetools',
-				'manage tools',
-				'manage tool servers',
-				'managetoolservers',
-				'open terminal',
-				'openterminal',
-				'terminal',
-				'settings'
-			]
-		},
-
-		{
-			id: 'personalization',
-			title: 'Personalization',
-			keywords: [
-				'account preferences',
-				'account settings',
-				'accountpreferences',
-				'accountsettings',
-				'custom settings',
-				'customsettings',
-				'experimental',
-				'memories',
-				'memory',
-				'personalization',
-				'personalize',
-				'personal settings',
-				'personalsettings',
-				'profile',
-				'user preferences',
-				'userpreferences'
-			]
-		},
-		{
-			id: 'audio',
-			title: 'Audio',
-			keywords: [
-				'audio config',
-				'audio control',
-				'audio features',
-				'audio input',
-				'audio output',
-				'audio playback',
-				'audio voice',
-				'audioconfig',
-				'audiocontrol',
-				'audiofeatures',
-				'audioinput',
-				'audiooutput',
-				'audioplayback',
-				'audiovoice',
-				'auto playback response',
-				'autoplaybackresponse',
-				'auto transcribe',
-				'autotranscribe',
-				'instant auto send after voice transcription',
-				'instantautosendaftervoicetranscription',
-				'language',
-				'non local voices',
-				'nonlocalvoices',
-				'save settings',
-				'savesettings',
-				'set voice',
-				'setvoice',
-				'sound settings',
-				'soundsettings',
-				'speech config',
-				'speech mode',
-				'speech playback speed',
-				'speech rate',
-				'speech recognition',
-				'speech settings',
-				'speech speed',
-				'speech synthesis',
-				'speech to text engine',
-				'speechconfig',
-				'speechmode',
-				'speechplaybackspeed',
-				'speechrate',
-				'speechrecognition',
-				'speechsettings',
-				'speechspeed',
-				'speechsynthesis',
-				'speechtotextengine',
-				'speedch playback rate',
-				'speedchplaybackrate',
-				'stt settings',
-				'sttsettings',
-				'text to speech engine',
-				'text to speech',
-				'textospeechengine',
-				'texttospeech',
-				'texttospeechvoice',
-				'text to speech voice',
-				'voice control',
-				'voice modes',
-				'voice options',
-				'voice playback',
-				'voice recognition',
-				'voice speed',
-				'voicecontrol',
-				'voicemodes',
-				'voiceoptions',
-				'voiceplayback',
-				'voicerecognition',
-				'voicespeed',
-				'volume'
 			]
 		},
 		{
@@ -726,59 +564,14 @@
 			]
 		},
 		{
-			id: 'admin:subagents',
-			title: 'Sub-agents',
-			keywords: ['sub-agents', 'subagents', 'delegation', 'background', 'agents']
-		},
-		{
 			id: 'admin:interface',
 			title: 'Interface',
 			keywords: ['interface', 'ui', 'appearance', 'banners', 'tasks', 'prompt suggestions', 'tags']
 		},
 		{
-			id: 'admin:audio',
-			title: 'Audio',
-			keywords: ['audio', 'voice', 'speech', 'tts', 'stt', 'whisper', 'deepgram', 'azure']
-		},
-		{
 			id: 'admin:images',
 			title: 'Images',
 			keywords: ['images', 'generation', 'dalle', 'stable diffusion', 'comfyui', 'automatic1111']
-		},
-		{
-			id: 'admin:evaluations',
-			title: 'Evaluations',
-			keywords: ['evaluations', 'feedback', 'rating', 'arena', 'leaderboard', 'preference']
-		},
-		{
-			id: 'admin:analytics',
-			title: 'Analytics',
-			keywords: ['analytics', 'usage', 'stats', 'dashboard', 'models', 'users', 'messages']
-		},
-		{
-			id: 'admin:integrations',
-			title: 'Integrations',
-			keywords: ['tools', 'integrations', 'plugins', 'extensions', 'functions', 'openapi', 'server']
-		},
-		{
-			id: 'admin:documents',
-			title: 'Documents',
-			keywords: ['documents', 'files', 'rag', 'knowledge', 'upload', 'embedding', 'vector db']
-		},
-		{
-			id: 'admin:web',
-			title: 'Web Search',
-			keywords: ['web search', 'google', 'bing', 'duckduckgo', 'serp', 'searxng', 'tavily', 'exa']
-		},
-		{
-			id: 'admin:code-execution',
-			title: 'Code Execution',
-			keywords: ['code execution', 'python', 'sandbox', 'compiler', 'jupyter', 'interpreter']
-		},
-		{
-			id: 'admin:pipelines',
-			title: 'Pipelines',
-			keywords: ['pipelines', 'workflows', 'filters', 'valves', 'middleware']
 		},
 
 		{
@@ -801,22 +594,8 @@
 				return $config?.features?.enable_direct_connections;
 			}
 
-			if (tab.id === 'tools') {
-				return (
-					$user?.role === 'admin' ||
-					($user?.role === 'user' && $user?.permissions?.features?.direct_tool_servers)
-				);
-			}
-
 			if (tab.id === 'interface') {
 				return $user?.role === 'admin' || ($user?.permissions?.settings?.interface ?? true);
-			}
-
-			if (tab.id === 'personalization') {
-				return (
-					$config?.features?.enable_memories &&
-					($user?.role === 'admin' || ($user?.permissions?.features?.memories ?? true))
-				);
 			}
 
 			return true;
@@ -829,9 +608,6 @@
 		filteredSettings = availableSettings
 			.filter((tab) => {
 				const query = search.toLowerCase().trim();
-				if (tab.id === 'admin:analytics' && !($config?.features.enable_admin_analytics ?? true)) {
-					return false;
-				}
 
 				return (
 					query === '' ||
@@ -1007,19 +783,6 @@
 							<AdjustmentsHorizontal className="size-3.5" strokeWidth="2" />
 							<span>{$i18n.t('Interface')}</span>
 						</button>
-					{:else if tabId === 'notifications'}
-						<button
-							role="tab"
-							aria-controls="tab-notifications"
-							aria-selected={selectedTab === 'notifications'}
-							class={tabButtonClass(selectedTab === 'notifications')}
-							on:click={() => {
-								selectedTab = 'notifications';
-							}}
-						>
-							<AppNotification className="size-3.5" strokeWidth="2" />
-							<span>{$i18n.t('Notifications')}</span>
-						</button>
 					{:else if tabId === 'shortcuts'}
 						<button
 							role="tab"
@@ -1048,47 +811,6 @@
 								<span>{$i18n.t('Connections')}</span>
 							</button>
 						{/if}
-					{:else if tabId === 'tools'}
-						{#if $user?.role === 'admin' || ($user?.role === 'user' && $user?.permissions?.features?.direct_tool_servers)}
-							<button
-								role="tab"
-								aria-controls="tab-tools"
-								aria-selected={selectedTab === 'tools'}
-								class={tabButtonClass(selectedTab === 'tools')}
-								on:click={() => {
-									selectedTab = 'tools';
-								}}
-							>
-								<WrenchAlt className="size-3.5" strokeWidth="2" />
-								<span>{$i18n.t('Integrations')}</span>
-							</button>
-						{/if}
-					{:else if tabId === 'personalization'}
-						<button
-							role="tab"
-							aria-controls="tab-personalization"
-							aria-selected={selectedTab === 'personalization'}
-							class={tabButtonClass(selectedTab === 'personalization')}
-							on:click={() => {
-								selectedTab = 'personalization';
-							}}
-						>
-							<Face className="size-3.5" strokeWidth="2" />
-							<span>{$i18n.t('Personalization')}</span>
-						</button>
-					{:else if tabId === 'audio'}
-						<button
-							role="tab"
-							aria-controls="tab-audio"
-							aria-selected={selectedTab === 'audio'}
-							class={tabButtonClass(selectedTab === 'audio')}
-							on:click={() => {
-								selectedTab = 'audio';
-							}}
-						>
-							<SoundHigh className="size-3.5" strokeWidth="2" />
-							<span>{$i18n.t('Audio')}</span>
-						</button>
 					{:else if tabId === 'data_controls'}
 						<button
 							role="tab"
@@ -1217,35 +939,12 @@
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
-			{:else if selectedTab === 'notifications'}
-				<Notifications {saveSettings} />
 			{:else if selectedTab === 'shortcuts'}
 				<Shortcuts {saveSettings} />
 			{:else if selectedTab === 'connections'}
 				<Connections
 					saveSettings={async (updated: Record<string, any>) => {
 						await saveSettings(updated);
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
-			{:else if selectedTab === 'tools'}
-				<Integrations
-					saveSettings={async (updated: Record<string, any>) => {
-						await saveSettings(updated);
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
-			{:else if selectedTab === 'personalization'}
-				<Personalization
-					{saveSettings}
-					on:save={() => {
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
-			{:else if selectedTab === 'audio'}
-				<Audio
-					{saveSettings}
-					on:save={() => {
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
@@ -1275,29 +974,9 @@
 				/>
 			{:else if selectedTab === 'admin:models'}
 				<AdminModels bind:tabState />
-			{:else if selectedTab === 'admin:subagents'}
-				<AdminSubagents />
-			{:else if selectedTab === 'admin:evaluations'}
-				<AdminEvaluations />
-			{:else if selectedTab === 'admin:analytics'}
-				<AdminAnalytics />
-			{:else if selectedTab === 'admin:integrations'}
-				<AdminIntegrations {saveSettings} />
-			{:else if selectedTab === 'admin:documents'}
-				<AdminDocuments on:save={adminConfigSaveHandler} />
-			{:else if selectedTab === 'admin:web'}
-				<AdminWebSearch saveHandler={adminConfigSaveHandler} />
-			{:else if selectedTab === 'admin:code-execution'}
-				<AdminCodeExecution saveHandler={adminConfigSaveHandler} />
 			{:else if selectedTab === 'admin:interface'}
 				<AdminInterface
 					on:save={() => {
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
-			{:else if selectedTab === 'admin:audio'}
-				<AdminAudio
-					saveHandler={() => {
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
@@ -1309,12 +988,6 @@
 				/>
 			{:else if selectedTab === 'admin:db'}
 				<AdminDatabase
-					saveHandler={() => {
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
-			{:else if selectedTab === 'admin:pipelines'}
-				<AdminPipelines
 					saveHandler={() => {
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}

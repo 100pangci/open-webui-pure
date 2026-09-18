@@ -33,9 +33,7 @@ from open_webui.models.users import (
     UserUpdateForm,
 )
 from open_webui.models.access_grants import AccessGrants
-from open_webui.models.knowledge import Knowledges
 from open_webui.models.models import Models
-from open_webui.models.tools import Tools
 from open_webui.utils.access_control import get_permissions, has_permission
 from open_webui.utils.auth import (
     get_admin_user,
@@ -208,37 +206,21 @@ async def get_user_permissisions(
 ############################
 class WorkspacePermissions(BaseModel):
     models: bool = False
-    knowledge: bool = False
     prompts: bool = False
-    tools: bool = False
-    skills: bool = False
     models_import: bool = False
     models_export: bool = False
     prompts_import: bool = False
     prompts_export: bool = False
-    tools_import: bool = False
-    tools_export: bool = False
-    skills_import: bool = False
-    skills_export: bool = False
 
 
 class SharingPermissions(BaseModel):
     models: bool = False
     public_models: bool = False
-    knowledge: bool = False
-    public_knowledge: bool = False
     prompts: bool = False
     public_prompts: bool = False
-    tools: bool = False
-    public_tools: bool = False
-    skills: bool = False
-    public_skills: bool = False
-    notes: bool = False
-    public_notes: bool = False
     folders: bool = False
     public_chats: bool = False
     open_chats: bool = False
-    public_calendars: bool = False
 
 
 class AccessGrantsPermissions(BaseModel):
@@ -250,23 +232,17 @@ class ChatPermissions(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     controls: bool = True
-    valves: bool = True
     system_prompt: bool = True
     params: bool = True
     file_upload: bool = True
-    web_upload: bool = True
     delete: bool = True
     delete_message: bool = True
     continue_response: bool = True
     regenerate_response: bool = True
-    rate_response: bool = True
     edit: bool = True
     share: bool = True
     export: bool = True
     import_: bool = Field(default=True, alias='import')
-    stt: bool = True
-    tts: bool = True
-    call: bool = True
     multiple_models: bool = True
     temporary: bool = True
     temporary_enforced: bool = False
@@ -274,18 +250,8 @@ class ChatPermissions(BaseModel):
 
 class FeaturesPermissions(BaseModel):
     api_keys: bool = False
-    notes: bool = True
-    channels: bool = True
     folders: bool = True
-    direct_tool_servers: bool = False
-
-    web_search: bool = True
     image_generation: bool = True
-    code_interpreter: bool = True
-    memories: bool = True
-    automations: bool = False
-    calendar: bool = True
-    webhooks: bool = False
 
 
 class SettingsPermissions(BaseModel):
@@ -1133,43 +1099,11 @@ async def get_user_preview(
     )
     accessible_model_ids = owned_model_ids | granted_model_ids
 
-    all_knowledge = await Knowledges.get_knowledge_bases(db=db)
-    owned_knowledge_ids = {k.id for k in all_knowledge if k.user_id == user_id}
-    granted_knowledge_ids = await AccessGrants.get_accessible_resource_ids(
-        user_id=user_id,
-        resource_type='knowledge',
-        resource_ids=[k.id for k in all_knowledge if k.user_id != user_id],
-        permission='read',
-        user_group_ids=user_group_ids,
-        db=db,
-    )
-    accessible_knowledge_ids = owned_knowledge_ids | granted_knowledge_ids
-
-    all_tools = await Tools.get_tools(defer_content=True, db=db)
-    owned_tool_ids = {t.id for t in all_tools if t.user_id == user_id}
-    granted_tool_ids = await AccessGrants.get_accessible_resource_ids(
-        user_id=user_id,
-        resource_type='tool',
-        resource_ids=[t.id for t in all_tools if t.user_id != user_id],
-        permission='read',
-        user_group_ids=user_group_ids,
-        db=db,
-    )
-    accessible_tool_ids = owned_tool_ids | granted_tool_ids
-
     return {
         'user': {'id': target_user.id, 'name': target_user.name},
         'groups': [{'id': g.id, 'name': g.name} for g in user_groups],
         'models': {
             'items': [{'id': m.id, 'name': m.name} for m in active_models if m.id in accessible_model_ids],
             'total': len(active_models),
-        },
-        'knowledge': {
-            'items': [{'id': k.id, 'name': k.name} for k in all_knowledge if k.id in accessible_knowledge_ids],
-            'total': len(all_knowledge),
-        },
-        'tools': {
-            'items': [{'id': t.id, 'name': t.name} for t in all_tools if t.id in accessible_tool_ids],
-            'total': len(all_tools),
         },
     }

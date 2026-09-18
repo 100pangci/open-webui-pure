@@ -22,7 +22,6 @@ export enum Shortcut {
 	NEW_TEMPORARY_CHAT = 'newTemporaryChat',
 	DELETE_CHAT = 'deleteChat',
 	OPEN_MODEL_SELECTOR = 'openModelSelector',
-	TOGGLE_DICTATION = 'toggleDictation',
 	NAVIGATE_CHAT_UP = 'navigateChatUp',
 	NAVIGATE_CHAT_DOWN = 'navigateChatDown',
 
@@ -39,21 +38,14 @@ export enum Shortcut {
 	ACCEPT_AUTOCOMPLETE = 'acceptAutocomplete',
 	PREVENT_FILE_CREATION = 'preventFileCreation',
 	NAVIGATE_PROMPT_HISTORY_UP = 'navigatePromptHistoryUp',
-	ATTACH_FILE = 'attachFile',
 	ADD_PROMPT = 'addPrompt',
-	TALK_TO_MODEL = 'talkToModel',
 
 	//Message
 	GENERATE_MESSAGE_PAIR = 'generateMessagePair',
 	REGENERATE_RESPONSE = 'regenerateResponse',
-	ALLOW_TOOL_CALL = 'allowToolCall',
-	DENY_TOOL_CALL = 'denyToolCall',
 	COPY_LAST_CODE_BLOCK = 'copyLastCodeBlock',
 	COPY_LAST_RESPONSE = 'copyLastResponse',
-	STOP_GENERATING = 'stopGenerating',
-
-	//Voice
-	TOGGLE_MUTE = 'toggleMute'
+	STOP_GENERATING = 'stopGenerating'
 }
 
 export const CONFIGURABLE_SHORTCUTS = [
@@ -61,7 +53,6 @@ export const CONFIGURABLE_SHORTCUTS = [
 	Shortcut.NEW_TEMPORARY_CHAT,
 	Shortcut.DELETE_CHAT,
 	Shortcut.OPEN_MODEL_SELECTOR,
-	Shortcut.TOGGLE_DICTATION,
 	Shortcut.NAVIGATE_CHAT_UP,
 	Shortcut.NAVIGATE_CHAT_DOWN,
 	Shortcut.SEARCH,
@@ -73,8 +64,6 @@ export const CONFIGURABLE_SHORTCUTS = [
 	Shortcut.FOCUS_INPUT,
 	Shortcut.GENERATE_MESSAGE_PAIR,
 	Shortcut.REGENERATE_RESPONSE,
-	Shortcut.ALLOW_TOOL_CALL,
-	Shortcut.DENY_TOOL_CALL,
 	Shortcut.COPY_LAST_CODE_BLOCK,
 	Shortcut.COPY_LAST_RESPONSE
 ] as const;
@@ -87,7 +76,6 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
 	[Shortcut.NEW_TEMPORARY_CHAT]: "Cmd+Shift+'",
 	[Shortcut.DELETE_CHAT]: 'Cmd+Shift+Backspace',
 	[Shortcut.OPEN_MODEL_SELECTOR]: 'Cmd+Shift+M',
-	[Shortcut.TOGGLE_DICTATION]: 'Cmd+Shift+L',
 	[Shortcut.NAVIGATE_CHAT_UP]: '',
 	[Shortcut.NAVIGATE_CHAT_DOWN]: '',
 	[Shortcut.SEARCH]: 'Cmd+K',
@@ -99,8 +87,6 @@ export const DEFAULT_KEYBINDINGS: KeybindingsMap = {
 	[Shortcut.FOCUS_INPUT]: 'Shift+Escape',
 	[Shortcut.GENERATE_MESSAGE_PAIR]: 'Cmd+Shift+Enter',
 	[Shortcut.REGENERATE_RESPONSE]: 'Cmd+R',
-	[Shortcut.ALLOW_TOOL_CALL]: 'Cmd+Alt+Enter',
-	[Shortcut.DENY_TOOL_CALL]: 'Cmd+Alt+Backspace',
 	[Shortcut.COPY_LAST_CODE_BLOCK]: 'Cmd+Shift+;',
 	[Shortcut.COPY_LAST_RESPONSE]: 'Cmd+Shift+C'
 };
@@ -234,12 +220,6 @@ export const shortcuts: ShortcutRegistry = {
 		category: 'Chat',
 		configurable: true
 	},
-	[Shortcut.TOGGLE_DICTATION]: {
-		name: 'Toggle Dictation',
-		keys: ['mod', 'shift', 'L'],
-		category: 'Chat',
-		configurable: true
-	},
 	[Shortcut.NAVIGATE_CHAT_UP]: {
 		name: 'Navigate to Previous Chat',
 		keys: [],
@@ -309,19 +289,9 @@ export const shortcuts: ShortcutRegistry = {
 		category: 'Input',
 		tooltip: 'Only active when "Paste Large Text as File" setting is toggled on.'
 	},
-	[Shortcut.ATTACH_FILE]: {
-		name: 'Attach File From Knowledge',
-		keys: ['#'],
-		category: 'Input'
-	},
 	[Shortcut.ADD_PROMPT]: {
 		name: 'Add Custom Prompt',
 		keys: ['/'],
-		category: 'Input'
-	},
-	[Shortcut.TALK_TO_MODEL]: {
-		name: 'Talk to Model',
-		keys: ['@'],
 		category: 'Input'
 	},
 
@@ -338,20 +308,6 @@ export const shortcuts: ShortcutRegistry = {
 		keys: ['mod', 'R'],
 		category: 'Message',
 		configurable: true
-	},
-	[Shortcut.ALLOW_TOOL_CALL]: {
-		name: 'Allow Tool Call',
-		keys: ['mod', 'alt', 'Enter'],
-		category: 'Message',
-		configurable: true,
-		tooltip: 'Only active when a tool call is waiting for approval.'
-	},
-	[Shortcut.DENY_TOOL_CALL]: {
-		name: 'Deny Tool Call',
-		keys: ['mod', 'alt', 'Backspace'],
-		category: 'Message',
-		configurable: true,
-		tooltip: 'Only active when a tool call is waiting for approval.'
 	},
 	[Shortcut.STOP_GENERATING]: {
 		name: 'Stop Generating',
@@ -376,13 +332,5 @@ export const shortcuts: ShortcutRegistry = {
 		keys: ['mod', 'shift', ';'],
 		category: 'Message',
 		configurable: true
-	},
-
-	//Voice
-	[Shortcut.TOGGLE_MUTE]: {
-		name: 'Toggle Mute',
-		keys: ['M'],
-		category: 'Voice',
-		tooltip: 'Only active during Voice Mode.'
 	}
 };

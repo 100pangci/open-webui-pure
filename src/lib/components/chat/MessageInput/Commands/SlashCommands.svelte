@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { getContext, onDestroy } from 'svelte';
 	import { getPrompts } from '$lib/apis/prompts';
-	import { getSkillItems } from '$lib/apis/skills';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ChatBubbleDotted from '$lib/components/icons/ChatBubbleDotted.svelte';
 	import ChatBubbleDottedChecked from '$lib/components/icons/ChatBubbleDottedChecked.svelte';
-	import Cube from '$lib/components/icons/Cube.svelte';
 	import Knobs from '$lib/components/icons/Knobs.svelte';
 	import Sparkles from '$lib/components/icons/Sparkles.svelte';
 
@@ -27,7 +25,6 @@
 	export let filteredItems = [];
 
 	let prompts = [];
-	let skills = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
 	$: contextCirclePercent = contextHasThreshold
@@ -62,8 +59,7 @@
 
 	$: filteredItems = [
 		...commandItems,
-		...filteredPrompts.map((data) => ({ type: 'prompt', data })),
-		...skills.map((data) => ({ type: 'skill', data }))
+		...filteredPrompts.map((data) => ({ type: 'prompt', data }))
 	];
 
 	$: if (query) {
@@ -84,16 +80,11 @@
 	});
 
 	const getItems = async () => {
-		const [promptRes, skillRes] = await Promise.all([
-			getPrompts(localStorage.token).catch(() => null),
-			getSkillItems(localStorage.token, query).catch(() => null)
-		]);
+		const promptRes = await getPrompts(localStorage.token).catch(() => null);
 
 		if (promptRes) {
 			prompts = promptRes;
 		}
-
-		skills = skillRes?.items ?? [];
 	};
 
 	export const selectUp = () => {
@@ -115,23 +106,6 @@
 		if (item) {
 			onSelect(item);
 		}
-	};
-
-	const escapeTooltipText = (value = '') =>
-		String(value)
-			.replaceAll('&', '&amp;')
-			.replaceAll('<', '&lt;')
-			.replaceAll('>', '&gt;')
-			.replaceAll('"', '&quot;')
-			.replaceAll("'", '&#39;');
-
-	const getSkillTooltipContent = (skill) => {
-		const name = escapeTooltipText(skill.name);
-		const description = escapeTooltipText(skill.description);
-
-		return `<div class="max-w-80 whitespace-normal text-left leading-snug">
-			<span class="break-words font-normal">${name}</span>${description ? `: <span class="break-words opacity-80">${description}</span>` : ''}
-		</div>`;
 	};
 </script>
 
@@ -399,49 +373,6 @@
 				<span class="min-w-0 truncate text-xs text-gray-500 dark:text-gray-400">
 					{promptItem.name}
 				</span>
-			</button>
-		</Tooltip>
-	{/each}
-{/if}
-
-{#if skills.length > 0}
-	<div class="px-2 py-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
-		{$i18n.t('Skills')}
-	</div>
-
-	{#each skills as skill, skillIdx}
-		{@const itemIdx = commandItems.length + filteredPrompts.length + skillIdx}
-		<Tooltip
-			content={getSkillTooltipContent(skill)}
-			placement="top-start"
-			tippyOptions={{ maxWidth: '20rem' }}
-		>
-			<button
-				class="flex h-[1.6875rem] w-full items-center rounded-xl px-2 text-left text-[0.8125rem] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {itemIdx ===
-				selectedIdx
-					? 'bg-gray-50/40 dark:bg-gray-800/40 selected-command-option-button'
-					: ''}"
-				type="button"
-				on:click={() => {
-					onSelect({ type: 'skill', data: skill });
-				}}
-				on:mousemove={() => {
-					selectedIdx = itemIdx;
-				}}
-				on:focus={() => {}}
-				data-selected={itemIdx === selectedIdx}
-			>
-				<div class="flex w-full min-w-0 items-center text-black dark:text-gray-100">
-					<div class="mr-2 flex size-4.5 shrink-0 items-center justify-center">
-						<Cube className="size-3.5" />
-					</div>
-					<div class="truncate min-w-0 flex-1">
-						{skill.name}
-					</div>
-					<div class="ml-2 max-w-24 shrink-0 truncate text-xs text-gray-500 dark:text-gray-400">
-						{skill.id}
-					</div>
-				</div>
 			</button>
 		</Tooltip>
 	{/each}

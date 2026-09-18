@@ -373,73 +373,6 @@ class UsersTable:
             row = (await session.execute(query)).scalars().first()
             return UserModel.model_validate(row) if row else None
 
-    async def get_user_by_scim_external_id(
-        self,
-        provider: str,
-        external_id: str,
-        db: AsyncSession | None = None,
-    ) -> UserModel | None:
-        """Look up a user by SCIM provider + external ID."""
-        async with get_async_db_context(db) as session:
-            # Subscript, never contains(): on a JSON column contains() degrades to a substring LIKE.
-            query = select(User).where(User.scim[provider]['external_id'].as_string() == external_id)
-            row = (await session.execute(query)).scalars().first()
-            return UserModel.model_validate(row) if row else None
-
-    async def get_scim_users(
-        self,
-        filter: dict | None = None,
-        sort: dict | None = None,
-        skip: int | None = None,
-        limit: int | None = None,
-        db: AsyncSession | None = None,
-    ) -> dict:
-        async with get_async_db_context(db) as session:
-            stmt = select(User).where(or_(User.oauth.cast(String) != 'null', User.scim.cast(String) != 'null'))
-
-            if filter:
-                user_id = filter.get('id')
-                if user_id:
-                    stmt = stmt.where(User.id == user_id)
-
-                email = filter.get('email')
-                if email:
-                    stmt = stmt.where(func.lower(User.email) == email.lower())
-
-            order_by = sort.get('order_by') if sort else None
-            direction = sort.get('direction') if sort else None
-
-            if order_by == 'created_at':
-                stmt = stmt.order_by(User.created_at.asc() if direction == 'asc' else User.created_at.desc())
-
-            count_result = await session.execute(select(func.count()).select_from(stmt.subquery()))
-            total = count_result.scalar()
-
-            if skip is not None:
-                stmt = stmt.offset(skip)
-            if limit is not None:
-                stmt = stmt.limit(limit)
-
-            result = await session.execute(stmt)
-            users = result.scalars().all()
-            return {
-                'users': [UserModel.model_validate(user) for user in users],
-                'total': total,
-            }
-
-    async def get_scim_user_by_id(
-        self,
-        id: str,
-        db: AsyncSession | None = None,
-    ) -> UserModel | None:
-        async with get_async_db_context(db) as session:
-            stmt = select(User).where(
-                User.id == id,
-                or_(User.oauth.cast(String) != 'null', User.scim.cast(String) != 'null'),
-            )
-            user = (await session.execute(stmt)).scalars().first()
-            return UserModel.model_validate(user) if user else None
-
     async def get_users(
         self,
         filter: dict | None = None,
@@ -451,7 +384,6 @@ class UsersTable:
         """Paginated user listing with optional filters and sort."""
         async with get_async_db_context(db) as session:
             # Deferred imports to avoid circular dependencies
-            from open_webui.models.channels import ChannelMember
             from open_webui.models.groups import GroupMember
 
             # Join GroupMember so we can order by group_id when requested
@@ -464,17 +396,6 @@ class UsersTable:
                         or_(
                             User.name.ilike(f'%{query_key}%'),
                             User.email.ilike(f'%{query_key}%'),
-                        )
-                    )
-
-                channel_id = filter.get('channel_id')
-                if channel_id:
-                    stmt = stmt.filter(
-                        exists(
-                            select(ChannelMember.id).where(
-                                ChannelMember.user_id == User.id,
-                                ChannelMember.channel_id == channel_id,
-                            )
                         )
                     )
 
@@ -689,24 +610,6 @@ class UsersTable:
             provider_oauth['sub'] = str(sub)
             oauth[provider] = provider_oauth
             user.oauth = oauth
-            await session.commit()
-            return UserModel.model_validate(user)
-
-    async def update_user_scim_by_id(
-        self,
-        id: str,
-        provider: str,
-        external_id: str | None,
-        db: AsyncSession | None = None,
-    ) -> UserModel | None:
-        """Update or insert a SCIM provider/external_id pair into the user's scim JSON field."""
-        async with get_async_db_context(db) as session:
-            user = await session.get(User, id)
-            if not user:
-                return None
-            scim = dict(user.scim or {})
-            scim[provider] = {'external_id': external_id}
-            user.scim = scim
             await session.commit()
             return UserModel.model_validate(user)
 

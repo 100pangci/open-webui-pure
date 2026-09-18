@@ -1,0 +1,38 @@
+services:
+  open-webui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: localhost/open-webui:${WEBUI_IMAGE_TAG-lite}
+    container_name: open-webui
+    volumes:
+      - open-webui:/app/backend/data
+    ports:
+      - "${OPEN_WEBUI_PORT:-3000}:8080"
+    environment:
+      OPENAI_API_BASE_URL: "${OPENAI_API_BASE_URL:-https://api.openai.com/v1}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_API_BASE_URLS: "${OPENAI_API_BASE_URLS:-}"
+      OPENAI_API_KEYS: "${OPENAI_API_KEYS:-}"
+      WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY:-}"
+      # Keep the JWT signing key inside the persistent data volume so sessions
+      # survive container recreation/upgrades.
+      WEBUI_SECRET_KEY_FILE: /app/backend/data/.webui_secret_key
+      # Container -> host proxy.
+      # NOTE: 127.0.0.1 inside the container is the container itself, and on this
+      # machine host.containers.internal (pasta 169.254.1.2) is unreachable.
+      # The working address is the host LAN IP (e.g. http://<host-LAN-IP>:10808).
+      # Leave empty for direct connections, or use ./podman-up.sh which detects
+      # the current host IP automatically.
+      HTTP_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      HTTPS_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      ALL_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      NO_PROXY: "${WEBUI_CONTAINER_NO_PROXY:-localhost,127.0.0.1}"
+      http_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      https_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      all_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
+      no_proxy: "${WEBUI_CONTAINER_NO_PROXY:-localhost,127.0.0.1}"
+    restart: unless-stopped
+
+volumes:
+  open-webui: {}

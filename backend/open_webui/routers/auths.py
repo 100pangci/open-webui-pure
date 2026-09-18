@@ -115,19 +115,8 @@ ADMIN_CONFIG_KEYS = {
     'DEFAULT_INTERFACE_SETTINGS': 'ui.default_interface_settings',
     'JWT_EXPIRES_IN': 'auth.jwt_expiry',
     'ENABLE_COMMUNITY_SHARING': 'ui.enable_community_sharing',
-    'ENABLE_MESSAGE_RATING': 'ui.enable_message_rating',
     'ENABLE_FOLDERS': 'folders.enable',
     'FOLDER_MAX_FILE_COUNT': 'folders.max_file_count',
-    'AUTOMATION_MAX_COUNT': 'automations.max_count',
-    'AUTOMATION_MIN_INTERVAL': 'automations.min_interval',
-    'ENABLE_AUTOMATIONS': 'automations.enable',
-    'ENABLE_CHANNELS': 'channels.enable',
-    'CHANNEL_MODEL_RESPONSE_MODE': 'channels.model_response_mode',
-    'ENABLE_CALENDAR': 'calendar.enable',
-    'ENABLE_MEMORIES': 'memories.enable',
-    'ENABLE_MEMORY_SYSTEM_CONTEXT': 'memories.system_context.enable',
-    'ENABLE_NOTES': 'notes.enable',
-    'ENABLE_USER_WEBHOOKS': 'ui.enable_user_webhooks',
     'ENABLE_USER_STATUS': 'users.enable_status',
     'PENDING_USER_OVERLAY_TITLE': 'ui.pending_user_overlay_title',
     'PENDING_USER_OVERLAY_CONTENT': 'ui.pending_user_overlay_content',
@@ -1218,19 +1207,8 @@ class AdminConfig(BaseModel):
     DEFAULT_INTERFACE_SETTINGS: dict | None = None
     JWT_EXPIRES_IN: str
     ENABLE_COMMUNITY_SHARING: bool
-    ENABLE_MESSAGE_RATING: bool
     ENABLE_FOLDERS: bool
     FOLDER_MAX_FILE_COUNT: int | str | None = None
-    AUTOMATION_MAX_COUNT: int | str | None = None
-    AUTOMATION_MIN_INTERVAL: int | str | None = None
-    ENABLE_AUTOMATIONS: bool
-    ENABLE_CHANNELS: bool
-    CHANNEL_MODEL_RESPONSE_MODE: str = 'thread'
-    ENABLE_CALENDAR: bool
-    ENABLE_MEMORIES: bool
-    ENABLE_MEMORY_SYSTEM_CONTEXT: bool
-    ENABLE_NOTES: bool
-    ENABLE_USER_WEBHOOKS: bool
     ENABLE_USER_STATUS: bool
     PENDING_USER_OVERLAY_TITLE: str | None = None
     PENDING_USER_OVERLAY_CONTENT: str | None = None
@@ -1242,16 +1220,9 @@ async def update_admin_config(request: Request, form_data: AdminConfig, user=Dep
     updates = config_updates(form_data.model_dump(), ADMIN_CONFIG_KEYS)
     updates['ui.default_interface_settings'] = form_data.DEFAULT_INTERFACE_SETTINGS or {}
     updates['folders.max_file_count'] = int(form_data.FOLDER_MAX_FILE_COUNT) if form_data.FOLDER_MAX_FILE_COUNT else ''
-    updates['automations.max_count'] = int(form_data.AUTOMATION_MAX_COUNT) if form_data.AUTOMATION_MAX_COUNT else ''
-    updates['automations.min_interval'] = (
-        int(form_data.AUTOMATION_MIN_INTERVAL) if form_data.AUTOMATION_MIN_INTERVAL else ''
-    )
 
     if form_data.DEFAULT_USER_ROLE not in ['pending', 'user', 'admin']:
         updates.pop('ui.default_user_role', None)
-
-    if form_data.CHANNEL_MODEL_RESPONSE_MODE not in ['thread', 'channel']:
-        updates.pop('channels.model_response_mode', None)
 
     pattern = r'^(-1|0|(-?\d+(\.\d+)?)(ms|s|m|h|d|w))$'
 

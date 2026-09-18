@@ -21,7 +21,6 @@ from fastapi import BackgroundTasks, Depends, HTTPException, Request, Response, 
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
-    ENABLE_OTEL,
     ENABLE_PASSWORD_VALIDATION,
     LICENSE_BLOB,
     OFFLINE_MODE,
@@ -374,15 +373,6 @@ async def get_current_user(
         user = await get_current_user_by_api_key(request, token)
 
         # Add user info to current span
-        if ENABLE_OTEL:
-            from opentelemetry import trace
-
-            current_span = trace.get_current_span()
-            if current_span:
-                current_span.set_attribute('client.user.id', user.id)
-                current_span.set_attribute('client.user.email', user.email)
-                current_span.set_attribute('client.user.role', user.role)
-                current_span.set_attribute('client.auth.type', 'api_key')
 
         # Scope-backed, so outer middleware (audit) can reuse the resolved user
         request.state.user = user
@@ -421,15 +411,6 @@ async def get_current_user(
                         )
 
                 # Add user info to current span
-                if ENABLE_OTEL:
-                    from opentelemetry import trace
-
-                    current_span = trace.get_current_span()
-                    if current_span:
-                        current_span.set_attribute('client.user.id', user.id)
-                        current_span.set_attribute('client.user.email', user.email)
-                        current_span.set_attribute('client.user.role', user.role)
-                        current_span.set_attribute('client.auth.type', 'jwt')
 
                 # Refresh the user's last active timestamp
                 # Fire-and-forget via asyncio.create_task to avoid blocking
@@ -502,15 +483,6 @@ async def get_current_user_by_api_key(request, api_key: str):
             )
 
     # Add user info to current span
-    if ENABLE_OTEL:
-        from opentelemetry import trace
-
-        current_span = trace.get_current_span()
-        if current_span:
-            current_span.set_attribute('client.user.id', user.id)
-            current_span.set_attribute('client.user.email', user.email)
-            current_span.set_attribute('client.user.role', user.role)
-            current_span.set_attribute('client.auth.type', 'api_key')
 
     await Users.update_last_active_by_id(user.id)
     return user

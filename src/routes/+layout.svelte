@@ -1,18 +1,24 @@
-<script>
+<script lang="ts">
 	import { io } from 'socket.io-client';
 	import { spring } from 'svelte/motion';
-	import { createPyodideWorker } from '$lib/pyodide/createPyodideWorker';
 	import { Toaster, toast } from 'svelte-sonner';
 
-	let loadingProgress = spring(0, {
-		stiffness: 0.05
-	});
-
 	import { onMount, tick, setContext, onDestroy } from 'svelte';
+	import { beforeNavigate, goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { updated } from '$app/state';
+
+	import i18n, { initI18n, getLanguages, changeLanguage } from '$lib/i18n';
+
+	import '../tailwind.css';
+	import '../app.css';
+	import 'tippy.js/dist/tippy.css';
+
 	import {
 		config,
 		user,
 		settings,
+		models,
 		theme,
 		WEBUI_NAME,
 		WEBUI_VERSION,
@@ -26,60 +32,28 @@
 		isLastActiveTab,
 		isApp,
 		appInfo,
-		toolServers,
-		playingNotificationSound,
-		channels,
-		channelId,
-		terminalServers,
-		showControls,
-		showFileNavPath,
-		showFileNavDir,
-		pyodideWorker,
-		desktopEvent
+		appData,
+		desktopEvent,
+		showSettings,
+		sessionReady
 	} from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
-	import { getFileContentById } from '$lib/apis/files';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { beforeNavigate } from '$app/navigation';
-	import { updated } from '$app/state';
-
-	import i18n, { initI18n, getLanguages, changeLanguage } from '$lib/i18n';
-
-	import '../tailwind.css';
-	import '../app.css';
-	import 'tippy.js/dist/tippy.css';
-
-	import { executeToolServer, getBackendConfig, getModels, getVersion } from '$lib/apis';
+	import { getBackendConfig, getModels, getVersion } from '$lib/apis';
 	import { getSessionUser, updateUserTimezone, userSignOut } from '$lib/apis/auths';
 	import { getAllTags } from '$lib/apis/chats';
 	import { chatCompletion } from '$lib/apis/openai';
 	import { isTemporaryChatId } from '$lib/utils/chatId';
-	import {
-		addOpenAIConnection,
-		removeOpenAIConnection,
-		addTerminalConnection,
-		removeTerminalConnection
-	} from '$lib/utils/connections';
+	import { addOpenAIConnection, removeOpenAIConnection } from '$lib/utils/connections';
 
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import {
-		bestMatchingLanguage,
-		cleanText,
-		displayFileHandler,
-		getUserTimezone,
-		removeAllDetails
-	} from '$lib/utils';
-	import { setTextScale } from '$lib/utils/text-scale';
+	import { bestMatchingLanguage, cleanText, getUserTimezone, removeAllDetails } from '$lib/utils';
 
 	import NotificationToast from '$lib/components/NotificationToast.svelte';
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
-	import { getUserSettings } from '$lib/apis/users';
 	import dayjs from 'dayjs';
-	import { getChannels } from '$lib/apis/channels';
 
 	const unregisterServiceWorkers = async () => {
 		if ('serviceWorker' in navigator) {
@@ -106,6 +80,10 @@
 	setContext('i18n', i18n);
 
 	const bc = new BroadcastChannel('active-tab-channel');
+
+	let loadingProgress = spring(0, {
+		stiffness: 0.05
+	});
 
 	let loaded = false;
 	let tokenTimer = null;
@@ -278,286 +256,7 @@
 		});
 	};
 
-	/**
-	 * Get or create the persistent Pyodide worker.
-	 * The worker persists across executions so the virtual FS (IDBFS) is preserved.
-	 */
-	const getOrCreateWorker = () => {
-		let worker = $pyodideWorker;
-		if (!worker) {
-			worker = createPyodideWorker();
-			pyodideWorker.set(worker);
-		}
-		return worker;
-	};
-
-	const executePythonAsWorker = async (id, code, cb, files = []) => {
-		let result = null;
-		let stdout = null;
-		let stderr = null;
-
-		let executing = true;
-		let packages = [
-			/\bimport\s+requests\b|\bfrom\s+requests\b/.test(code) ? 'requests' : null,
-			/\bimport\s+bs4\b|\bfrom\s+bs4\b/.test(code) ? 'beautifulsoup4' : null,
-			/\bimport\s+numpy\b|\bfrom\s+numpy\b/.test(code) ? 'numpy' : null,
-			/\bimport\s+pandas\b|\bfrom\s+pandas\b/.test(code) ? 'pandas' : null,
-			/\bimport\s+matplotlib\b|\bfrom\s+matplotlib\b/.test(code) ? 'matplotlib' : null,
-			/\bimport\s+seaborn\b|\bfrom\s+seaborn\b/.test(code) ? 'seaborn' : null,
-			/\bimport\s+sklearn\b|\bfrom\s+sklearn\b/.test(code) ? 'scikit-learn' : null,
-			/\bimport\s+scipy\b|\bfrom\s+scipy\b/.test(code) ? 'scipy' : null,
-			/\bimport\s+re\b|\bfrom\s+re\b/.test(code) ? 'regex' : null,
-			/\bimport\s+seaborn\b|\bfrom\s+seaborn\b/.test(code) ? 'seaborn' : null,
-			/\bimport\s+sympy\b|\bfrom\s+sympy\b/.test(code) ? 'sympy' : null,
-			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
-			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
-		].filter(Boolean);
-
-		const worker = getOrCreateWorker();
-
-		// Fetch file content from the server and prepare for the worker
-		let filePayloads = [];
-		if (files && files.length > 0) {
-			for (const file of files) {
-				try {
-					const fileId = file?.id;
-					const fileName = file?.filename || file?.name || 'file';
-					if (fileId) {
-						const content = await getFileContentById(fileId);
-						if (content) {
-							filePayloads.push({ name: fileName, data: content });
-						}
-					}
-				} catch (e) {
-					console.error('Failed to fetch file for Pyodide:', e);
-				}
-			}
-		}
-
-		worker.postMessage({
-			type: 'execute',
-			id: id,
-			code: code,
-			packages: packages,
-			files: filePayloads.length > 0 ? filePayloads : undefined
-		});
-
-		// Timeout for this specific execution (not the worker itself)
-		let timeoutId = setTimeout(() => {
-			if (executing) {
-				executing = false;
-				stderr = 'Execution Time Limit Exceeded';
-
-				// Terminate and recreate the worker on timeout
-				worker.terminate();
-				pyodideWorker.set(null);
-
-				if (cb) {
-					cb(
-						JSON.parse(
-							JSON.stringify(
-								{
-									stdout: stdout,
-									stderr: stderr,
-									result: result
-								},
-								(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-							)
-						)
-					);
-				}
-			}
-		}, 60000);
-
-		// Use addEventListener so multiple concurrent executions don't clobber each other
-		const onMessage = (event) => {
-			const { id: eventId, ...data } = event.data;
-			// Only handle responses for this execution ID
-			if (eventId !== id) return;
-			// Ignore FS responses (they use a type field)
-			if (data.type && data.type.startsWith('fs:')) return;
-
-			console.log('pyodideWorker.onmessage', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			data['stdout'] && (stdout = data['stdout']);
-			data['stderr'] && (stderr = data['stderr']);
-			data['result'] && (result = data['result']);
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-
-			executing = false;
-		};
-
-		const onError = (event) => {
-			console.log('pyodideWorker.onerror', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-			executing = false;
-		};
-
-		worker.addEventListener('message', onMessage);
-		worker.addEventListener('error', onError);
-	};
-
-	const resolveToolServer = (serverUrl) => {
-		let toolServer = $settings?.toolServers?.find((server) => server.url === serverUrl);
-		if (!toolServer) {
-			const terminalServer = ($settings?.terminalServers ?? []).find(
-				(server) => server.url === serverUrl
-			);
-			if (terminalServer) {
-				toolServer = {
-					url: terminalServer.url,
-					auth_type: terminalServer.auth_type ?? 'bearer',
-					key: terminalServer.key ?? '',
-					path: terminalServer.path ?? '/openapi.json'
-				};
-			}
-		}
-
-		let toolServerData =
-			$toolServers?.find((server) => server.url === serverUrl) ??
-			$terminalServers?.find((server) => server.url === serverUrl);
-
-		let token = null;
-		if (toolServer) {
-			const auth_type = toolServer?.auth_type ?? 'bearer';
-			if (auth_type === 'bearer') token = toolServer?.key;
-			else if (auth_type === 'session') token = localStorage.token;
-		}
-
-		return { toolServer, toolServerData, token };
-	};
-
-	const isDirectTerminalServer = (serverUrl) =>
-		!!serverUrl &&
-		(($settings?.terminalServers ?? []).some((server) => server.url === serverUrl) ||
-			($terminalServers ?? []).some((server) => !server.id && server.url === serverUrl));
-
-	const terminalFileResult = (result, params, serverUrl, chatId) => {
-		const path = result?.path ?? params?.path;
-		const name =
-			result?.name ??
-			String(path ?? '')
-				.split('/')
-				.filter(Boolean)
-				.at(-1) ??
-			'file';
-		const contentType = result?.content_type ?? result?.mime_type ?? 'application/octet-stream';
-
-		return {
-			...(result ?? {}),
-			type: 'file',
-			source: 'open_terminal',
-			displayed: true,
-			terminal_selector: serverUrl,
-			terminal_url: serverUrl,
-			session_id: chatId,
-			path,
-			full_path: result?.full_path ?? path,
-			name,
-			mime_type: contentType,
-			content_type: contentType,
-			page: result?.page ?? params?.page
-		};
-	};
-
-	const executeTool = async (data, cb, chatId) => {
-		const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
-		const defaultInline =
-			data?.name === 'display_file' &&
-			data?.params?.path &&
-			data?.params?.inline === undefined &&
-			$settings?.terminalFileDisplay === 'inline' &&
-			isDirectTerminalServer(data.server?.url);
-		const params = defaultInline ? { ...data.params, inline: true } : data?.params;
-		const serverParams = data?.name === 'display_file' && params ? { ...params } : params;
-		if (serverParams && data?.name === 'display_file') {
-			delete serverParams.page;
-		}
-
-		console.log('executeTool', data, toolServer);
-
-		if (toolServer) {
-			const res = await executeToolServer(
-				token,
-				toolServer.url,
-				data?.name,
-				serverParams,
-				toolServerData,
-				chatId
-			);
-
-			console.log('executeToolServer', res);
-			const result = Array.isArray(res) ? res[0] : res;
-			const inlineDisplayFile =
-				data?.name === 'display_file' && params?.path && params?.inline === true;
-			const output =
-				inlineDisplayFile && result?.exists !== false
-					? Array.isArray(res)
-						? [terminalFileResult(result, params, toolServer.url, chatId)]
-						: terminalFileResult(result, params, toolServer.url, chatId)
-					: res;
-
-			if (data?.name === 'display_file' && params?.path && !inlineDisplayFile) {
-				if (result?.exists !== false) {
-					displayFileHandler(
-						params.path,
-						{ showControls, showFileNavPath },
-						{ page: params?.page }
-					);
-				}
-			}
-
-			if (['write_file'].includes(data?.name) && params?.path) {
-				showFileNavDir.set(result?.path ?? params.path);
-			}
-
-			if (cb) {
-				cb(structuredClone(output));
-			}
-		} else {
-			if (cb) {
-				cb({ error: 'Tool Server Not Found' });
-			}
-		}
-	};
-
 	const chatEventHandler = async (event, cb) => {
-		const chat = $page.url.pathname.includes(`/c/${event.chat_id}`);
-
 		// Skip events from temporary chats that are not the current chat.
 		// This prevents notifications from being sent to other tabs/devices
 		// for privacy, since temporary chats are not meant to be persisted or visible elsewhere.
@@ -580,59 +279,16 @@
 		const type = event?.data?.type ?? null;
 		const data = event?.data?.data ?? null;
 
-		// Calendar alerts are not chat-scoped, handle before chat_id checks
-		if (type === 'calendar:alert' && data) {
-			const timeStr =
-				data.minutes_until <= 0
-					? $i18n.t('Starting now')
-					: data.minutes_until === 1
-						? $i18n.t('Starting in 1 minute')
-						: $i18n.t('Starting in {{count}} minutes', { count: data.minutes_until });
-
-			toast.custom(NotificationToast, {
-				componentProps: {
-					onClick: () => {
-						goto('/calendar');
-					},
-					title: data.title,
-					content: timeStr
-				},
-				duration: 30000,
-				unstyled: true
-			});
-
-			if ($isLastActiveTab) {
-				if ($settings?.notificationEnabled ?? false) {
-					new Notification(`${data.title} / Open WebUI`, {
-						body: timeStr,
-						// LICENSE covers this Open WebUI notification identifier.
-						// Do not alter, remove, obscure, or replace it except as LICENSE permits:
-						// https://docs.openwebui.com/license.
-						icon: `${WEBUI_BASE_URL}/static/favicon.png`
-					});
-				}
-			}
-			return;
-		}
-
-		// Session-targeted RPC calls (code execution, tool calls, direct completion)
-		// must ALWAYS be processed regardless of active chat or tab visibility,
-		// because the backend's sio.call blocks waiting for our callback response.
+		// Session-targeted RPC calls (direct completion) must ALWAYS be processed
+		// regardless of active chat or tab visibility, because the backend's
+		// sio.call blocks waiting for our callback response.
 		if (data?.session_id === $socket.id) {
-			if (type === 'execute:python') {
-				console.log('execute:python', data);
-				executePythonAsWorker(data.id, data.code, cb, data.files || []);
-				return;
-			} else if (type === 'execute:tool') {
-				console.log('execute:tool', data);
-				executeTool(data, cb, event.chat_id);
-				return;
-			} else if (type === 'request:chat:completion') {
+			if (type === 'request:chat:completion') {
 				console.log(data, $socket.id);
 				const { session_id, channel, form_data, model } = data;
 
 				try {
-					const directConnections = $settings?.directConnections ?? {};
+					const directConnections = ($settings as any)?.directConnections ?? {};
 
 					if (directConnections) {
 						const urlIdx = model?.urlIdx;
@@ -708,7 +364,7 @@
 					console.error('chatCompletion', error);
 					cb(error);
 				} finally {
-					$socket.emit(channel, {
+					$socket?.emit(channel, {
 						done: true
 					});
 				}
@@ -726,31 +382,6 @@
 				const contentPreview = cleanText(removeAllDetails(getOutputText(output) || content || ''));
 
 				if (done) {
-					if (
-						($settings?.notificationSound ?? true) &&
-						($settings?.notificationSoundAlways ?? false)
-					) {
-						playingNotificationSound.set(true);
-
-						const audio = new Audio(`/audio/notification.mp3`);
-						audio.play().finally(() => {
-							// Ensure the global state is reset after the sound finishes
-							playingNotificationSound.set(false);
-						});
-					}
-
-					if ($isLastActiveTab) {
-						if ($settings?.notificationEnabled ?? false) {
-							new Notification(`${displayTitle} / Open WebUI`, {
-								body: contentPreview,
-								// LICENSE covers this Open WebUI notification identifier.
-								// Do not alter, remove, obscure, or replace it except as LICENSE permits:
-								// https://docs.openwebui.com/license.
-								icon: `${WEBUI_BASE_URL}/static/favicon.png`
-							});
-						}
-					}
-
 					toast.custom(NotificationToast, {
 						componentProps: {
 							onClick: () => {
@@ -767,111 +398,6 @@
 				await refreshChatList(localStorage.token);
 			} else if (type === 'chat:tags') {
 				tags.set(await getAllTags(localStorage.token));
-			}
-		}
-	};
-
-	const channelEventHandler = async (event) => {
-		console.log('channelEventHandler', event);
-		if (event.data?.type === 'typing') {
-			return;
-		}
-
-		// handle channel created event
-		if (event.data?.type === 'channel:created') {
-			const res = await getChannels(localStorage.token).catch(async (error) => {
-				return null;
-			});
-
-			if (res) {
-				await channels.set(
-					res.sort(
-						(a, b) =>
-							['', null, 'group', 'dm'].indexOf(a.type) - ['', null, 'group', 'dm'].indexOf(b.type)
-					)
-				);
-			}
-
-			return;
-		}
-
-		// check url path
-		const channel = $page.url.pathname.includes(`/channels/${event.channel_id}`);
-
-		let isInBackground = document.visibilityState !== 'visible';
-		if (window.electronAPI) {
-			const res = await window.electronAPI.send({
-				type: 'window:isFocused'
-			});
-			if (res) {
-				isInBackground = !res.isFocused;
-			}
-		}
-
-		if ((!channel || isInBackground) && event?.user?.id !== $user?.id) {
-			await tick();
-			const type = event?.data?.type ?? null;
-			const data = event?.data?.data ?? null;
-
-			if ($channels) {
-				if ($channels.find((ch) => ch.id === event.channel_id) && $channelId !== event.channel_id) {
-					channels.set(
-						$channels.map((ch) => {
-							if (ch.id === event.channel_id) {
-								if (type === 'message') {
-									return {
-										...ch,
-										unread_count: (ch.unread_count ?? 0) + 1,
-										last_message_at: event.created_at
-									};
-								}
-							}
-							return ch;
-						})
-					);
-				} else {
-					const res = await getChannels(localStorage.token).catch(async (error) => {
-						return null;
-					});
-
-					if (res) {
-						await channels.set(
-							res.sort(
-								(a, b) =>
-									['', null, 'group', 'dm'].indexOf(a.type) -
-									['', null, 'group', 'dm'].indexOf(b.type)
-							)
-						);
-					}
-				}
-			}
-
-			if (type === 'message') {
-				const title = `${data?.user?.name}${event?.channel?.type !== 'dm' ? ` (#${event?.channel?.name})` : ''}`;
-
-				if ($isLastActiveTab) {
-					if ($settings?.notificationEnabled ?? false) {
-						// LICENSE covers this Open WebUI notification identifier.
-						// Do not alter, remove, obscure, or replace it except as LICENSE permits:
-						// https://docs.openwebui.com/license.
-						new Notification(`${title} / Open WebUI`, {
-							body: data?.content,
-							icon: `${WEBUI_API_BASE_URL}/users/${data?.user?.id}/profile/image`
-						});
-					}
-				}
-
-				toast.custom(NotificationToast, {
-					componentProps: {
-						onClick: () => {
-							goto(`/channels/${event.channel_id}`);
-						},
-						content: data?.content,
-						title: `${title}`
-					},
-					duration: 15000,
-					unstyled: true
-				});
 			}
 		}
 	};
@@ -973,11 +499,6 @@
 			await goto('/');
 			return;
 		}
-		if (event.type === 'call') {
-			desktopEvent.set(event);
-			await goto('/');
-			return;
-		}
 		if (event.type === 'theme:update' && event.data?.theme) {
 			const newTheme = event.data.theme;
 			localStorage.setItem('theme', newTheme);
@@ -1005,7 +526,7 @@
 					await getModels(
 						token,
 						$config?.features?.enable_direct_connections
-							? ($settings?.directConnections ?? null)
+							? (($settings as any)?.directConnections ?? null)
 							: null
 					)
 				);
@@ -1020,17 +541,7 @@
 		if ($user?.role !== 'admin') return;
 
 		try {
-			if (event.type === 'connections:terminal') {
-				if (event.data.action === 'add') {
-					await addTerminalConnection(token, {
-						url: event.data.url,
-						key: event.data.key,
-						name: 'Local Open Terminal'
-					});
-				} else if (event.data.action === 'remove') {
-					await removeTerminalConnection(token, event.data.url);
-				}
-			} else if (event.type === 'connections:openai') {
+			if (event.type === 'connections:openai') {
 				if (event.data.action === 'add') {
 					await addOpenAIConnection(token, {
 						url: event.data.url,
@@ -1059,6 +570,132 @@
 			syncStatsEventData = event.data;
 			showSyncStatsModal = true;
 		}
+	};
+
+	const initialize = async () => {
+		let backendConfig = null;
+		try {
+			backendConfig = await getBackendConfig();
+			console.log('Backend config:', backendConfig);
+		} catch (error) {
+			if (error?.authRedirect) {
+				// Forward-auth proxy is redirecting to an external login page.
+				// Full-page navigation lets the browser follow the redirect natively.
+				window.location.href = '/';
+				return;
+			}
+			console.error('Error loading backend config:', error);
+		}
+
+		// Initialize i18n even if we didn't get a backend config,
+		// so `/error` can show something that's not `undefined`.
+		initI18n(localStorage?.locale);
+		if (!localStorage.locale) {
+			const languages = await getLanguages();
+			const browserLanguages = navigator.languages
+				? navigator.languages
+				: [navigator.language || navigator.userLanguage];
+			const lang = backendConfig?.default_locale
+				? backendConfig.default_locale
+				: bestMatchingLanguage(languages, browserLanguages, 'en-US');
+			changeLanguage(lang);
+			dayjs.locale(lang);
+		}
+
+		if (!backendConfig) {
+			// Redirect to /error when Backend Not Detected
+			await goto(`/error`);
+			return;
+		}
+
+		// Save Backend Status to Store
+		await config.set(backendConfig);
+		// LICENSE covers this Open WebUI branding surface, including name, logo,
+		// visual, textual, symbolic identifiers, metadata, and surrounding UI.
+		// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+		// https://docs.openwebui.com/license.
+		await WEBUI_NAME.set(backendConfig.name);
+
+		const versionData = await getVersion(localStorage.token).catch(() => null);
+		WEBUI_VERSION.set(versionData?.version ?? null);
+		WEBUI_DEPLOYMENT_ID.set(versionData?.deployment_id ?? null);
+
+		await setupSocket($config?.features?.enable_websocket ?? true);
+
+		if (localStorage.token) {
+			// Get Session User Info
+			const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
+				toast.error(`${error}`);
+				return null;
+			});
+
+			if (sessionUser) {
+				await user.set(sessionUser);
+				try {
+					await config.set(await getBackendConfig());
+				} catch (error) {
+					console.error('Error refreshing backend config:', error);
+				}
+
+				// Keep user timezone in sync on every app load/refresh
+				const timezone = getUserTimezone();
+				if (timezone) {
+					updateUserTimezone(localStorage.token, timezone);
+				}
+
+				// Relay auth token to desktop app for API access
+				if (window.electronAPI?.send) {
+					window.electronAPI
+						.send({
+							type: 'token:update',
+							token: localStorage.token
+						})
+						.catch(() => {});
+				}
+
+				// Load the chat history for the sidebar.
+				await refreshChatList(localStorage.token).catch(() => null);
+			} else {
+				localStorage.removeItem('token');
+				await user.set(null);
+			}
+		}
+
+		await tick();
+
+		if (
+			document.documentElement.classList.contains('her') &&
+			document.getElementById('progress-bar')
+		) {
+			loadingProgress.subscribe((value) => {
+				const progressBar = document.getElementById('progress-bar');
+
+				if (progressBar) {
+					progressBar.style.width = `${value}%`;
+				}
+			});
+
+			await loadingProgress.set(100);
+
+			document.getElementById('splash-screen')?.remove();
+
+			const audio = new Audio(`/audio/greeting.mp3`);
+			const playAudio = () => {
+				audio.play();
+				document.removeEventListener('click', playAudio);
+			};
+
+			document.addEventListener('click', playAudio);
+
+			loaded = true;
+		} else {
+			document.getElementById('splash-screen')?.remove();
+			loaded = true;
+		}
+
+		// Let the app layouts know that the session restore has finished, so
+		// they don't bounce a logged-in user to /auth on every reload.
+		sessionReady.set(true);
 	};
 
 	onMount(async () => {
@@ -1205,10 +842,8 @@
 		user.subscribe(async (value) => {
 			if (value) {
 				$socket?.off('events', chatEventHandler);
-				$socket?.off('events:channel', channelEventHandler);
 
 				$socket?.on('events', chatEventHandler);
-				$socket?.on('events:channel', channelEventHandler);
 
 				// Set up the token expiry check
 				if (tokenTimer) {
@@ -1217,122 +852,17 @@
 				tokenTimer = setInterval(checkTokenExpiry, 15000);
 			} else {
 				$socket?.off('events', chatEventHandler);
-				$socket?.off('events:channel', channelEventHandler);
 			}
 		});
 
-		let backendConfig = null;
-		try {
-			backendConfig = await getBackendConfig();
-			console.log('Backend config:', backendConfig);
-		} catch (error) {
-			if (error?.authRedirect) {
-				// Forward-auth proxy is redirecting to an external login page.
-				// Full-page navigation lets the browser follow the redirect natively.
-				window.location.href = '/';
-				return;
-			}
-			console.error('Error loading backend config:', error);
-		}
-		// Initialize i18n even if we didn't get a backend config,
-		// so `/error` can show something that's not `undefined`.
+		await initialize();
 
-		initI18n(localStorage?.locale);
-		if (!localStorage.locale) {
-			const languages = await getLanguages();
-			const browserLanguages = navigator.languages
-				? navigator.languages
-				: [navigator.language || navigator.userLanguage];
-			const lang = backendConfig?.default_locale
-				? backendConfig.default_locale
-				: bestMatchingLanguage(languages, browserLanguages, 'en-US');
-			changeLanguage(lang);
-			dayjs.locale(lang);
-		}
-
-		if (backendConfig) {
-			// Save Backend Status to Store
-			await config.set(backendConfig);
-			// LICENSE covers this Open WebUI branding surface, including name, logo,
-			// visual, textual, symbolic identifiers, metadata, and surrounding UI.
-			// Do not alter, remove, obscure, or replace it except as LICENSE permits:
-			// https://docs.openwebui.com/license.
-			await WEBUI_NAME.set(backendConfig.name);
-
-			if ($config) {
-				await setupSocket($config.features?.enable_websocket ?? true);
-
-				if (localStorage.token) {
-					// Get Session User Info
-					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
-
-					if (sessionUser) {
-						await user.set(sessionUser);
-						try {
-							await config.set(await getBackendConfig());
-						} catch (error) {
-							console.error('Error refreshing backend config:', error);
-						}
-
-						// Keep user timezone in sync on every app load/refresh
-						const timezone = getUserTimezone();
-						if (timezone) {
-							updateUserTimezone(localStorage.token, timezone);
-						}
-
-						// Relay auth token to desktop app for API access
-						if (window.electronAPI?.send) {
-							window.electronAPI
-								.send({
-									type: 'token:update',
-									token: localStorage.token
-								})
-								.catch(() => {});
-						}
-					} else {
-						localStorage.removeItem('token');
-						await user.set(null);
-					}
-				}
-			}
-		} else {
-			// Redirect to /error when Backend Not Detected
-			await goto(`/error`);
-		}
-
-		await tick();
-
-		if (
-			document.documentElement.classList.contains('her') &&
-			document.getElementById('progress-bar')
-		) {
-			loadingProgress.subscribe((value) => {
-				const progressBar = document.getElementById('progress-bar');
-
-				if (progressBar) {
-					progressBar.style.width = `${value}%`;
-				}
-			});
-
-			await loadingProgress.set(100);
-
-			document.getElementById('splash-screen')?.remove();
-
-			const audio = new Audio(`/audio/greeting.mp3`);
-			const playAudio = () => {
-				audio.play();
-				document.removeEventListener('click', playAudio);
-			};
-
-			document.addEventListener('click', playAudio);
-
-			loaded = true;
-		} else {
-			document.getElementById('splash-screen')?.remove();
-			loaded = true;
+		// /admin/settings/<tab> and other deep links open the settings modal.
+		const settingsParam = $page.url.searchParams.get('settings');
+		if (settingsParam) {
+			showSettings.set(
+				settingsParam.startsWith('admin:') && $user?.role !== 'admin' ? 'general' : settingsParam
+			);
 		}
 
 		// Auto-show SyncStatsModal when opened with ?sync=true (from community)
@@ -1364,6 +894,8 @@
 	}
 
 	onDestroy(() => {
+		if (tokenTimer) clearInterval(tokenTimer);
+		clearDisconnectToastTimer();
 		bc.close();
 	});
 </script>
@@ -1414,7 +946,7 @@
 	{/if}
 {/if}
 
-{#if $config?.features.enable_community_sharing}
+{#if $config?.features?.enable_community_sharing}
 	<SyncStatsModal bind:show={showSyncStatsModal} eventData={syncStatsEventData} />
 {/if}
 

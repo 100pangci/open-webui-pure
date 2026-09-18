@@ -1,11 +1,9 @@
 import logging
 import math
 import re
-import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from open_webui.config import DEFAULT_RAG_TEMPLATE
 from open_webui.utils.misc import get_last_user_message, get_messages_content
 
 log = logging.getLogger(__name__)
@@ -262,45 +260,6 @@ def replace_messages_variable(
 
 # Let the context given here not distort the question,
 # but illuminate it, so that the answer serves the one who asked.
-async def rag_template(template: str, context: str, query: str):
-    if template.strip() == '':
-        template = DEFAULT_RAG_TEMPLATE
-
-    template = await prompt_template(template)
-
-    if '[context]' not in template and '{{CONTEXT}}' not in template:
-        log.debug("WARNING: The RAG template does not contain the '[context]' or '{{CONTEXT}}' placeholder.")
-
-    if '<context>' in context and '</context>' in context:
-        log.debug(
-            'WARNING: Potential prompt injection attack: the RAG '
-            "context contains '<context>' and '</context>'. This might be "
-            'nothing, or the user might be trying to hack something.'
-        )
-
-    query_placeholders = []
-    if '[query]' in context:
-        query_placeholder = '{{QUERY' + str(uuid.uuid4()) + '}}'
-        template = template.replace('[query]', query_placeholder)
-        query_placeholders.append((query_placeholder, '[query]'))
-
-    if '{{QUERY}}' in context:
-        query_placeholder = '{{QUERY' + str(uuid.uuid4()) + '}}'
-        template = template.replace('{{QUERY}}', query_placeholder)
-        query_placeholders.append((query_placeholder, '{{QUERY}}'))
-
-    template = template.replace('[context]', context)
-    template = template.replace('{{CONTEXT}}', context)
-
-    template = template.replace('[query]', query)
-    template = template.replace('{{QUERY}}', query)
-
-    for query_placeholder, original_placeholder in query_placeholders:
-        template = template.replace(query_placeholder, original_placeholder)
-
-    return template
-
-
 async def title_generation_template(template: str, messages: list[dict], user: Optional[Any] = None) -> str:
     prompt = get_last_user_message(messages)
     template = replace_prompt_variable(template, prompt)
@@ -338,13 +297,6 @@ async def image_prompt_generation_template(template: str, messages: list[dict], 
     return template
 
 
-async def emoji_generation_template(template: str, prompt: str, user: Optional[Any] = None) -> str:
-    template = replace_prompt_variable(template, prompt)
-    template = await prompt_template(template, user)
-
-    return template
-
-
 async def autocomplete_generation_template(
     template: str,
     prompt: str,
@@ -353,15 +305,6 @@ async def autocomplete_generation_template(
     user: Optional[Any] = None,
 ) -> str:
     template = template.replace('{{TYPE}}', type if type else '')
-    template = replace_prompt_variable(template, prompt)
-    template = replace_messages_variable(template, messages)
-
-    template = await prompt_template(template, user)
-    return template
-
-
-async def query_generation_template(template: str, messages: list[dict], user: Optional[Any] = None) -> str:
-    prompt = get_last_user_message(messages)
     template = replace_prompt_variable(template, prompt)
     template = replace_messages_variable(template, messages)
 
@@ -404,6 +347,3 @@ def moa_response_generation_template(template: str, prompt: str, responses: list
     return template
 
 
-def tools_function_calling_generation_template(template: str, tools_specs: str) -> str:
-    template = template.replace('{{TOOLS}}', tools_specs)
-    return template

@@ -4,7 +4,6 @@
 	import type { i18n as i18nType } from 'i18next';
 	import {
 		WEBUI_NAME,
-		config,
 		showSidebar,
 		user,
 		mobile,
@@ -14,10 +13,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getModelItems } from '$lib/apis/models';
-	import { searchKnowledgeBases } from '$lib/apis/knowledge';
 	import { getPromptItems } from '$lib/apis/prompts';
-	import { getSkillItems } from '$lib/apis/skills';
-	import { getToolList } from '$lib/apis/tools';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 	import SplitCreateButton from '$lib/components/common/SplitCreateButton.svelte';
@@ -47,33 +43,20 @@
 
 	const loadWorkspaceCounts = async () => {
 		const canViewModels = $user?.role === 'admin' || $user?.permissions?.workspace?.models;
-		const canViewKnowledge = $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge;
 		const canViewPrompts = $user?.role === 'admin' || $user?.permissions?.workspace?.prompts;
-		const canViewSkills = $user?.role === 'admin' || $user?.permissions?.workspace?.skills;
-		const canViewTools =
-			$config?.features?.enable_plugins &&
-			($user?.role === 'admin' || $user?.permissions?.workspace?.tools);
 
-		const [modelRes, knowledgeRes, promptRes, skillRes, toolRes] = await Promise.all([
+		const [modelRes, promptRes] = await Promise.all([
 			canViewModels
 				? getModelItems(localStorage.token, null, null, null, null, null, 1).catch(() => null)
 				: null,
-			canViewKnowledge
-				? searchKnowledgeBases(localStorage.token, null, null, 1, null).catch(() => null)
-				: null,
 			canViewPrompts
 				? getPromptItems(localStorage.token, null, null, null, null, null, 1).catch(() => null)
-				: null,
-			canViewSkills ? getSkillItems(localStorage.token, null, null, 1).catch(() => null) : null,
-			canViewTools ? getToolList(localStorage.token).catch(() => null) : null
+				: null
 		]);
 
 		workspaceCounts.set({
 			models: getCount(modelRes),
-			knowledge: getCount(knowledgeRes),
-			prompts: getCount(promptRes),
-			skills: getCount(skillRes),
-			tools: getCount(toolRes)
+			prompts: getCount(promptRes)
 		});
 	};
 
@@ -82,21 +65,9 @@
 			if ($page.url.pathname.includes('/models') && !$user?.permissions?.workspace?.models) {
 				goto('/', { replaceState: true });
 			} else if (
-				$page.url.pathname.includes('/knowledge') &&
-				!$user?.permissions?.workspace?.knowledge
-			) {
-				goto('/', { replaceState: true });
-			} else if (
 				$page.url.pathname.includes('/prompts') &&
 				!$user?.permissions?.workspace?.prompts
 			) {
-				goto('/', { replaceState: true });
-			} else if (
-				$page.url.pathname.includes('/tools') &&
-				(!$config?.features?.enable_plugins || !$user?.permissions?.workspace?.tools)
-			) {
-				goto('/', { replaceState: true });
-			} else if ($page.url.pathname.includes('/skills') && !$user?.permissions?.workspace?.skills) {
 				goto('/', { replaceState: true });
 			}
 		}
@@ -165,23 +136,6 @@
 							</a>
 						{/if}
 
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
-							<a
-								draggable="false"
-								aria-current={activeWorkspaceSection === 'knowledge' ? 'page' : null}
-								class="min-w-fit px-1 text-sm inline-flex items-center gap-1 {activeWorkspaceSection ===
-								'knowledge'
-									? 'text-gray-900 dark:text-gray-100'
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/knowledge"
-							>
-								<span>{$i18n.t('Knowledge')}</span>
-								<span class="text-sm opacity-60">
-									{formatCount($workspaceCounts.knowledge)}
-								</span>
-							</a>
-						{/if}
-
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.prompts}
 							<a
 								draggable="false"
@@ -195,40 +149,6 @@
 								<span>{$i18n.t('Prompts')}</span>
 								<span class="text-sm opacity-60">
 									{formatCount($workspaceCounts.prompts)}
-								</span>
-							</a>
-						{/if}
-
-						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.skills}
-							<a
-								draggable="false"
-								aria-current={activeWorkspaceSection === 'skills' ? 'page' : null}
-								class="min-w-fit px-1 text-sm inline-flex items-center gap-1 {activeWorkspaceSection ===
-								'skills'
-									? 'text-gray-900 dark:text-gray-100'
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/skills"
-							>
-								<span>{$i18n.t('Skills')}</span>
-								<span class="text-sm opacity-60">
-									{formatCount($workspaceCounts.skills)}
-								</span>
-							</a>
-						{/if}
-
-						{#if $config?.features?.enable_plugins && ($user?.role === 'admin' || $user?.permissions?.workspace?.tools)}
-							<a
-								draggable="false"
-								aria-current={activeWorkspaceSection === 'tools' ? 'page' : null}
-								class="min-w-fit px-1 text-sm inline-flex items-center gap-1 {activeWorkspaceSection ===
-								'tools'
-									? 'text-gray-900 dark:text-gray-100'
-									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition select-none"
-								href="/workspace/tools"
-							>
-								<span>{$i18n.t('Tools')}</span>
-								<span class="text-sm opacity-60">
-									{formatCount($workspaceCounts.tools)}
 								</span>
 							</a>
 						{/if}

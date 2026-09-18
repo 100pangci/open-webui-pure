@@ -53,8 +53,8 @@
 	import Minus from '$lib/components/icons/Minus.svelte';
 	import DocumentArrowUp from '$lib/components/icons/DocumentArrowUp.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
-	import EllipsisVertical from '$lib/components/icons/EllipsisVertical.svelte';
 	import Wrench from '$lib/components/icons/Wrench.svelte';
+	import EllipsisVertical from '$lib/components/icons/EllipsisVertical.svelte';
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
@@ -988,11 +988,7 @@
 									>
 										<Tooltip
 											content={marked.parse(
-												!!model?.meta?.description
-													? model?.meta?.description
-													: model?.ollama?.digest
-														? `${model?.ollama?.digest} **(${model?.ollama?.modified_at})**`
-														: model.id
+												!!model?.meta?.description ? model?.meta?.description : model.id
 											)}
 											className="min-w-0 flex-1"
 											placement="top-start"

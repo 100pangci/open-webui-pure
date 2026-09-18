@@ -17,33 +17,9 @@
 			label: $i18n.t('File Upload'),
 			description: $i18n.t('Model accepts file inputs')
 		},
-		file_context: {
-			label: $i18n.t('File Context'),
-			description: $i18n.t('Inject file content into conversation context')
-		},
-		web_search: {
-			label: $i18n.t('Web Search'),
-			description: $i18n.t('Model can search the web for information')
-		},
 		image_generation: {
 			label: $i18n.t('Image Generation'),
 			description: $i18n.t('Model can generate images based on text prompts')
-		},
-		code_interpreter: {
-			label: $i18n.t('Code Interpreter'),
-			description: $i18n.t('Model can execute code and perform calculations')
-		},
-		terminal: {
-			label: $i18n.t('Terminal'),
-			description: $i18n.t(
-				'Model can access Open Terminal for command execution and file management'
-			)
-		},
-		usage: {
-			label: $i18n.t('Usage'),
-			description: $i18n.t(
-				'Sends `stream_options: { include_usage: true }` in the request.\nSupported providers will return token usage information in the response when set.'
-			)
 		},
 		citations: {
 			label: $i18n.t('Citations'),
@@ -53,14 +29,10 @@
 			label: $i18n.t('Status Updates'),
 			description: $i18n.t('Displays status updates (e.g., web search progress) in the response')
 		},
-		memory: {
-			label: $i18n.t('Memory'),
-			description: $i18n.t('Inject stored memories into conversation context')
-		},
-		builtin_tools: {
-			label: $i18n.t('Builtin Tools'),
+		usage: {
+			label: $i18n.t('Usage'),
 			description: $i18n.t(
-				'Automatically inject system tools in native function calling mode (e.g., timestamps, memory, chat history, notes, etc.)'
+				'Sends `stream_options: { include_usage: true }` in the request.\nSupported providers will return token usage information in the response when set.'
 			)
 		}
 	};
@@ -74,13 +46,7 @@
 		capabilities = capabilities;
 	};
 
-	// Hide file_context when file_upload is disabled
-	$: visibleCapabilities = (Object.keys(capabilityLabels) as Capability[]).filter((cap) => {
-		if (cap === 'file_context' && !capabilities.file_upload) {
-			return false;
-		}
-		return true;
-	});
+	$: visibleCapabilities = Object.keys(capabilityLabels) as Capability[];
 </script>
 
 <div>

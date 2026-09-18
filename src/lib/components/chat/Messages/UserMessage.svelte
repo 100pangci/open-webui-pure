@@ -19,7 +19,6 @@
 	import Markdown from './Markdown.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
-	import SubagentResultRow from './SubagentResultRow.svelte';
 
 	const i18n = getContext('i18n');
 	export let user;
@@ -376,8 +375,6 @@
 						</div>
 					{/if}
 				</div>
-			{:else if message?.meta?.internal === true && message?.meta?.type === 'subagent'}
-				<SubagentResultRow content={message.content} result={message.meta} />
 			{:else if message.content !== ''}
 				<div class="w-full">
 					<div class="flex {($settings?.chatBubble ?? true) ? 'justify-end pb-1' : 'w-full'}">
