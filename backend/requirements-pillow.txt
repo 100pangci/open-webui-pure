@@ -1,0 +1,12 @@
+# Pillow-based pre-processing for OpenAI image edits (EXIF orientation and
+# multi-frame JPEG/MPO normalization).
+#
+# Image edits still work without Pillow; only the automatic normalization of
+# rotated/multi-frame JPEGs is skipped (the code degrades gracefully).
+# fpdf2 (the "pdf" extra) also depends on Pillow, so enabling PDF imports this
+# capability transitively.
+#
+#   podman build --build-arg ENABLE_PILLOW=true .
+# or:
+#   pip install "open-webui[pillow]"
+pillow==12.2.0

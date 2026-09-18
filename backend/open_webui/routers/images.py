@@ -34,20 +34,11 @@ from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import include_user_info_headers
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.session_pool import get_session
+from open_webui.utils.ssrf import ssrf_safe_get
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
-
-
-def validate_url(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
-        raise ValueError('Only absolute HTTP(S) URLs are allowed')
-
-
-def get_ssrf_safe_session():
-    return aiohttp.ClientSession()
 
 # An image can lie as easily as it can illuminate. Let what
 # is generated here be honest about what it shows.
@@ -250,47 +241,25 @@ class CreateImageForm(BaseModel):
 GenerateImageForm = CreateImageForm  # Alias for backward compatibility
 
 
-def _is_same_origin(url: str, base_url: str) -> bool:
-    """Compare scheme + hostname + port of two URLs.
-
-    Pure string-prefix matching (``startswith``) is vulnerable to
-    userinfo injection (``http://host:port@evil.com/``) and suffix
-    confusion (``http://host:portevil.com/``).  Parsing both URLs
-    and comparing the three origin components eliminates those
-    attack vectors.
-    """
-
-    def _default_port(scheme: str) -> int:
-        return 443 if scheme == 'https' else 80
-
-    parsed = urlparse(url)
-    trusted = urlparse(base_url)
-    return (
-        parsed.scheme == trusted.scheme
-        and parsed.hostname == trusted.hostname
-        and (parsed.port or _default_port(parsed.scheme)) == (trusted.port or _default_port(trusted.scheme))
-    )
-
-
 async def get_image_data(data: str, headers=None, trusted_base_url: str | None = None):
     try:
         if data.startswith('http://') or data.startswith('https://'):
             # Defense-in-depth: gate before fetch (mirrors load_url_image).
-            # For URLs originating from an admin-configured backend (e.g.
-            # ComfyUI on a private network), skip SSRF validation only when
-            # the URL shares the exact same origin (scheme + host + port)
-            # as the admin-configured base.  This avoids both the global
-            # ENABLE_LOCAL_WEB_FETCH hammer and a blanket trust flag
-            # that would follow arbitrary redirects.
-            if trusted_base_url and _is_same_origin(data, trusted_base_url):
-                log.debug('Skipping URL validation for trusted backend: %s', data)
-            else:
-                await asyncio.to_thread(validate_url, data)
-            session = await get_session()
-            async with session.get(
+            # For URLs originating from an admin-configured backend (e.g. an
+            # OpenAI-compatible image server on a private network), skip SSRF
+            # validation only when the URL shares the exact same origin
+            # (scheme + host + port) as the admin-configured base.  This
+            # avoids both a global "allow local fetch" hammer and a blanket
+            # trust flag that would follow arbitrary redirects.
+            trusted_origins = [trusted_base_url] if trusted_base_url else []
+            async with ssrf_safe_get(
                 data,
                 headers=headers,
+                trusted_origins=trusted_origins,
                 ssl=AIOHTTP_CLIENT_SESSION_SSL,
+                # Each redirect hop is re-validated; following redirects keeps
+                # compatibility with backends that serve images via a CDN.
+                allow_redirects=True,
             ) as r:
                 r.raise_for_status()
                 content_type = r.headers.get('content-type', '')
@@ -463,6 +432,7 @@ async def image_generations(
                 image_data, content_type = await get_image_data(
                     image_url,
                     {k: v for k, v in headers.items() if k != 'Content-Type'},
+                    trusted_base_url=image_config.IMAGES_OPENAI_API_BASE_URL,
                 )
             else:
                 image_data, content_type = await get_image_data(image['b64_json'])
@@ -560,22 +530,26 @@ async def image_edits(
                 ):
                     return await load_url_image(parsed.path)
 
-                # Validate URL to prevent SSRF attacks against local/private networks.
-                # allow_redirects=False prevents redirect-based SSRF: validate_url() is
-                # called only on the originally-submitted URL; following 3xx redirects
-                # without re-validation would let an attacker reach private IPs via a
-                # public host that redirects internally (e.g. cloud-metadata exfil).
-                await asyncio.to_thread(validate_url, data)
-                # SSRF-safe session: re-checks the connect-time IP so a rebinding DNS answer
-                # that passed validate_url cannot reach an internal address.
-                async with get_ssrf_safe_session() as session:
-                    async with session.get(
-                        data, ssl=AIOHTTP_CLIENT_SESSION_SSL, allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS
-                    ) as r:
-                        r.raise_for_status()
+                # SSRF-safe fetch: every redirect hop is re-validated and the
+                # connect-time resolver re-checks the resolved address, so a
+                # rebinding DNS answer cannot reach an internal address.  The
+                # admin-configured edit backend's origin is trusted so images
+                # hosted by that backend keep working on private networks.
+                trusted_origins = (
+                    [image_config.IMAGES_EDIT_OPENAI_API_BASE_URL]
+                    if image_config.IMAGES_EDIT_OPENAI_API_BASE_URL
+                    else []
+                )
+                async with ssrf_safe_get(
+                    data,
+                    ssl=AIOHTTP_CLIENT_SESSION_SSL,
+                    allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS,
+                    trusted_origins=trusted_origins,
+                ) as r:
+                    r.raise_for_status()
 
-                        image_data = base64.b64encode(await r.read()).decode('utf-8')
-                        return f'data:{r.headers["content-type"]};base64,{image_data}'
+                    image_data = base64.b64encode(await r.read()).decode('utf-8')
+                    return f'data:{r.headers["content-type"]};base64,{image_data}'
 
             else:
                 file_id = None
@@ -681,6 +655,7 @@ async def image_edits(
                 image_data, content_type = await get_image_data(
                     image_url,
                     {k: v for k, v in headers.items() if k != 'Content-Type'},
+                    trusted_base_url=image_config.IMAGES_EDIT_OPENAI_API_BASE_URL,
                 )
             else:
                 image_data, content_type = await get_image_data(image['b64_json'])

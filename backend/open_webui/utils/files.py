@@ -15,11 +15,10 @@ from open_webui.models.files import Files
 from open_webui.utils.access_control.files import has_access_to_file
 from open_webui.routers.images import (
     get_image_data,
-    get_ssrf_safe_session,
     upload_image,
-    validate_url,
 )
 from open_webui.storage.provider import Storage
+from open_webui.utils.ssrf import ssrf_safe_get
 
 BASE64_IMAGE_URL_PREFIX = re.compile(r'data:image/\w+;base64,', re.IGNORECASE)
 MARKDOWN_IMAGE_URL_PATTERN = re.compile(r'!\[(.*?)\]\((.+?)\)', re.IGNORECASE)
@@ -55,29 +54,24 @@ async def get_image_base64_from_url(url: str, user=None) -> Optional[str]:
             if max_size_mb > 0:
                 max_bytes = max_size_mb * 1024 * 1024
 
-            # Validate URL to prevent SSRF attacks against local/private networks.
-            # allow_redirects=False prevents redirect-based SSRF: validate_url() is
-            # called only on the originally-submitted URL; following 3xx redirects
-            # without re-validation would let an attacker reach private IPs via a
-            # public host that redirects internally (e.g. cloud-metadata exfil).
-            await asyncio.to_thread(validate_url, url)
-            # Fetch through an SSRF-safe session that re-checks the connect-time IP, so a
-            # rebinding DNS answer that passed validate_url cannot reach an internal address.
-            async with get_ssrf_safe_session() as session:
-                async with session.get(
-                    url, ssl=AIOHTTP_CLIENT_SESSION_SSL, allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS
-                ) as response:
-                    response.raise_for_status()
-                    image_data = bytearray()
-                    total = 0
-                    async for chunk in response.content.iter_chunked(64 * 1024):
-                        total += len(chunk)
-                        if max_bytes is not None and total > max_bytes:
-                            return None
-                        image_data.extend(chunk)
-                    encoded_string = base64.b64encode(image_data).decode('utf-8')
-                    content_type = response.headers.get('Content-Type', 'image/png')
-                    return f'data:{content_type};base64,{encoded_string}'
+            # Validate URL to prevent SSRF attacks against local/private
+            # networks.  ssrf_safe_get re-validates every redirect hop and the
+            # connect-time resolver re-checks the resolved address, so a
+            # rebinding DNS answer cannot reach an internal address.
+            async with ssrf_safe_get(
+                url, ssl=AIOHTTP_CLIENT_SESSION_SSL, allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS
+            ) as response:
+                response.raise_for_status()
+                image_data = bytearray()
+                total = 0
+                async for chunk in response.content.iter_chunked(64 * 1024):
+                    total += len(chunk)
+                    if max_bytes is not None and total > max_bytes:
+                        return None
+                    image_data.extend(chunk)
+                encoded_string = base64.b64encode(image_data).decode('utf-8')
+                content_type = response.headers.get('Content-Type', 'image/png')
+                return f'data:{content_type};base64,{encoded_string}'
         else:
             # Non-URL string — treat as file_id. Delegate to the canonical
             # file-ID resolver which enforces ownership/access checks.

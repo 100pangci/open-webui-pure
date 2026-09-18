@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from fpdf import FPDF
-from markdown import markdown
 from open_webui.env import FONTS_DIR, STATIC_DIR
 from open_webui.models.chats import ChatTitleMessagesForm
 

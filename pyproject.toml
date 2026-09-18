@@ -23,23 +23,17 @@ dependencies = [
     "authlib==1.7.2",
     "joserfc==1.7.4",
     "requests==2.34.2",
+    "httpx==0.28.1",
     "aiohttp==3.13.5",
     "aiocache==0.12.3",
     "aiofiles==25.1.0",
     "starlette-compress==1.7.1",
     "Brotli==1.2.0",
-    "httpx[socks,http2,zstd,brotli]==0.28.1",
     "starsessions==2.2.1",
     "sqlalchemy[asyncio]==2.0.50",
     "aiosqlite==0.22.1",
     "alembic==1.18.4",
     "loguru==0.7.3",
-    "asgiref==3.11.1",
-    "beautifulsoup4==4.14.3",
-    "Markdown==3.10.3",
-    "pillow==12.2.0",
-    "fpdf2==2.8.7",
-    "black==26.5.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.11, < 3.13.0a1"
@@ -61,6 +55,9 @@ redis = ["redis==8.0.1", "hiredis==3.4.0"]
 azure = ["azure-identity==1.25.3"]
 ldap = ["ldap3==2.9.1"]
 cli = ["typer==0.25.1"]
+pdf = ["fpdf2==2.8.7"]
+code-format = ["black==26.5.1"]
+pillow = ["pillow==12.2.0"]
 all = [
     "psycopg[binary]==3.3.4",
     "redis==8.0.1",
@@ -68,6 +65,9 @@ all = [
     "azure-identity==1.25.3",
     "ldap3==2.9.1",
     "typer==0.25.1",
+    "fpdf2==2.8.7",
+    "black==26.5.1",
+    "pillow==12.2.0",
 ]
 
 [project.scripts]
@@ -127,6 +127,10 @@ skip-string-normalization = true
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["backend/open_webui/test"]
 
 [tool.ruff.format]
 quote-style = "single"

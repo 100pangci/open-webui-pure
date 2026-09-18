@@ -479,7 +479,7 @@ if audit_level != AuditLevel.NONE:
     )
 
 if ENABLE_COMPRESSION_MIDDLEWARE:
-    app.add_middleware(CompressMiddleware)
+    app.add_middleware(CompressMiddleware, zstd=False)
 
 
 # All HTTP middlewares below are pure-ASGI implementations. The previous

@@ -311,3 +311,6 @@ cypress/videos
 cypress/screenshots
 .vscode/settings.json
 .cptr
+
+# Generated at build time by scripts; not committed (see Dockerfile / utils/changelog.py)
+backend/open_webui/latest-changelog.json

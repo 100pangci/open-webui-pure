@@ -10,6 +10,14 @@
 #   -r requirements-optional.txt   all of the above
 #
 # Keep this list lean: everything here is paid for by every deployment.
+#
+# starlette-compress hard-depends on zstandard; the Dockerfile removes that
+# package and main.py disables zstd compression (brotli + gzip remain), which
+# saves ~23 MB of image size with no client-visible change.
+#
+# starlette-compress hard-depends on zstandard; the Dockerfile removes that
+# package and main.py disables zstd compression (brotli + gzip remain), which
+# saves ~23 MB of image size with no client-visible change.
 
 fastapi==0.136.3
 uvicorn==0.51.0
@@ -32,12 +40,15 @@ joserfc==1.7.4
 # requests is imported by python-engineio's client module, which
 # python-socketio imports eagerly.
 requests==2.34.2
+# httpx is not imported by open_webui itself, but authlib's starlette_client
+# integration imports it; OAuth breaks without it. Kept at its default extras
+# (no http2/socks/zstd) to stay small.
+httpx==0.28.1
 aiohttp==3.13.5
 aiocache==0.12.3
 aiofiles==25.1.0
 starlette-compress==1.7.1
 Brotli==1.2.0
-httpx[socks,http2,zstd,brotli]==0.28.1
 starsessions==2.2.1
 
 sqlalchemy[asyncio]==2.0.50
@@ -45,10 +56,6 @@ aiosqlite==0.22.1
 alembic==1.18.4
 
 loguru==0.7.3
-asgiref==3.11.1
 
-beautifulsoup4==4.14.3
-Markdown==3.10.3
-pillow==12.2.0
-fpdf2==2.8.7
-black==26.5.1
+# Extras: see requirements-pdf.txt / requirements-code-format.txt /
+# requirements-pillow.txt and the ENABLE_* build args in the Dockerfile.

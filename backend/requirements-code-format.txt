@@ -1,0 +1,8 @@
+# Admin-only Python code formatting endpoint (/api/v1/utils/code/format).
+#
+# The endpoint returns a clear 501 when black is not installed.
+#
+#   podman build --build-arg ENABLE_CODE_FORMAT=true .
+# or:
+#   pip install "open-webui[code-format]"
+black==26.5.1

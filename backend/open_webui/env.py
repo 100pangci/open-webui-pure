@@ -128,83 +128,42 @@ ENABLE_DB_MIGRATIONS = os.getenv('ENABLE_DB_MIGRATIONS', 'True').lower() == 'tru
 ENABLE_ORJSON = os.getenv('ENABLE_ORJSON', 'False').lower() == 'true'
 
 
-# Function to parse each section
-def parse_section(section):
-    items = []
-    for li in section.find_all('li'):
-        # Extract raw HTML string
-        raw_html = str(li)
-
-        # Extract text without HTML tags
-        text = li.get_text(separator=' ', strip=True)
-
-        # Split into title and content
-        parts = text.split(': ', 1)
-        title = parts[0].strip() if len(parts) > 1 else ''
-        content = parts[1].strip() if len(parts) > 1 else text
-
-        items.append({'title': title, 'content': content, 'raw': raw_html})
-    return items
-
-
 _CHANGELOG_CACHE: dict[str, Any] | None = None
 
 
 def get_changelog() -> dict[str, Any]:
-    """Parse CHANGELOG.md lazily and cache the result.
+    """Load the changelog lazily and cache the result.
 
-    Parsing the full changelog costs ~0.5s of startup time and retains tens of
-    megabytes of parsed HTML. Most deployments never open the changelog dialog,
-    so markdown/BeautifulSoup are imported and the tree is built on first use
-    only, and the intermediate HTML/soup objects are released afterwards.
+    The default image ships ``latest-changelog.json`` generated at build time
+    (see ``utils/changelog.py``), so this is a small JSON read.  When the file
+    is missing (running from a source checkout) the changelog is parsed from
+    ``CHANGELOG.md`` with the same stdlib-only parser instead.
     """
     global _CHANGELOG_CACHE
     if _CHANGELOG_CACHE is not None:
         return _CHANGELOG_CACHE
 
-    import markdown
-    from bs4 import BeautifulSoup
+    from open_webui.utils.changelog import load_changelog, parse_changelog
 
-    try:
-        changelog_path = BASE_DIR / 'CHANGELOG.md'
-        with open(str(changelog_path.absolute()), encoding='utf8') as file:
-            changelog_content = file.read()
-
-    except Exception:
-        try:
-            changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
-        except Exception:
-            changelog_content = ''
-
-    # Convert markdown content to HTML
-    html_content = markdown.markdown(changelog_content)
-
-    # Parse the HTML content
-    soup = BeautifulSoup(html_content, 'html.parser')
-
-    # Initialize JSON structure
     changelog_json: dict[str, Any] = {}
+    generated_path = OPEN_WEBUI_DIR / 'latest-changelog.json'
+    try:
+        changelog_json = load_changelog(generated_path)
+    except Exception:
+        changelog_json = {}
 
-    # Iterate over each version
-    for version in soup.find_all('h2'):
-        version_number = version.get_text().strip().split(' - ')[0][1:-1]  # Remove brackets
-        date = version.get_text().strip().split(' - ')[1]
-
-        version_data = {'date': date}
-
-        # Find the next sibling that is a h3 tag (section title)
-        current = version.find_next_sibling()
-
-        while current and current.name != 'h2':
-            if current.name == 'h3':
-                section_title = current.get_text().lower()  # e.g., "added", "fixed"
-                section_items = parse_section(current.find_next_sibling('ul'))
-                version_data[section_title] = section_items
-
-            # Move to the next element
-            current = current.find_next_sibling()
-
-        changelog_json[version_number] = version_data
+    if not changelog_json:
+        try:
+            changelog_content = (BASE_DIR / 'CHANGELOG.md').read_text(encoding='utf-8')
+        except Exception:
+            try:
+                changelog_content = (pkgutil.get_data('open_webui', 'CHANGELOG.md') or b'').decode()
+            except Exception:
+                changelog_content = ''
+        try:
+            changelog_json = parse_changelog(changelog_content)
+        except Exception:
+            changelog_json = {}
 
     _CHANGELOG_CACHE = changelog_json
     return changelog_json
@@ -331,16 +290,21 @@ DATABASE_SQLITE_PRAGMA_SYNCHRONOUS = os.getenv('DATABASE_SQLITE_PRAGMA_SYNCHRONO
 # before raising SQLITE_BUSY.
 DATABASE_SQLITE_PRAGMA_BUSY_TIMEOUT = os.getenv('DATABASE_SQLITE_PRAGMA_BUSY_TIMEOUT', '5000')
 
-# PRAGMA cache_size: negative value = KiB.  -65536 ≈ 64 MB page cache.
-DATABASE_SQLITE_PRAGMA_CACHE_SIZE = os.getenv('DATABASE_SQLITE_PRAGMA_CACHE_SIZE', '-65536')
+# PRAGMA cache_size: negative value = KiB (per connection).
+# 16 MiB keeps indexed chat/message reads just as fast as 64 MiB for personal
+# deployments while bounding worst-case per-connection cache growth; raise it
+# for large multi-user databases (see HANDOFF.md benchmark notes).
+DATABASE_SQLITE_PRAGMA_CACHE_SIZE = os.getenv('DATABASE_SQLITE_PRAGMA_CACHE_SIZE', '-16384')
 
 # PRAGMA temp_store: MEMORY (2) keeps temp tables and indices in RAM.
 # Valid values: DEFAULT (0), FILE (1), MEMORY (2).
 DATABASE_SQLITE_PRAGMA_TEMP_STORE = os.getenv('DATABASE_SQLITE_PRAGMA_TEMP_STORE', 'MEMORY')
 
-# PRAGMA mmap_size (bytes): memory-mapped I/O size.  268435456 ≈ 256 MB.
-# Set to 0 to disable mmap.
-DATABASE_SQLITE_PRAGMA_MMAP_SIZE = os.getenv('DATABASE_SQLITE_PRAGMA_MMAP_SIZE', '268435456')
+# PRAGMA mmap_size (bytes): memory-mapped I/O size.  67108864 ≈ 64 MB.
+# Databases smaller than this are mapped in full (same behaviour as a larger
+# value); larger databases keep most of the warm-read benefit at a quarter of
+# the mapped-page footprint.  Set to 0 to disable mmap.
+DATABASE_SQLITE_PRAGMA_MMAP_SIZE = os.getenv('DATABASE_SQLITE_PRAGMA_MMAP_SIZE', '67108864')
 
 # PRAGMA journal_size_limit (bytes): caps the WAL file size after checkpoint.
 # Without this the WAL grows unbounded during write bursts and is never

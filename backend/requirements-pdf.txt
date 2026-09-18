@@ -1,0 +1,10 @@
+# PDF export of chats (the backend /api/v1/utils/pdf fallback).
+#
+# The default UI renders PDFs client-side (jsPDF + html2canvas). This backend
+# path is only used when a user disables "stylized PDF export"; the frontend
+# falls back to the client-side renderer when this extra is not installed.
+#
+#   podman build --build-arg ENABLE_PDF=true .
+# or:
+#   pip install "open-webui[pdf]"
+fpdf2==2.8.7

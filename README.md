@@ -31,7 +31,15 @@ Enable a feature only when it is actually used:
 | Redis (multi-instance) | `open-webui[redis]` | `backend/requirements-redis.txt` | `ENABLE_REDIS=true` |
 | Azure / Entra ID auth | `open-webui[azure]` | `backend/requirements-azure.txt` | `ENABLE_AZURE=true` |
 | LDAP authentication | `open-webui[ldap]` | `backend/requirements-ldap.txt` | `ENABLE_LDAP=true` |
+| Backend PDF export | `open-webui[pdf]` | `backend/requirements-pdf.txt` | `ENABLE_PDF=true` |
+| Admin code formatting | `open-webui[code-format]` | `backend/requirements-code-format.txt` | `ENABLE_CODE_FORMAT=true` |
+| Pillow image-edit normalization | `open-webui[pillow]` | `backend/requirements-pillow.txt` | `ENABLE_PILLOW=true` |
 | `open-webui` CLI (typer) | `open-webui[cli]` | `backend/requirements-cli.txt` | — |
+
+> The default UI renders PDF exports client-side (jsPDF + html2canvas). The
+> backend PDF endpoint is only a fallback and stays disabled unless
+> `ENABLE_PDF=true` is set. Code formatting and Pillow normalization degrade
+> gracefully when their extras are absent.
 
 > The `open-webui serve` CLI is optional even for native installs; the container
 > starts uvicorn directly (`backend/start.sh`) and does not need typer/rich.
@@ -57,8 +65,10 @@ WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true \
 ```
 
 The same applies to compose: `podman-compose.yaml` forwards
-`WEBUI_ENABLE_POSTGRES`, `WEBUI_ENABLE_REDIS`, `WEBUI_ENABLE_AZURE` and
-`WEBUI_ENABLE_LDAP` (all default to `false`).
+`WEBUI_ENABLE_POSTGRES`, `WEBUI_ENABLE_REDIS`, `WEBUI_ENABLE_AZURE`,
+`WEBUI_ENABLE_LDAP`, `WEBUI_ENABLE_PDF`, `WEBUI_ENABLE_CODE_FORMAT` and
+`WEBUI_ENABLE_PILLOW` (all default to `false`). The default image tag is
+`localhost/open-webui:pure`.
 
 PostgreSQL support uses **Psycopg 3 exclusively** (`postgresql+psycopg://`);
 psycopg2 is not required. Migrations and existing SQLite data are untouched —

@@ -9,7 +9,13 @@ services:
         ENABLE_REDIS: "${WEBUI_ENABLE_REDIS:-false}"
         ENABLE_AZURE: "${WEBUI_ENABLE_AZURE:-false}"
         ENABLE_LDAP: "${WEBUI_ENABLE_LDAP:-false}"
-    image: localhost/open-webui:${WEBUI_IMAGE_TAG-lite}
+        # Rarely used extras (PDF fallback, admin code formatting, Pillow
+        # image-edit normalization). Disabled by default to keep the image
+        # lean; set WEBUI_ENABLE_* to true when needed.
+        ENABLE_PDF: "${WEBUI_ENABLE_PDF:-false}"
+        ENABLE_CODE_FORMAT: "${WEBUI_ENABLE_CODE_FORMAT:-false}"
+        ENABLE_PILLOW: "${WEBUI_ENABLE_PILLOW:-false}"
+    image: localhost/open-webui:${WEBUI_IMAGE_TAG-pure}
     container_name: open-webui
     volumes:
       - open-webui:/app/backend/data

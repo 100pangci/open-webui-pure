@@ -19,6 +19,122 @@
 - 必须保留 Open WebUI 品牌、LICENSE 及相关标识。
 - 没有创建 commit。
 
+## Round 3 — 2026-09-18: SSRF 加固 / SQLite 调参 / 镜像 331 MB / 纯 pure 命名
+
+> 命名：Round 2 的镜像标签 `lite` 从本轮起统一为 **`pure`**（compose 默认
+> `localhost/open-webui:pure`，README 已同步；下方 Round 2 表格仍保留历史标签名）。
+
+### Results（同一台机器，rootless podman）
+
+| 指标 | Round 2（r2c） | Round 3（pure，`fec50870`） | 说明 |
+| --- | --- | --- | --- |
+| image | 420 MB | **331 MB** | site-packages 184.4 → 99.1 MB |
+| fresh idle（cgroup） | 127.9 MB | **104.8 MB** | cgroup 差额 ~23 MB 来自 zstandard 的 file cache |
+| fresh idle（anon） | 98.7 MB | **97.0 MB** | asgiref 不再常驻 |
+| fresh idle（RSS / PSS） | 120.5 / 106.4 MB | **120.3 / 108.4 MB** | RSS 含共享库映射，非私有内存 |
+| fresh idle（Private_Dirty） | 93.9 MB | **93.8 MB** | 真实私有内存 |
+| startup → /health | 1.5~1.7 s | **1.57 s** | 空配置 |
+| 120 chats + 图片 + idle 5 min（同协议） | RSS 123.2 | RSS **123.4** | 两者都稳定，不增长 |
+| 400 chats×20 msgs（78 MB 库）浏览后 | RSS 209.1 / PD 120.7 | RSS **202.8 / PD 116.0** | 重复浏览与 5 min 空闲均无增长 |
+| 回归（fresh volume + mock OpenAI） | 16/16 | **20/20** | 另加用户隔离、OAuth 404、可选依赖 501 |
+| SSRF 集成（HTTP 级） | — | **8/8** | 见下 |
+
+真实 volume 兼容性：把 `open-webui_open-webui` volume 复制一份，用 pure 镜像启动，
+数据 **users 1 / chats 3 / chat_message 33 / alembic `d4c1a8e37b62`** 与线上完全一致，
+`.webui_secret_key` 保留，`/static/logo.png` 200。未改动线上容器。
+
+### 1. SSRF（优先级 1）— 新增 `backend/open_webui/utils/ssrf.py`
+
+- `validate_url()`：http/https、禁止 userinfo、host 为字面量或 DNS 解析后**所有**地址逐个校验；
+  拦截 loopback、RFC1918、link-local、CGNAT 100.64/10、0.0.0.0/8、198.18/15、240/4、
+  multicast、reserved、`169.254.169.254`/`fd00:ec2::254`、IPv4-mapped、6to4、Teredo、
+  NAT64 `64:ff9b::/96`、IPv6 site-local `fec0::/10` 等。
+- `SSRFResolver`：包装 `aiohttp` connector 的 resolver，**每次建连时**重新校验解析出的 IP
+  （DNS rebinding 窗口内也拦得住）；可信源的主机名允许解析到内网（管理员显式配置的后端）。
+- `ssrf_safe_get()`：手动跟随 3xx，**每一跳都重新 validate**，跨源自动剥离
+  Authorization/Cookie；`allow_redirects=False` 时直接返回 3xx 响应。
+- 可信例外：`is_trusted_origin()` 结构化比较 `scheme + hostname + port`，绝不用
+  `startswith`；仅管理员配置的 base URL 精确 origin 生效（images 生成用
+  `IMAGES_OPENAI_API_BASE_URL`，编辑用 `IMAGES_EDIT_OPENAI_API_BASE_URL`）。
+- 统一接入：`routers/images.py`（`get_image_data` / `load_url_image`）、
+  `utils/files.py`（`get_image_base64_from_url`）、`utils/oauth.py`（头像抓取）。
+- 测试：`backend/open_webui/test/test_ssrf.py` **59 项**（含 redirect 每跳重校验、
+  connect-time resolver、userinfo/suffix 混淆、DNS 失败拒绝等）；HTTP 级集成 **8/8**
+  （loopback/metadata/私网/私网 redirect 全部 400，可信 origin 与同源 redirect 200）。
+
+### 2. SQLite RAM 参数（默认值已调整）
+
+- `DATABASE_SQLITE_PRAGMA_CACHE_SIZE` `-65536` → **`-16384`（16 MiB）**；
+  `DATABASE_SQLITE_PRAGMA_MMAP_SIZE` `268435456` → **`67108864`（64 MiB）**。
+- 微基准（274 MB 库、全表扫描型负载，16 组组合）：mmap 64 + cache 16 时 RSS 102 MB /
+  读 47 ms；原 256 + 64 时 RSS 284 MB / 读 9 ms；mmap 0 时读 48~57 ms。
+- 小库（10 MB）与真实应用负载（400 chats、78 MB 库、索引查询）无感知差异；
+  浏览后 PD 差 <1 MB。大库若要更快的全表扫描可显式调回 256/64（env 覆盖即可）。
+- 结论：默认 16/64 是家庭/个人场景的合理下限；写入延迟与 busy 在全部组合中均为 0 错误。
+
+### 3. 默认依赖与镜像（详见 `requirements-*.txt` / `Dockerfile`）
+
+- **构建期生成 `backend/open_webui/latest-changelog.json`**（`utils/changelog.py`，纯 stdlib，
+  Docker `changelog` stage 跑 `python changelog.py CHANGELOG.md 5`）；运行时只读 JSON，
+  彻底移除 **beautifulsoup4 + Markdown**（约 1.8 MB，且不再有解析开销）。
+- **zstandard 移除**（starlette-compress 的硬依赖）：`main.py` 改
+  `CompressMiddleware(app, zstd=False)`，保留 brotli+gzip；容器 file cache 24.7 → 3.2 MB。
+- **asgiref 移除**：`utils/audit.py` 的类型导入改 `TYPE_CHECKING` + `from __future__ import annotations`。
+- **PDF / black / Pillow 改 optional**：新增 `requirements-pdf.txt`、`-code-format.txt`、
+  `-pillow.txt` 与 `ENABLE_PDF` / `ENABLE_CODE_FORMAT` / `ENABLE_PILLOW` build args
+  （compose 由 `WEBUI_ENABLE_*` 透传）。缺失时分别返回 501 或优雅跳过，行为已实测。
+- **httpx 保留（教训）**：httpx 在 open_webui 代码里无直接 import，但 **authlib 的
+  starlette_client 集成会 import httpx**；删除它导致 OAuth 500（集成测试抓到）。已恢复
+  `httpx==0.28.1`（不带 http2/socks/zstd extras）。
+- **ensurepip 内嵌 pip 删除**（~2 MB）。
+- 未动原版 UI / emoji / 实际使用的字体与国际化；CJK 字体（24 MB）仍随镜像发布，
+  仅供后端 PDF 使用（在后续 layer 里删除不会缩小镜像，故不做假动作）。
+
+### 4. Socket.IO / Engine.IO 定量（未改默认行为）
+
+- 同进程增量实测：`requests` **+5.1 MB**（engineio client 强依赖）、
+  `socketio+engineio` **+6.8 MB**，合计 **+11.9 MB** anon、约 +330 个模块、启动 +0.06 s。
+- 方案 A（默认）：保留 Socket.IO，接受 fresh idle cgroup ~105 MB / anon ~97 MB。
+- 方案 B（未实施）：SSE/HTTP polling 可省掉上述 ~12 MB，但需要重做
+  streaming / stop generation / chat active / 多标签页 / 多用户状态同步，
+  属于功能层取舍；按要求不作为默认，仅记录为后续可选项。
+
+### 5. 长期 RSS 增长定位（结论：不是泄漏）
+
+- 方法：容器内采样 RSS/PSS/Private_Dirty/SQLite maps/cgroup；120 chats+图片+5 min idle；
+  另 400 chats×20 msgs（78 MB DB）浏览 60 条 + 重复浏览。
+- 浏览大历史后增长主要来自 **SQLite mmap/WAL 文件页**（可回收，计入 RSS 不计入 PD）
+  与 **Python allocator high-water**；PD 首次使用后 +20~33 MB 后不再上升。
+- 重复浏览 -0.3 MB、空闲 5 分钟 0 增长；未发现任务/连接泄漏（线程数全程 6~9）。
+- `tracemalloc` 对 `import open_webui.main` 的快照：纯 Python 分配 ~50 MB，
+  其余为 C 扩展（pydantic_core / cryptography / SQLAlchemy C ext 等），无常驻大数据结构。
+
+### 6. 镜像审计（pure，最大项）
+
+- 文件：`cryptography/_rust.abi3.so` 13.8 MB、`uvloop .so` 13.1 MB、CJK 字体 22.4 MB、
+  `libpython` 5.4 MB、`_brotli` 5.2 MB、`pydantic_core` 4.7 MB、Swagger UI 2.4 MB、
+  `welcome.mp4` 1.9 MB、`CHANGELOG.md` 1.2 MB。
+- Python 包：SQLAlchemy 21.8、cryptography 14.3、uvloop 13.0、aiohttp 7.3、pydantic_core 5.0、
+  brotli 5.0（此前 27.7 fonttools / 23.0 zstandard / 20.0 Pillow / 6.1 black 已移出默认）。
+- 逐项决策：zstandard（移）、httpx（保留，authlib 依赖）、asgiref（移）、
+  bs4+Markdown（移）、fpdf2+fonttools（optional）、Pillow（optional）、black（optional）、
+  authlib+joserfc（保留，2.3 MB 且懒加载）、i18n（不动）。
+
+### 7. 验收命令与结果
+
+- `WEBUI_SECRET_KEY=... uv run --frozen pytest backend/open_webui/test -q` → 64 passed。
+- fresh volume 容器 + `owui-mock`：20/20 功能回归、8/8 SSRF 集成、startup 1.57 s。
+- 真实 volume 复制升级：数据零变化、迁移版本一致、密钥保留。
+- 全程未使用 `podman compose down -v`，未删除线上 volume；容器/测试 volume 已清理。
+
+### Remaining（后续可做，不建议本轮做）
+
+- Socket.IO ultra-lite（SSE）≈ 12 MB；若必须 <100 MiB cgroup 才值得动。
+- PDF 字体 24 MB：需要把字体移出 `backend/` 上下文（或独立 tar 保存）才能在禁用 PDF 时
+  真正不进镜像；仅为 24 MB，暂不做。
+- Swagger UI 2.4 MB、CHANGELOG.md 1.2 MB（fallback 用）、i18n 死 key 清理（需上游文案对比）。
+- Alembic 启动期 import（迁移后不释放）；可评估迁移子进程化。
+
 ## Round 2 — 2026-09-18: default SQLite / lean image / optional features
 
 ### Results
@@ -169,25 +285,29 @@
   - 容器：`/` 正确跳转 `/auth?redirect=%2F`，登录页正常渲染，无 JS 错误。
   - 本地 venv + mock OpenAI（已登录 admin）：主界面完整渲染（侧栏 + 历史记录 + 输入框），无 JS 错误。
 - 容器（2026-09-17 深夜，修复后重建）：`podman build` 成功；`podman compose -f podman-compose.yaml down`（不带 `-v`）+ `up -d` 重建；`curl --fail http://localhost:3000/health` → `{"status":true}`。
-- 镜像命名：`podman-compose.yaml` 现使用 `localhost/open-webui:lite`（纯本地标签）；此前 `ghcr.io/open-webui/open-webui:main` 只是本地 build 标签，从未推送/覆盖官方镜像，现已删除本地该标签以免混淆。
+- 镜像命名：`podman-compose.yaml` 现使用 `localhost/open-webui:pure`（纯本地标签，Round 3 由 `lite` 改名）；此前 `ghcr.io/open-webui/open-webui:main` 只是本地 build 标签，从未推送/覆盖官方镜像，现已删除本地该标签以免混淆。
 - 未执行系统级 sudo 命令；历史 migration 与数据库文件未删除；未使用 `podman compose down -v`。
 
 ## Next Move
 
-1. Round 2 已完成并验证（见上）。可选后续：
-   - 若要把 idle 进一步压到 <100MB：主要剩余常驻是 socketio/engineio（~20MB）与 FastAPI/pydantic（~35MB），需要功能层取舍（如仅轮询）而不只是导入调整，建议单独评估。
-   - `npm run check` 与基线对比（上游类型噪声仍在）。
-   - i18n locale 文件仍是上游全量文案，未清理。
+1. Round 3 已完成并验证（见顶部 Round 3 章节）。可选后续：
+   - Socket.IO ultra-lite（SSE）≈ 12 MB；只有必须 <100 MiB cgroup idle 时才建议评估。
+   - PDF 字体 24 MB 需移动字体在上下文中的位置才能真省；Swagger 2.4 MB / CHANGELOG 1.2 MB 可按需删。
+   - `npm run check` 与基线对比（上游类型噪声仍在）；i18n 死 key 清理。
 2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui` volume。
 3. 本地跑 `open_webui.main` 前先 `npm run build`，否则 `backend/open_webui/static` 顶层文件会被启动流程清掉（见 Round 2 踩坑）。
+4. 当前线上容器仍是旧的 `lite` 镜像；下次 `podman-up.sh` / `podman compose up -d` 会因 tag 变化自动重建为 `pure`（volume 不变，已验证迁移兼容）。
 
 ## Relevant Files
 
 - `HANDOFF.md`: 本交接文档。
 - `backend/requirements-min.txt`：默认依赖（唯一装入默认镜像的清单）；
-  `requirements-postgres/redis/azure/ldap/optional/cli.txt` 为可选功能依赖。
-- `Dockerfile`：多阶段构建；`ENABLE_*` build args；只 chown data 目录；安装后卸载 pip/setuptools/wheel。
-- `podman-compose.yaml`：`WEBUI_ENABLE_*` build args 透传；`WEBUI_SECRET_KEY_FILE` 持久化 JWT 密钥。
+  `requirements-postgres/redis/azure/ldap/pdf/code-format/pillow/optional/cli.txt` 为可选功能依赖。
+- `Dockerfile`：多阶段构建（frontend / changelog / runtime）；`ENABLE_*` build args；只 chown data 目录；安装后卸载 pip/setuptools/wheel/zstandard 与 ensurepip。
+- `backend/open_webui/utils/ssrf.py`：SSRF 防护（validate_url / SSRFResolver / ssrf_safe_get / is_trusted_origin）。
+- `backend/open_webui/test/test_ssrf.py`、`test_changelog.py`：SSRF 与 changelog 解析回归测试（`uv run --frozen pytest backend/open_webui/test -q`）。
+- `backend/open_webui/utils/changelog.py`：stdlib changelog 解析器，兼构建期 CLI（生成 `latest-changelog.json`）。
+- `podman-compose.yaml`：默认 tag `pure`；`WEBUI_ENABLE_*` build args 透传；`WEBUI_SECRET_KEY_FILE` 持久化 JWT 密钥。
 - `backend/open_webui/cli.py`：typer CLI；`__init__.py` 仅 `__getattr__` 懒加载，保持包导入轻量。
 - `backend/open_webui/env.py`：`get_changelog()` 懒解析（原模块级 soup 占 ~36MB）。
 - `backend/open_webui/utils/oauth_manager.py`：OAuth manager 懒创建入口（authlib 不常驻）。

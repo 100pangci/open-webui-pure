@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import base64
 import fnmatch
 import logging
@@ -10,7 +9,6 @@ import urllib.parse
 import uuid
 from datetime import datetime, timedelta
 from types import SimpleNamespace
-from urllib.parse import urlparse
 
 import aiohttp
 import jwt
@@ -76,20 +74,11 @@ from open_webui.utils.groups import apply_default_group_assignment
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.misc import parse_duration
 from open_webui.utils.validate import validate_profile_image_url
+from open_webui.utils.ssrf import ssrf_safe_get
 from starlette.responses import RedirectResponse
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
-
-
-def validate_url(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
-        raise ValueError('Only absolute HTTP(S) URLs are allowed')
-
-
-def get_ssrf_safe_session():
-    return aiohttp.ClientSession()
 
 
 OAUTH_RUNTIME_CONFIG = {
@@ -762,36 +751,34 @@ class OAuthManager:
             return '/user.png'
 
         try:
-            await asyncio.to_thread(validate_url, picture_url)
-
             get_kwargs = {}
             if access_token:
                 get_kwargs['headers'] = {
                     'Authorization': f'Bearer {access_token}',
                 }
-            # get_ssrf_safe_session pins the connect-time IP (defeats DNS rebinding); allow_redirects=False keeps validate_url's vet authoritative.
-            async with get_ssrf_safe_session() as session:
-                async with session.get(
-                    picture_url,
-                    **get_kwargs,
-                    ssl=AIOHTTP_CLIENT_SESSION_SSL,
-                    allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS,
-                ) as resp:
-                    if resp.ok:
-                        upstream_mime = (resp.headers.get('Content-Type', '') or '').split(';', 1)[0].strip().lower()
-                        picture = await resp.read()
-                        base64_encoded_picture = base64.b64encode(picture).decode('utf-8')
-                        try:
-                            return validate_profile_image_url(f'data:{upstream_mime};base64,{base64_encoded_picture}')
-                        except ValueError:
-                            log.warning(
-                                f'Rejected OAuth profile picture from {picture_url}: '
-                                f'MIME {upstream_mime!r} is not allowed'
-                            )
-                            return '/user.png'
-                    else:
-                        log.warning(f'Failed to fetch profile picture from {picture_url}')
+            # ssrf_safe_get validates every redirect hop and pins the
+            # connect-time IP (defeats DNS rebinding).
+            async with ssrf_safe_get(
+                picture_url,
+                **get_kwargs,
+                ssl=AIOHTTP_CLIENT_SESSION_SSL,
+                allow_redirects=AIOHTTP_CLIENT_ALLOW_REDIRECTS,
+            ) as resp:
+                if resp.ok:
+                    upstream_mime = (resp.headers.get('Content-Type', '') or '').split(';', 1)[0].strip().lower()
+                    picture = await resp.read()
+                    base64_encoded_picture = base64.b64encode(picture).decode('utf-8')
+                    try:
+                        return validate_profile_image_url(f'data:{upstream_mime};base64,{base64_encoded_picture}')
+                    except ValueError:
+                        log.warning(
+                            f'Rejected OAuth profile picture from {picture_url}: '
+                            f'MIME {upstream_mime!r} is not allowed'
+                        )
                         return '/user.png'
+                else:
+                    log.warning(f'Failed to fetch profile picture from {picture_url}')
+                    return '/user.png'
         except Exception as e:
             log.error(f"Error processing profile picture '{picture_url}': {e}")
             return '/user.png'
