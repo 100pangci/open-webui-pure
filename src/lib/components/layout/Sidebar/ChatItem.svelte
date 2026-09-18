@@ -206,19 +206,23 @@
 	const editChatTitle = async (id, title) => {
 		if (title === '') {
 			toast.error($i18n.t('Title cannot be an empty string.'));
-		} else {
-			await updateChatById(localStorage.token, id, {
-				title: title
-			});
-
-			if (id === $chatId) {
-				_chatTitle.set(title);
-			}
-
-			await refreshChatList(localStorage.token, { refreshPinned: true });
-
-			dispatch('change');
+			return;
 		}
+
+		const res = await updateChatById(localStorage.token, id, {
+			title: title
+		}).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
+
+		if (!res) return;
+
+		if (id === $chatId) {
+			_chatTitle.set(title);
+		}
+
+		dispatch('change', { type: 'rename', id, title });
 	};
 
 	const cloneChatHandler = async (id) => {
@@ -251,24 +255,29 @@
 		if (deleting) return;
 		deleting = true;
 
-		const res = await deleteChatById(localStorage.token, id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+		try {
+			const res = await deleteChatById(localStorage.token, id).catch((error) => {
+				toast.error(`${error}`);
+				return null;
+			});
 
-		if (res) {
-			tags.set(await getAllTags(localStorage.token));
-			if ($chatId === id) {
-				await goto('/');
+			if (res) {
+				await getAllTags(localStorage.token)
+					.then((allTags) => tags.set(allTags))
+					.catch((error) => console.error(error));
 
-				await chatId.set('');
-				await tick();
+				if ($chatId === id) {
+					await goto('/');
+
+					await chatId.set('');
+					await tick();
+				}
+
+				dispatch('change', { type: 'delete', id });
 			}
-
-			dispatch('change');
+		} finally {
+			deleting = false;
 		}
-
-		deleting = false;
 	};
 
 	let archiving = false;
@@ -285,7 +294,7 @@
 				chatId.set('');
 			}
 
-			dispatch('change');
+			dispatch('change', { type: 'archive', id });
 			toast.success($i18n.t('Chat archived.'));
 		} catch (error) {
 			console.error('Error archiving chat:', error);
@@ -305,9 +314,7 @@
 			);
 
 			if (res) {
-				await refreshChatList(localStorage.token, { refreshPinned: true });
-
-				dispatch('change');
+				dispatch('change', { type: 'move', id: chatId, folderId, chat: res });
 
 				toast.success($i18n.t('Chat moved successfully'));
 			}
@@ -762,8 +769,13 @@
 							menuOpen = false;
 							dispatch('unselect');
 						}}
-						onPinChange={async () => {
-							dispatch('change');
+						onPinChange={async (detail) => {
+							dispatch('change', {
+								type: 'pin',
+								id,
+								pinned: detail?.pinned,
+								chat: detail?.chat ?? null
+							});
 						}}
 					>
 						<button

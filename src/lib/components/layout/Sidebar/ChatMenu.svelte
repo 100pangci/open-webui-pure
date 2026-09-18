@@ -15,6 +15,7 @@
 		toggleChatPinnedStatusById
 	} from '$lib/apis/chats';
 	import { chats, folders, settings, theme, user } from '$lib/stores';
+	import type { ChatListItem } from '$lib/stores/chatList';
 	import { createMessagesList } from '$lib/utils';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { downloadChatAsPDF } from '$lib/apis/utils';
@@ -52,11 +53,22 @@
 	let chat = null;
 	let showFullMessages = false;
 
-	export let onPinChange: () => void = () => {};
+	export let onPinChange: (detail?: {
+		id: string;
+		pinned?: boolean;
+		chat?: ChatListItem | null;
+	}) => void = () => {};
 
 	const pinHandler = async () => {
-		await toggleChatPinnedStatusById(localStorage.token, chatId);
-		onPinChange();
+		try {
+			const res = await toggleChatPinnedStatusById(localStorage.token, chatId);
+			if (res) {
+				pinned = res.pinned ?? !pinned;
+			}
+			onPinChange({ id: chatId, pinned, chat: res });
+		} catch (error) {
+			console.error('Error toggling pinned status:', error);
+		}
 	};
 
 	const checkPinned = async () => {

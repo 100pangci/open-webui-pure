@@ -26,7 +26,14 @@
 	import { createMessagesList } from '$lib/utils';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 	import { config, user, chatId as currentChatId, tags } from '$lib/stores';
-	import { refreshChatList } from '$lib/stores/chatList';
+	import {
+		reconcileChatListPage,
+		refreshChatList,
+		refreshFolderChatLists,
+		removeChatFromFolderLists,
+		removeChatFromList,
+		updateChatTitleInList
+	} from '$lib/stores/chatList';
 	import Messages from '../chat/Messages.svelte';
 	import { goto } from '$app/navigation';
 	import EditPencilIcon from './Sidebar/icons/EditPencil.svelte';
@@ -110,7 +117,15 @@
 				currentChatId.set('');
 			}
 
-			await refreshSidebar();
+			// Remove the row from the sidebar locally instead of resetting the
+			// sidebar chat list (which would drop loaded pages and scroll).
+			const { removedFromChats } = removeChatFromList(id);
+			await removeChatFromFolderLists(id);
+
+			if (removedFromChats) {
+				await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+			}
+
 			toast.success($i18n.t('Chat archived.'));
 		} catch (error) {
 			toast.error($i18n.t('Failed to archive chat.'));
@@ -132,7 +147,12 @@
 				currentChatId.set('');
 			}
 
-			await refreshSidebar();
+			const { removedFromChats } = removeChatFromList(id);
+			await removeChatFromFolderLists(id);
+
+			if (removedFromChats) {
+				await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+			}
 		}
 	};
 
@@ -147,7 +167,15 @@
 
 			if (res) {
 				chatList = chatList?.filter((c) => c.id !== chatId) ?? null;
-				await refreshSidebar();
+
+				const { removedFromChats } = removeChatFromList(chatId);
+				await removeChatFromFolderLists(chatId);
+
+				if (removedFromChats) {
+					await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+				}
+
+				await refreshFolderChatLists(folderId, res);
 				toast.success($i18n.t('Chat moved successfully'));
 			}
 		}
@@ -168,21 +196,22 @@
 	const confirmRename = async () => {
 		if (!editingChatId) return;
 
+		const renameId = editingChatId;
 		const trimmed = editingChatTitle.trim();
 		if (trimmed === '') {
 			toast.error($i18n.t('Title cannot be an empty string.'));
 			return;
 		}
 
-		await updateChatById(localStorage.token, editingChatId, { title: trimmed });
+		await updateChatById(localStorage.token, renameId, { title: trimmed });
 
 		if (chatList) {
-			chatList = chatList.map((c) => (c.id === editingChatId ? { ...c, title: trimmed } : c));
+			chatList = chatList.map((c) => (c.id === renameId ? { ...c, title: trimmed } : c));
 		}
 
 		editingChatId = null;
 		editingChatTitle = '';
-		await refreshSidebar();
+		updateChatTitleInList(renameId, trimmed);
 	};
 
 	const cancelRename = () => {

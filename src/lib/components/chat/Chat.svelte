@@ -37,7 +37,13 @@
 		chatRequestQueues,
 		desktopEvent
 	} from '$lib/stores';
-	import { refreshChatList, refreshFolderChatLists } from '$lib/stores/chatList';
+	import {
+		reconcileChatListPage,
+		refreshChatList,
+		refreshFolderChatLists,
+		removeChatFromFolderLists,
+		removeChatFromList
+	} from '$lib/stores/chatList';
 	import {
 		convertMessagesToHistory,
 		copyToClipboard,
@@ -3012,8 +3018,16 @@
 			);
 
 			if (res) {
-				await refreshChatList(localStorage.token, { refreshPinned: true });
-				await refreshFolderChatLists();
+				// Move locally: drop the row from the main list (and any folder it
+				// was already rendered in) instead of rebuilding the sidebar.
+				const { removedFromChats } = removeChatFromList(chatId);
+				await removeChatFromFolderLists(chatId);
+
+				if (removedFromChats) {
+					await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+				}
+
+				await refreshFolderChatLists(folderId, res);
 
 				toast.success($i18n.t('Chat moved successfully'));
 			}
@@ -3027,8 +3041,14 @@
 			await archiveChatById(localStorage.token, id);
 			initNewChat();
 			await goto('/');
-			await refreshChatList(localStorage.token, { refreshPinned: true });
-			await refreshFolderChatLists();
+
+			const { removedFromChats } = removeChatFromList(id);
+			await removeChatFromFolderLists(id);
+
+			if (removedFromChats) {
+				await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+			}
+
 			toast.success($i18n.t('Chat archived.'));
 		} catch (error) {
 			console.error('Error archiving chat:', error);
@@ -3051,7 +3071,14 @@
 			if (res) {
 				initNewChat();
 				await goto('/');
-				await refreshChatList(localStorage.token, { refreshPinned: true });
+
+				const { removedFromChats } = removeChatFromList(id);
+				await removeChatFromFolderLists(id);
+
+				if (removedFromChats) {
+					await reconcileChatListPage(localStorage.token).catch((error) => console.error(error));
+				}
+
 				allTags.set(await getAllTags(localStorage.token));
 				toast.success($i18n.t('Chat deleted.'));
 			}

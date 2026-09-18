@@ -26,12 +26,21 @@
 		sidebarWidth
 	} from '$lib/stores';
 	import {
+		addChatToList,
 		loadNextChatListPage,
+		reconcileChatListPage,
 		refreshChatList,
+		refreshFolderChatLists,
+		refreshPinnedChats,
+		registerFolderChatRemovalHandler,
 		registerFolderRefreshHandler,
+		removeChatFromFolderLists,
+		removeChatFromList,
 		setAllChatsRead,
 		setChatActive,
-		setChatReadAt
+		setChatReadAt,
+		type ChatListItem,
+		updateChatTitleInList
 	} from '$lib/stores/chatList';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 
@@ -120,6 +129,7 @@
 		{
 			setFolderItems?: () => unknown;
 			upsertChat?: (chat: Record<string, unknown>) => unknown;
+			removeChat?: (chatId: string) => unknown;
 			setChatActive?: (chatId: string, active: boolean) => boolean;
 			setChatReadAt?: (chatId: string, lastReadAt: number) => boolean;
 			setAllChatsRead?: () => unknown;
@@ -381,6 +391,115 @@
 		chatListLoading = false;
 	};
 
+	type ChatItemChangeDetail = {
+		type?: string;
+		id?: string;
+		title?: string;
+		folderId?: string | null;
+		pinned?: boolean;
+		chat?: ChatListItem | null;
+	};
+
+	const upsertChatInFolderLists = (chat: ChatListItem | null) => {
+		if (!chat?.id) {
+			return;
+		}
+
+		for (const folder of Object.values(folderRegistry)) {
+			folder?.upsertChat?.(chat);
+		}
+	};
+
+	/**
+	 * Applies a change coming from a ChatItem without rebuilding the sidebar.
+	 *
+	 * Delete/archive/move drop exactly one row locally.  When the main list is
+	 * affected and more pages exist, the last loaded page is reconciled so
+	 * offset pagination stays aligned (no duplicated or skipped chat) while
+	 * `currentPage`, the store and the scroll position are preserved.
+	 */
+	const applyChatItemChange = async (detail: ChatItemChangeDetail) => {
+		if (!detail?.type || !detail?.id) {
+			// Legacy event without a payload: keep the old behaviour.
+			await initChatList();
+			return;
+		}
+
+		try {
+			switch (detail.type) {
+				case 'delete':
+				case 'archive': {
+					const { removedFromChats } = removeChatFromList(detail.id);
+					const tasks: Promise<unknown>[] = [removeChatFromFolderLists(detail.id)];
+
+					if (removedFromChats) {
+						tasks.push(
+							reconcileChatListPage(localStorage.token).then((result) => {
+								if (result.accepted) {
+									allChatsLoaded = result.allLoaded;
+								}
+							})
+						);
+					}
+
+					await Promise.all(tasks);
+					break;
+				}
+
+				case 'rename': {
+					if (typeof detail.title === 'string') {
+						updateChatTitleInList(detail.id, detail.title);
+						upsertChatInFolderLists({ id: detail.id, title: detail.title });
+					}
+					break;
+				}
+
+				case 'move': {
+					const { removedFromChats } = removeChatFromList(detail.id);
+					await removeChatFromFolderLists(detail.id);
+
+					if (removedFromChats) {
+						const result = await reconcileChatListPage(localStorage.token);
+						if (result.accepted) {
+							allChatsLoaded = result.allLoaded;
+						}
+					}
+
+					if (detail.folderId) {
+						await refreshFolderChatLists(detail.folderId, detail.chat ?? null);
+					}
+					break;
+				}
+
+				case 'pin': {
+					const chat = detail.chat ?? null;
+					const { removedFromChats } = removeChatFromList(detail.id);
+
+					if (detail.pinned) {
+						await refreshPinnedChats(localStorage.token);
+
+						if (removedFromChats) {
+							const result = await reconcileChatListPage(localStorage.token);
+							if (result.accepted) {
+								allChatsLoaded = result.allLoaded;
+							}
+						}
+					} else if (chat?.id && !chat.folder_id) {
+						addChatToList(chat);
+					}
+
+					upsertChatInFolderLists(chat);
+					break;
+				}
+
+				default:
+					await initChatList();
+			}
+		} catch (error) {
+			console.error('Failed to apply chat change locally:', error);
+		}
+	};
+
 	const applyFolderUnreadCounts = (folderUnreadCounts: Record<string, number>) => {
 		folders = Object.fromEntries(
 			Object.entries(folders).map(([id, folder]) => [
@@ -473,12 +592,18 @@
 		}
 	};
 
-	const tagEventHandler = async (type, tagName, chatId) => {
-		console.log(type, tagName, chatId);
-		if (type === 'delete') {
-			initChatList();
-		} else if (type === 'add') {
-			initChatList();
+	const tagEventHandler = async (type) => {
+		// Tags are rendered separately from the chat pagination; refreshing them
+		// must never reset the chat list pages or the sidebar scroll position.
+		if (type === 'delete' || type === 'add') {
+			const _tags = await getAllTags(localStorage.token).catch((error) => {
+				console.error(error);
+				return null;
+			});
+
+			if (_tags) {
+				tags.set(_tags);
+			}
 		}
 	};
 
@@ -678,6 +803,10 @@
 			return Promise.all(Object.values(folderRegistry).map((folder) => folder?.setFolderItems?.()));
 		});
 
+		const unregisterFolderChatRemovalHandler = registerFolderChatRemovalHandler((chatId) =>
+			Promise.all(Object.values(folderRegistry).map((folder) => folder?.removeChat?.(chatId)))
+		);
+
 		await tick();
 		await initSidebarData();
 		initPinnedMenuSortable();
@@ -701,6 +830,7 @@
 			socketInstance?.off('connect', refreshChatRows);
 
 			unregisterFolderRefreshHandler();
+			unregisterFolderChatRemovalHandler();
 		};
 	});
 
@@ -1247,8 +1377,8 @@
 									const { folderId, items } = e.detail;
 									importChatHandler(items, false, folderId);
 								}}
-								on:change={async () => {
-									initChatList();
+								on:change={async (e) => {
+									await applyChatItemChange(e.detail);
 								}}
 							/>
 						</SidebarSection>
@@ -1437,13 +1567,13 @@
 													on:unselect={() => {
 														selectedChatId = null;
 													}}
-													on:change={async () => {
-														initChatList();
+													on:change={async (e) => {
+														await applyChatItemChange(e.detail);
 													}}
 													onReadStateChange={applyChatReadState}
 													on:tag={(e) => {
-														const { type, name } = e.detail;
-														tagEventHandler(type, name, chat.id);
+														const { type } = e.detail;
+														tagEventHandler(type);
 													}}
 												/>
 											{/each}
@@ -1502,13 +1632,13 @@
 											on:unselect={() => {
 												selectedChatId = null;
 											}}
-											on:change={async () => {
-												initChatList();
+											on:change={async (e) => {
+												await applyChatItemChange(e.detail);
 											}}
 											onReadStateChange={applyChatReadState}
 											on:tag={(e) => {
-												const { type, name } = e.detail;
-												tagEventHandler(type, name, chat.id);
+												const { type } = e.detail;
+												tagEventHandler(type);
 											}}
 										/>
 									{/each}

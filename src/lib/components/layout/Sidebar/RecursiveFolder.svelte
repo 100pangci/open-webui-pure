@@ -353,6 +353,24 @@
 		open = folders[folderId].is_expanded;
 		folderRegistry[folderId] = {
 			setFolderItems,
+			removeChat: async (/** @type {string} */ chatId) => {
+				pendingUpsertChats = pendingUpsertChats.filter((chat) => chat.id !== chatId);
+
+				if (!chats) {
+					return;
+				}
+
+				const nextChats = chats.filter((chat) => chat.id !== chatId);
+				if (nextChats.length === chats.length) {
+					return;
+				}
+
+				chats = nextChats;
+
+				// Same offset shift as the main list: after a local removal the
+				// tail of the loaded folder pages may be missing one chat.
+				await reconcileFolderChats();
+			},
 			upsertChat: (chat) => {
 				if (chat.folder_id && chat.folder_id !== folderId) {
 					return;
@@ -527,6 +545,7 @@
 	let hasMoreChats = false;
 	let chatsLoading = false;
 	let queuedReload = false;
+	/** @type {any[]} */
 	let pendingUpsertChats = [];
 
 	export const setFolderItems = async (append = false) => {
@@ -592,6 +611,38 @@
 	$: if (open && chats === null && !chatsLoading) {
 		setFolderItems();
 	}
+
+	/**
+	 * Backfills the tail of the loaded folder pages after a local removal, the
+	 * same way the main sidebar list is reconciled.  Keeps the folder's loaded
+	 * pages contiguous after the backend offsets shifted by one.
+	 */
+	const reconcileFolderChats = async () => {
+		if (!open || !chats || !hasMoreChats || chatsLoading) {
+			return;
+		}
+
+		const page = chatsPage;
+
+		try {
+			const res = await getSharedFolderChats(localStorage.token, folderId, { page });
+			if (page !== chatsPage || !chats) {
+				return;
+			}
+
+			const fetchedChats = res?.chats ?? [];
+			const existingIds = new Set(chats.map((chat) => chat.id));
+			const missingChats = fetchedChats.filter((chat) => !existingIds.has(chat.id));
+
+			if (missingChats.length > 0) {
+				chats = mergeFolderChats(chats, missingChats);
+			}
+
+			hasMoreChats = res?.has_more ?? fetchedChats.length === SIDEBAR_CHATS_PAGE_SIZE;
+		} catch (error) {
+			console.error('Failed to reconcile folder chats', error);
+		}
+	};
 
 	const shouldIgnoreRowClick = (target) => {
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
