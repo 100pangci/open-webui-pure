@@ -31,7 +31,7 @@ export HTTPS_PROXY=http://host.containers.internal:3128
 
 - `127.0.0.1` inside the container is the container itself.
 - `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` are forwarded to the
-  container by `podman-compose.yaml`; nothing is auto-detected.
+  container by `docker-compose.yml`; nothing is auto-detected.
 - Some providers are reachable directly — leave the variables unset if so.
 
 ## A feature returns 501 / "not available"
@@ -60,7 +60,7 @@ volume to "fix" a container problem.
 
 ## Sessions are lost after every rebuild
 
-The JWT signing key must live inside the volume. `podman-compose.yaml` sets
+The JWT signing key must live inside the volume. `docker-compose.yml` sets
 `WEBUI_SECRET_KEY_FILE=/app/backend/data/.webui_secret_key`; keep that setting
 (or set a fixed `WEBUI_SECRET_KEY`) if you write your own compose file.
 

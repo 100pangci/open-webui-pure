@@ -92,21 +92,35 @@ PostgreSQL support uses **Psycopg 3 exclusively** (`postgresql+psycopg://`).
 
 ## Installation
 
-### Podman (recommended)
+### Podman / Docker Compose (recommended)
+
+Clone the repository and start the stack with the included
+`docker-compose.yml` — a standard compose file that works with both
+`podman compose` and `docker compose`:
 
 ```bash
 git clone https://github.com/100pangci/open-webui-pure.git
 cd open-webui-pure
 export OPENAI_API_BASE_URL=https://api.openai.com/v1
 export OPENAI_API_KEY=your_key
-./podman.sh up
+podman compose up -d --build
 ```
 
-The application is served at `http://localhost:3000`. The single entry point
-`./podman.sh` supports `up`, `build`, `update`, `restart`, `stop`, `down`,
-`logs`, `health` and `shell`; `update` rebuilds and reliably switches the
-container to the new image. The data volume (`open-webui_open-webui`) is never
-removed by the script.
+The application is served at `http://localhost:3000`; compose reads the
+provider settings from the environment. Useful commands:
+
+```bash
+podman compose up -d --build      # build and start
+podman compose logs -f open-webui
+podman compose down               # remove the container (volume preserved)
+```
+
+`./podman.sh` is a thin wrapper around the same compose file with `up`,
+`build`, `update`, `restart`, `stop`, `down`, `logs`, `health` and `shell`.
+Use `./podman.sh update` to upgrade: plain `podman compose up` does not
+recreate a container when only the image ID changed, while the script detects
+that and forces a recreate. The data volume (`open-webui_open-webui`) is never
+removed by the script or by `down`.
 
 Enable optional dependencies at build time:
 
@@ -114,11 +128,21 @@ Enable optional dependencies at build time:
 WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true ./podman.sh update
 ```
 
-Prebuilt multi-arch images are published to
-`docker.io/<DOCKERHUB_USERNAME>/open-webui-pure` on version tags (repository
-name configurable with the `DOCKERHUB_REPOSITORY` variable). The Pure Image
-workflow needs the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository
-secrets.
+#### Prebuilt images
+
+Multi-arch images (amd64/arm64) are published to Docker Hub on version tags:
+`docker.io/ywpc05/open-webui-pure` (`latest`, `0.11.3`, `0.11`, `v0.11.3`,
+`git-<sha>`). Use the published image instead of building:
+
+```bash
+export WEBUI_IMAGE=docker.io/ywpc05/open-webui-pure:latest
+podman compose up -d            # pulls the image and skips the local build
+```
+
+`WEBUI_IMAGE` can point at any compatible image; it defaults to the locally
+built `localhost/open-webui:pure`. The Pure Image workflow needs the
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets;
+`DOCKERHUB_REPOSITORY` overrides the repository name.
 
 ### From source
 

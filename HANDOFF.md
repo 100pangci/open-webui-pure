@@ -134,7 +134,7 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 - Never delete the volume. Never run `podman compose down -v` or
   `podman volume rm` to "fix" a container problem.
 - `WEBUI_SECRET_KEY_FILE=/app/backend/data/.webui_secret_key` must stay in
-  `podman-compose.yaml`; otherwise every container recreation regenerates the
+  `docker-compose.yml`; otherwise every container recreation regenerates the
   JWT key and invalidates all sessions (401s everywhere).
 - `podman.sh down`/`update` remove the container only, never the volume.
 - Historical migrations and existing SQLite data must keep working; verify
@@ -174,7 +174,7 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 
 - `Dockerfile` — multi-stage (frontend / changelog / pdf-fonts / runtime),
   `ENABLE_*` build args, build-time `pip check`, runtime bytecode off.
-- `podman.sh` + `podman-compose.yaml` — the single supported container entry
+- `podman.sh` + `docker-compose.yml` — the single supported container entry
   point; generic proxy pass-through, persistent volume, recreate-on-change.
 - `backend/open_webui/` — application; `test/` holds the 100 tests;
   `migrations/` is append-only history.

@@ -16,7 +16,9 @@
 #
 # Configuration (environment variables):
 #   OPEN_WEBUI_PORT   host port (default 3000)
-#   WEBUI_IMAGE_TAG   local image tag (default "pure")
+#   WEBUI_IMAGE       image to run (default "localhost/open-webui:pure"; set
+#                     it to a prebuilt image, e.g.
+#                     docker.io/ywpc05/open-webui-pure:latest, to skip builds)
 #   OPENAI_API_BASE_URL / OPENAI_API_KEY (and *_URLS / *_KEYS for multiple endpoints)
 #   WEBUI_SECRET_KEY  JWT signing key; generated into the data volume when unset
 #   HTTP_PROXY / HTTPS_PROXY / ALL_PROXY / NO_PROXY
@@ -35,9 +37,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-COMPOSE=(podman compose -f podman-compose.yaml)
+COMPOSE=(podman compose -f docker-compose.yml)
 CONTAINER="${WEBUI_CONTAINER_NAME:-open-webui}"
-IMAGE="localhost/open-webui:${WEBUI_IMAGE_TAG:-pure}"
+IMAGE="${WEBUI_IMAGE:-localhost/open-webui:${WEBUI_IMAGE_TAG:-pure}}"
+export WEBUI_IMAGE="$IMAGE"
 
 container_image_id() {
 	podman inspect -f '{{.Image}}' "$CONTAINER" 2>/dev/null || true

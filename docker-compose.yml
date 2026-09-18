@@ -15,7 +15,7 @@ services:
         ENABLE_PDF: "${WEBUI_ENABLE_PDF:-false}"
         ENABLE_CODE_FORMAT: "${WEBUI_ENABLE_CODE_FORMAT:-false}"
         ENABLE_PILLOW: "${WEBUI_ENABLE_PILLOW:-false}"
-    image: localhost/open-webui:${WEBUI_IMAGE_TAG:-pure}
+    image: ${WEBUI_IMAGE:-localhost/open-webui:pure}
     container_name: open-webui
     volumes:
       - open-webui:/app/backend/data
