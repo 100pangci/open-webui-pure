@@ -5,6 +5,7 @@
 name: Backend CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
