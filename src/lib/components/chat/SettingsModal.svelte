@@ -30,6 +30,8 @@
 	import Keyboard from '../icons/Keyboard.svelte';
 	import UsageIcon from '../icons/UsageIcon.svelte';
 	import AdminTabIcon from '$lib/components/admin/Settings/AdminTabIcon.svelte';
+	import AdminUsers from '$lib/components/admin/Users/UserList.svelte';
+	import AdminGroups from '$lib/components/admin/Users/Groups.svelte';
 	import AdminGeneral from '$lib/components/admin/Settings/General.svelte';
 	import AdminAuthentication from '$lib/components/admin/Settings/Authentication.svelte';
 	import AdminConnections from '$lib/components/admin/Settings/Connections.svelte';
@@ -129,6 +131,8 @@
 		about: 'Profile'
 	};
 	const adminSettingGroups: Record<string, string> = {
+		'admin:users': 'Access',
+		'admin:groups': 'Access',
 		'admin:general': 'System',
 		'admin:authentication': 'System',
 		'admin:connections': 'AI',
@@ -516,6 +520,31 @@
 
 	const adminSettings: SettingsTab[] = [
 		{
+			id: 'admin:users',
+			title: 'Users',
+			keywords: [
+				'users',
+				'user management',
+				'accounts',
+				'roles',
+				'permissions',
+				'add user',
+				'delete user'
+			]
+		},
+		{
+			id: 'admin:groups',
+			title: 'Groups',
+			keywords: [
+				'groups',
+				'group management',
+				'user groups',
+				'members',
+				'default permissions',
+				'permissions'
+			]
+		},
+		{
 			id: 'admin:general',
 			title: 'General',
 			keywords: ['general', 'admin', 'settings', 'version', 'update', 'community', 'channels']
@@ -758,6 +787,7 @@
 							<!-- $i18n.t('Services') -->
 							<!-- $i18n.t('Data') -->
 							<!-- $i18n.t('Profile') -->
+							<!-- $i18n.t('Access') -->
 							<!-- $i18n.t('System') -->
 							<!-- $i18n.t('AI') -->
 							<!-- $i18n.t('Experience') -->
@@ -898,6 +928,16 @@
 				</span>
 
 				{#each filteredAdminSettings as tabId, index (tabId)}
+					<!-- Admin tab titles are resolved by $i18n.t(adminSettings[].title): -->
+					<!-- $i18n.t('Users') -->
+					<!-- $i18n.t('Groups') -->
+					<!-- $i18n.t('General') -->
+					<!-- $i18n.t('Authentication') -->
+					<!-- $i18n.t('Connections') -->
+					<!-- $i18n.t('Models') -->
+					<!-- $i18n.t('Interface') -->
+					<!-- $i18n.t('Images') -->
+					<!-- $i18n.t('Database') -->
 					{#if shouldShowSettingGroup(filteredAdminSettings, index)}
 						<span class={settingGroupHeadingClass(index === 0)}>
 							{$i18n.t(settingGroupTitle(tabId))}
@@ -971,6 +1011,18 @@
 				/>
 			{:else if selectedTab === 'about'}
 				<About />
+			{:else if selectedTab === 'admin:users'}
+				<div class="flex h-full min-h-0 flex-col text-sm">
+					<div class="flex-1 min-h-0 overflow-y-auto scrollbar-hover pr-1.5">
+						<AdminUsers />
+					</div>
+				</div>
+			{:else if selectedTab === 'admin:groups'}
+				<div class="flex h-full min-h-0 flex-col text-sm">
+					<div class="flex-1 min-h-0 overflow-y-auto scrollbar-hover pr-1.5">
+						<AdminGroups />
+					</div>
+				</div>
 			{:else if selectedTab === 'admin:general'}
 				<AdminGeneral saveHandler={adminConfigSaveHandler} />
 			{:else if selectedTab === 'admin:authentication'}

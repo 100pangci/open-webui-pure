@@ -46,7 +46,7 @@
 						)}
 					{:else}
 						{$i18n.t('Your account status is currently pending activation.')}{'\n'}{$i18n.t(
-							'To access the WebUI, please reach out to the administrator. Admins can manage user statuses from the Admin Panel.'
+							'To access the WebUI, please reach out to the administrator. Admins can manage user statuses from Settings → Admin → Users.'
 						)}
 					{/if}
 				</div>

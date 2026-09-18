@@ -64,6 +64,9 @@
 			return null;
 		});
 	};
+
+	const groupSettingsHref = (groupId: string) =>
+		`/?settings=${encodeURIComponent('admin:groups')}&id=${encodeURIComponent(groupId)}`;
 </script>
 
 <Modal size="sm" bind:show>
@@ -122,9 +125,8 @@
 														class="px-1.5 py-0.5 rounded-xl bg-gray-100 dark:bg-gray-850 text-xs"
 													>
 														<a
-															href={'/admin/users/groups?id=' + userGroup.id}
-															on:click|preventDefault={() =>
-																goto('/admin/users/groups?id=' + userGroup.id)}
+															href={groupSettingsHref(userGroup.id)}
+															on:click|preventDefault={() => goto(groupSettingsHref(userGroup.id))}
 														>
 															{userGroup.name}
 														</a>
