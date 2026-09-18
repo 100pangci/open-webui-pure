@@ -19,6 +19,94 @@
 - 必须保留 Open WebUI 品牌、LICENSE 及相关标识。
 - 没有创建 commit。
 
+## Round 5 — 2026-09-18: Accept-Encoding q-values / PYTHONDONTWRITEBYTECODE / 停止瘦身判断
+
+### Results（同一台机器，rootless podman，镜像 `pure`）
+
+| 指标 | Round 4 | Round 5 | 说明 |
+| --- | --- | --- | --- |
+| image | 300 MB | **300 MB** | 无功能裁剪；字节码策略变更不换体积 |
+| fresh idle（cgroup） | 104.6 MB | **101.2~103.3 MB** | |
+| fresh idle（anon） | 97 MB | **97 MB** | 持平 |
+| fresh idle（RSS / PSS） | 120.8 / 112.2 MB | **119.3~119.7 / 105.2~115.4 MB** | PSS 受共享页影响波动大 |
+| fresh idle（Private_Dirty） | 93.8 MB | **93.1 MB** | |
+| startup → /health | 1.59 s | **1.59 s** | 无回归（本机运行噪声 ±0.1 s） |
+| writable layer（首次启动后） | ~2.4 MiB | **123 kB** | 运行期不再写 .pyc |
+| 运行后 /app .pyc | 131 个 / 2.16 MiB | **0** | `PYTHONDONTWRITEBYTECODE=1` |
+| 单测 | 88 | **100 passed** | 压缩 14 → 27 项 |
+| 回归（fresh volume + mock OpenAI） | 20/20 | **20/20** | |
+| SSRF 集成（HTTP 级） | 8/8 | **8/8** | |
+| 压缩 HTTP 级检查 | 3 项（br/gzip/zstd） | **12/12** | 新增 8 个 q-value 用例 + malformed |
+| pip check | clean | **clean**（用 packaging 复算，见下） | |
+
+### 1. Accept-Encoding q-value 正确协商（正确性修复）
+
+- 旧 `parse_accept_encoding()` 只返回「是否接受」的集合，完全忽略 q 值：
+  `gzip;q=1.0, br;q=0.1` 仍选 br（服务器偏好优先）。
+- 新实现（`backend/open_webui/utils/compression.py`）：
+  - `_parse_qvalue()`：非法/越界（如 `q=abc`、`q=1.5`、`q=nan`）一律按不可接受处理（保守）；
+  - `parse_accept_encoding()` 返回 `{coding: q}`（仅 q>0），显式 coding 覆盖 `*`（包括 `br;q=0` + `*;q=0.5`），
+    wildcard 只补未显式列出的 coding，未知 coding（zstd）忽略不报错；
+  - 新增 `select_encoding(accept_encoding, available)`：按 q 值选最高，q 相同按服务器偏好 `br > gzip`；
+    middleware 按实际启用的编码（brotli/gzip 可能被构造参数关闭）传入 `available`。
+- 单测覆盖要求矩阵：`gzip;q=1, br;q=0.1→gzip`、`br;q=1, gzip;q=0.5→br`、`br;q=0, gzip;q=1→gzip`、
+  `gzip;q=0, br;q=0→identity`、`*;q=0.5→br`、`*;q=0.5, br;q=0→gzip`、`zstd, gzip;q=0.5→gzip`、
+  `br;q=0.5, gzip;q=0.5→br`，另有 malformed、大小写、未知参数、wildcard 组合等。
+- 保持原有行为：SSE/二进制/已有 Content-Encoding 不压缩、流式压缩、`Vary: Accept-Encoding`。
+- 容器内 HTTP 实测 12/12（登录页 `/` 真实响应，含解压校验）。
+
+### 2. PYTHONDONTWRITEBYTECODE=1 benchmark（A/B，各 4 轮 × 3 次启动，fresh volume）
+
+| 指标（app 启动计时） | 默认（写 pyc） | PYTHONDONTWRITEBYTECODE=1 | 差异 |
+| --- | --- | --- | --- |
+| 冷启动（fresh volume） | 1.50 s | 1.47 s | 写 pyc 反而 ~30 ms 成本 |
+| 热重启（同一容器 restart） | 0.99 s | 1.09 s | **+90~100 ms**（重新解析而非加载 pyc） |
+| 启动 CPU（热） | 943 ms | 1038 ms | +10% |
+| writable layer | 2.39 MiB | 0.12 MiB | **−2.27 MiB** |
+| 运行后 .pyc | 131 个 / 2.16 MiB | 0 | 0 |
+
+- 结论：**采纳 `PYTHONDONTWRITEBYTECODE=1`**。冷启动（镜像更新/重建后的常态）无开销，热重启 +0.1 s 绝对值很小，
+  换来容器 writable layer 不再增长数 MB、运行期文件系统行为确定。可用 `PYTHONDONTWRITEBYTECODE=0` 退回。
+- **关键坑（已修正）**：ENV 必须放在 `RUN pip install` **之后**。
+  最初把 ENV 放在文件顶部，导致构建期 pip 的 Python 也不再生成 **stdlib pyc**（~5.5 MB），
+  镜像虽降到 295 MB，但冷启动 1.72~1.78 s、热启动 1.62~1.78 s（实测 +0.18~0.33 s）。
+  移到 pip 层之后 → 镜像回 300 MB，冷启动 1.50~1.57 s、热启动 1.44~1.46 s，与旧镜像一致。
+- 依赖层未变（构建缓存复用 r4 的 pip layer），`pip check` 结论沿用；另用 `packaging` 在容器内复算依赖一致性：
+  `No broken requirements found.`
+
+### 3. 低风险 image audit（只查不改）
+
+| 候选项 | 大小 | 结论 |
+| --- | --- | --- |
+| site-packages 构建期 .pyc | **24.7 MiB**（1557 个） | **保留**。实测删除后每次启动 +0.9~1.0 s（冷 1.52→2.42 s，热 1.01→1.97 s），远超 24 MB 体积收益，违反「不牺牲性能」 |
+| stdlib .pyc | ~5.5 MiB（192 个） | **保留**（同上；回归到 ENV 位置修正中验证） |
+| Brotli (`_brotli.so`) | 5.2 MiB | **保留**。默认压缩中间件在用；删除等于取消 br（默认体验/带宽回退） |
+| Swagger UI（`static/swagger-ui/`） | 2.5 MiB | **保留**。`/docs` 在 `ENV=prod` 下不注册，但 `ENV=dev` 是上游支持的配置，删除会破坏 dev API 文档页 |
+| `CHANGELOG.md` fallback | 1.2 MiB | **保留**。`latest-changelog.json`（496 kB）是正常路径，CHANGELOG 仅兜底；删除省得少且有损健壮性 |
+| `backend/open_webui/test/` | 148 kB | **保留**。运行无关但体积可忽略；干净移除需多阶段 COPY，反而增加维护复杂度 |
+| 其他 base 镜像残留（perl/apt/debconf 等） | — | 不动（属基础镜像，非本 fork 引入；单层删除也不减体积） |
+
+- 本轮**未删除任何文件**：没有候选项同时满足「明确未使用 + 不降体验 + 不增维护复杂度 + 不破坏上游兼容」。
+- 最终镜像构成（复核）：`/app` 53 MB（backend 5.2 MB + build 46 MB）、site-packages 110 MB（含 24.7 MB pyc）。
+
+### 4. 是否停止瘦身：**B. 已进入边际收益阶段，停止继续瘦身**
+
+- 现有剩余大项全部是「功能/性能/架构」取舍，不符合低风险高收益标准：
+  - uvloop 13.6 MB：换 asyncio 事件循环会牺牲异步 I/O 性能；
+  - Socket.IO ≈12 MB：去掉需重写 streaming/停止生成/多标签页状态同步（核心通信）；
+  - Alpine ≈70 MB：换 libc/base image，wheel 与兼容性风险大（明确不做）；
+  - 构建期 pyc 24.7 MB：删了直接慢 ~1 s/次（已验证，保留）。
+- 判断：默认依赖、SQLite 调参、字体、压缩、SSRF、可选 extras 都已完成；
+  继续省 5~10 MB 只能靠改写核心通信、换基础镜像或牺牲性能，均踩「不要做」的红线。
+- 后续方向：**上游同步 + 长期维护**（见 Next Move），不再以镜像/内存数字为目标。
+
+### 5. 验收命令与结果
+
+- `uv run --frozen pytest backend/open_webui/test -q` → **100 passed**。
+- fresh volume 容器 + `owui-mock`：startup 1.59 s、fresh idle 101~103 MB（cgroup）、回归 20/20、SSRF 8/8、压缩 12/12。
+- 构建：`podman build -t localhost/open-webui:pure .` 成功（镜像 ID `314cccf8d475`，300 MB）。
+- 未动线上容器与 volume（`open-webui` / `open-webui_open-webui`）；测试容器/网络/volume 已清理。
+
 ## Round 4 — 2026-09-18: SSRF resolver 修复 / PDF-only 字体 / 本地 gzip+brotli / 331→300 MB
 
 ### Results（同一台机器，rootless podman）
@@ -370,15 +458,15 @@
 
 ## Next Move
 
-1. Round 4 已完成并验证（见顶部 Round 4 章节）。可选后续：
-   - Swagger UI 2.4 MB：删除会失去 `/docs` API 文档页，按需决定。
-   - uvloop 13.1 MB：改用 asyncio 事件循环可省，但牺牲异步 I/O 性能；不建议默认改。
-   - alpine 基础镜像（63.6 MB vs slim 135 MB）：可再省 ~70 MB，需全量 wheel 兼容性验证。
-   - Socket.IO ultra-lite（SSE）≈ 12 MB；只有必须 <100 MiB cgroup idle 时才建议评估。
-   - `npm run check` 与基线对比（上游类型噪声仍在）；i18n 死 key 清理。
+1. Round 5：**停止瘦身，转向上游同步与长期维护**（结论见顶部 Round 5 章节）。
+   - 剩余体积大项（uvloop 13.6 MB / Socket.IO ≈12 MB / Alpine ≈70 MB / 构建期 pyc 24.7 MB）
+     全部需要功能、性能或架构取舍，不再作为默认优化目标；除非将来有明确的部署约束（如 <100 MiB 内存），
+     不建议再评估。
+   - 维护重点：跟进上游版本（裁剪基线 v0.11.3）→ 同步安全修复；保持单测/回归可跑；
+     变更后按 Round 5 的 checker 复跑 `pytest`、回归 20 项、SSRF 8 项、压缩 q-value 矩阵。
 2. 停止容器时只用 `podman compose stop` 或 `podman compose down`（不带 `-v`），不得删除 `open-webui_open-webui` volume（compose 实际卷名）。
 3. 本地跑 `open_webui.main` 前先 `npm run build`，否则 `backend/open_webui/static` 顶层文件会被启动流程清掉（见 Round 2 踩坑）。
-4. 线上容器当前仍运行 Round 3 的 `pure`（331 MB，r3 镜像 ID `fec50870`）；下次 `podman-up.sh` / `podman compose up -d --build` 会重建为 Round 4 的 300 MB 版本（volume 不变，已用真实 volume 副本验证兼容）。
+4. 线上容器当前仍运行 Round 3 的 `pure`（331 MB，r3 镜像 ID `fec50870`）；下次 `podman-up.sh` / `podman compose up -d --build` 会重建为 Round 5 的 300 MB 版本（镜像 ID `314cccf8d475`；volume 不变，Round 4 已用真实 volume 副本验证兼容）。注意：重建后运行期不再写 `.pyc`（writable layer 更干净），需要旧行为可 `-e PYTHONDONTWRITEBYTECODE=0`。
 5. 默认镜像已不含 PDF 字体；需要后端 PDF 导出时用
    `podman build --build-arg ENABLE_PDF=true -t localhost/open-webui:pure-pdf .`（已验证，380 MB）。
 
@@ -389,13 +477,14 @@
   `requirements-postgres/redis/azure/ldap/pdf/code-format/pillow/optional/cli.txt` 为可选功能依赖。
 - `Dockerfile`：多阶段构建（frontend / changelog / pdf-fonts / runtime）；`ENABLE_*` build args；
   只 chown data 目录；安装后 `pip check`、卸载 pip/setuptools/wheel 与 ensurepip；
+  PYTHONDONTWRITEBYTECODE=1 放在 pip 层之后（保留构建期 pyc，运行期不写）；
   PDF 字体仅 `ENABLE_PDF=true` 时从 `pdf-fonts/` stage 复制。
 - `pdf-fonts/`：PDF 专用字体（7 个运行时字体 + 4 个 Variable 参考文件），默认不进镜像。
 - `backend/open_webui/utils/ssrf.py`：SSRF 防护（validate_url / SSRFResolver / ssrf_safe_get / is_trusted_origin；
   resolver 读 `ResolveResult['host']`）。
 - `backend/open_webui/utils/compression.py`：本地 Brotli+gzip ASGI 中间件（替代 starlette-compress）。
 - `backend/open_webui/test/test_ssrf.py`、`test_compression.py`、`test_changelog.py`：回归测试
-  （`uv run --frozen pytest backend/open_webui/test -q`，共 88 项）。
+  （`uv run --frozen pytest backend/open_webui/test -q`，共 100 项；压缩含 q-value 协商矩阵）。
 - `backend/open_webui/utils/changelog.py`：stdlib changelog 解析器（`parse_changelog` / `load_changelog_json`），
   兼构建期 CLI（生成 `latest-changelog.json`）。
 - `podman-compose.yaml`：默认 tag `pure`；`WEBUI_ENABLE_*` build args 透传；`WEBUI_SECRET_KEY_FILE` 持久化 JWT 密钥。

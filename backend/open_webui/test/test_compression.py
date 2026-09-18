@@ -69,14 +69,69 @@ def _response(messages):
 
 
 def test_parse_accept_encoding_basic():
-    assert parse_accept_encoding('gzip') == frozenset({'gzip'})
-    assert parse_accept_encoding('br, gzip') == frozenset({'br', 'gzip'})
-    assert parse_accept_encoding('br;q=1.0, gzip;q=0.8') == frozenset({'br', 'gzip'})
-    assert parse_accept_encoding('gzip;q=0') == frozenset()
-    assert parse_accept_encoding('*') == frozenset({'br', 'gzip'})
-    assert parse_accept_encoding('*, gzip;q=0') == frozenset({'br'})
+    assert parse_accept_encoding('gzip') == {'gzip': 1.0}
+    assert parse_accept_encoding('br, gzip') == {'br': 1.0, 'gzip': 1.0}
+    assert parse_accept_encoding('br;q=1.0, gzip;q=0.8') == {'br': 1.0, 'gzip': 0.8}
+    assert parse_accept_encoding('gzip;q=0') == {}
+    assert parse_accept_encoding('*') == {'br': 1.0, 'gzip': 1.0}
+    assert parse_accept_encoding('*, gzip;q=0') == {'br': 1.0}
     # zstd is no longer supported: it must fall through to br/gzip or identity.
-    assert parse_accept_encoding('zstd') == frozenset()
+    assert parse_accept_encoding('zstd') == {}
+
+
+def test_parse_accept_encoding_qvalues():
+    assert parse_accept_encoding('gzip;q=1, br;q=0.1') == {'gzip': 1.0, 'br': 0.1}
+    assert parse_accept_encoding('br;q=0.5, gzip;q=0.5') == {'br': 0.5, 'gzip': 0.5}
+    # q=0 entries are omitted entirely.
+    assert parse_accept_encoding('br;q=0, gzip;q=1') == {'gzip': 1.0}
+    # Case-insensitive coding and parameter names.
+    assert parse_accept_encoding('BR;Q=0.5, GZip;Q=1') == {'br': 0.5, 'gzip': 1.0}
+    # Unknown parameters are ignored; a missing q means q=1.
+    assert parse_accept_encoding('gzip;level=9') == {'gzip': 1.0}
+    # Unsupported codings are ignored next to supported ones.
+    assert parse_accept_encoding('zstd, gzip;q=0.5') == {'gzip': 0.5}
+
+
+def test_parse_accept_encoding_wildcard():
+    assert parse_accept_encoding('*;q=0.5') == {'br': 0.5, 'gzip': 0.5}
+    assert parse_accept_encoding('*;q=0') == {}
+    # An explicit entry for a coding overrides the wildcard (including q=0).
+    assert parse_accept_encoding('*;q=0.5, br;q=0') == {'gzip': 0.5}
+    assert parse_accept_encoding('br;q=0.2, *;q=0.9') == {'br': 0.2, 'gzip': 0.9}
+    assert parse_accept_encoding('*, br') == {'br': 1.0, 'gzip': 1.0}
+
+
+def test_parse_accept_encoding_malformed_q_is_rejected():
+    # Conservative: an unparseable/out-of-range q-value means "not acceptable"
+    # rather than "acceptable", so a broken client header never leads to an
+    # encoding it may not understand.
+    for header in ('gzip;q=', 'gzip;q=abc', 'gzip;q=1.5', 'gzip;q=-0.1', 'gzip;q=nan'):
+        assert parse_accept_encoding(header) == {}, header
+
+
+@pytest.mark.parametrize(
+    'accept_encoding,expected',
+    [
+        ('gzip;q=1, br;q=0.1', b'gzip'),
+        ('br;q=1, gzip;q=0.5', b'br'),
+        ('br;q=0, gzip;q=1', b'gzip'),
+        ('gzip;q=0, br;q=0', None),
+        ('*;q=0.5', b'br'),
+        ('*;q=0.5, br;q=0', b'gzip'),
+        ('zstd, gzip;q=0.5', b'gzip'),
+        ('br;q=0.5, gzip;q=0.5', b'br'),
+    ],
+)
+async def test_qvalue_selection(accept_encoding, expected):
+    messages = await _run(CompressMiddleware(_app()), accept_encoding)
+    headers, _ = _response(messages)
+    assert headers.get(b'content-encoding') == expected
+
+
+async def test_malformed_q_falls_back_to_other_encoding():
+    messages = await _run(CompressMiddleware(_app()), 'gzip;q=bogus, br;q=0.5')
+    headers, _ = _response(messages)
+    assert headers[b'content-encoding'] == b'br'
 
 
 # ---------------------------------------------------------------------------
