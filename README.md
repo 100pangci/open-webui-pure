@@ -115,10 +115,10 @@ WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true ./podman.sh update
 ```
 
 Prebuilt multi-arch images are published to
-`ghcr.io/100pangci/open-webui-pure` on version tags. If the
-`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets are configured,
-the same manifest is also mirrored to
-`docker.io/<DOCKERHUB_USERNAME>/open-webui-pure`.
+`docker.io/<DOCKERHUB_USERNAME>/open-webui-pure` on version tags (repository
+name configurable with the `DOCKERHUB_REPOSITORY` variable). The Pure Image
+workflow needs the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository
+secrets.
 
 ### From source
 

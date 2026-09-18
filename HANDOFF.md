@@ -177,6 +177,6 @@ After a dependency or Dockerfile change, run `pip check` inside the image
   `static/BRANDING.md`).
 - `.github/workflows/` — three Pure workflows: backend CI (Ruff + tests),
   frontend CI (format + i18n + build + tests), image publish (test +
-  amd64/arm64 to GHCR, optional Docker Hub mirror via `DOCKERHUB_USERNAME` /
-  `DOCKERHUB_TOKEN` secrets, tags and manual dispatch only).
+  amd64/arm64 to Docker Hub, `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`
+  secrets, tags and manual dispatch only).
 - `.env.example` — the supported configuration surface.
