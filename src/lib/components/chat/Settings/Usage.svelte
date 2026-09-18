@@ -337,6 +337,10 @@
 					<div
 						class="flex min-w-0 max-w-[70%] shrink items-center gap-3 overflow-hidden whitespace-nowrap"
 					>
+						<!-- Heatmap mode labels are passed to $i18n.t() through mode.label: -->
+						<!-- $i18n.t('Daily') -->
+						<!-- $i18n.t('Weekly') -->
+						<!-- $i18n.t('Cumulative') -->
 						{#each heatmapModes as mode}
 							<button
 								type="button"

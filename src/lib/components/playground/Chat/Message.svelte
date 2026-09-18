@@ -28,6 +28,7 @@
 	<div class="flex-1">
 		<!-- $i18n.t('a user') -->
 		<!-- $i18n.t('an assistant') -->
+		<!-- $i18n.t('assistant') -->
 		<textarea
 			id="{message.role}-{idx}-textarea"
 			bind:this={textAreaElement}

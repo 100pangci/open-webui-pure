@@ -753,6 +753,15 @@
 				{#each filteredPersonalSettings as tabId, index (tabId)}
 					{#if shouldShowSettingGroup(filteredPersonalSettings, index)}
 						<span class={settingGroupHeadingClass(index === 0)}>
+							<!-- Setting group titles are resolved by settingGroupTitle(tabId): -->
+							<!-- $i18n.t('Basics') -->
+							<!-- $i18n.t('Services') -->
+							<!-- $i18n.t('Data') -->
+							<!-- $i18n.t('Profile') -->
+							<!-- $i18n.t('System') -->
+							<!-- $i18n.t('AI') -->
+							<!-- $i18n.t('Experience') -->
+							<!-- $i18n.t('General') -->
 							{$i18n.t(settingGroupTitle(tabId))}
 						</span>
 					{/if}

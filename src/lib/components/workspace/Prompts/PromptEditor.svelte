@@ -714,6 +714,10 @@
 								<span class="truncate">{entry.user.name}</span>
 								<span>•</span>
 							{/if}
+							<!-- renderDate() returns these format keys, translated via $i18n.t(): -->
+							<!-- $i18n.t('Today at {{LOCALIZED_TIME}}') -->
+							<!-- $i18n.t('Yesterday at {{LOCALIZED_TIME}}') -->
+							<!-- $i18n.t('{{LOCALIZED_DATE}} at {{LOCALIZED_TIME}}') -->
 							<span class="shrink-0">{renderDate(entry.created_at)}</span>
 						</div>
 					</button>
