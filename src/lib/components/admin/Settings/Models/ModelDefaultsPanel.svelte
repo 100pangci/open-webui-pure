@@ -81,7 +81,7 @@
 
 		const metadata = {
 			capabilities: defaultCapabilities,
-			...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {}),
+			...(defaultFeatureIds.length > 0 ? { defaultFeatureIds } : {})
 		};
 
 		const res = await setModelsConfig(localStorage.token, {
@@ -174,7 +174,6 @@
 									<DefaultFeatures {availableFeatures} bind:featureIds={defaultFeatureIds} />
 								</div>
 							{/if}
-
 						</div>
 					{/if}
 				</div>

@@ -76,10 +76,6 @@ open-webui = "open_webui:app"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.rye]
-managed = true
-dev-dependencies = []
-
 [tool.hatch.metadata]
 allow-direct-references = true
 
@@ -98,18 +94,11 @@ exclude = [
     "dev.sh",
     "requirements.txt",
     "start.sh",
-    "start_windows.bat",
     "webui.db",
     "chroma.sqlite3",
 ]
 force-include = { "CHANGELOG.md" = "open_webui/CHANGELOG.md", build = "open_webui/frontend" }
 
-[tool.codespell]
-# Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git*,*.svg,package-lock.json,i18n,*.lock,*.css,*-bundle.js,locales,example-doc.txt,emoji-shortcodes.json'
-check-hidden = true
-# ignore-regex = ''
-ignore-words-list = 'ans'
 
 [dependency-groups]
 dev = [
@@ -120,9 +109,6 @@ dev = [
     "python-dotenv>=1.0.0",
 ]
 
-[tool.black]
-line-length = 120
-skip-string-normalization = true
 
 [tool.ruff]
 line-length = 120

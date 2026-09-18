@@ -107,6 +107,7 @@ def normalize_messages_for_model(form_data: dict) -> dict:
     form_data['messages'] = merge_system_messages(form_data.get('messages', []))
     return form_data
 
+
 async def publish_chat_finished_event(
     request: Request, user: UserModel, metadata: dict, title: str, content: str, output: list | None = None
 ):
@@ -138,14 +139,17 @@ async def publish_chat_finished_event(
         folder_id = metadata.get('folder_id') or await Chats.get_chat_folder_id(chat_id, metadata.get('user_id'))
         await event_emitter({'type': 'chat:list', 'data': {'chat_id': chat_id, 'folder_id': folder_id}})
 
+
 def _start_tag_pattern(start_tag: str) -> str:
     if start_tag.startswith('<') and start_tag.endswith('>'):
         return rf'<{re.escape(start_tag[1:-1])}(\s.*?)?>'
     return re.escape(start_tag)
 
+
 def output_id(prefix: str) -> str:
     """Generate OR-style ID: prefix + 24-char hex UUID."""
     return f'{prefix}_{uuid4().hex[:24]}'
+
 
 def merge_streamed_reasoning_details(target: list, details) -> None:
     items = details if isinstance(details, list) else [details]
@@ -169,6 +173,7 @@ def merge_streamed_reasoning_details(target: list, details) -> None:
             else:
                 existing[key] = value
 
+
 def deep_merge(target, source):
     """
     Merge source into target recursively (returning new structure).
@@ -189,6 +194,7 @@ def deep_merge(target, source):
     else:
         return source
 
+
 def get_response_completion_event_data(event: dict) -> dict:
     """Build the data payload for response:completion events."""
     response = event.get('response')
@@ -201,6 +207,7 @@ def get_response_completion_event_data(event: dict) -> dict:
         **event,
         'response': response_data,
     }
+
 
 def handle_responses_streaming_event(
     data: dict,
@@ -532,6 +539,7 @@ def handle_responses_streaming_event(
     else:
         return current_output, None
 
+
 def get_images_from_messages(message_list):
     images = []
 
@@ -547,6 +555,7 @@ def get_images_from_messages(message_list):
             images.append(message_images)
 
     return images
+
 
 async def get_image_urls(delta_images, request, metadata, user) -> list[str]:
     if not isinstance(delta_images, list):
@@ -567,6 +576,7 @@ async def get_image_urls(delta_images, request, metadata, user) -> list[str]:
         image_urls.append(url)
 
     return image_urls
+
 
 async def chat_image_generation_handler(request: Request, form_data: dict, extra_params: dict, user):
     metadata = extra_params.get('__metadata__', {})
@@ -788,6 +798,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
 
     return form_data
 
+
 async def convert_url_images_to_base64(form_data, user=None):
     messages = form_data.get('messages', [])
 
@@ -836,6 +847,7 @@ async def convert_url_images_to_base64(form_data, user=None):
 
     return form_data
 
+
 async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[dict]]:
     """
     Load the message chain from DB up to message_id,
@@ -850,6 +862,7 @@ async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[
         return None
 
     return [{k: v for k, v in msg.items() if k in MESSAGE_REPLAY_KEYS} for msg in db_messages]
+
 
 def get_reasoning_format(model: dict) -> str | None:
     """
@@ -868,11 +881,13 @@ def get_reasoning_format(model: dict) -> str | None:
         return 'reasoning_content'
     return None
 
+
 def strip_reasoning_details(output: list) -> list:
     return [
         {key: value for key, value in item.items() if key != 'reasoning_details'} if isinstance(item, dict) else item
         for item in output
     ]
+
 
 def process_messages_with_output(
     messages: list[dict],
@@ -905,6 +920,7 @@ def process_messages_with_output(
 
     return processed
 
+
 async def get_event_emitter_and_caller(metadata):
     event_emitter = None
     event_caller = None
@@ -922,6 +938,7 @@ async def get_event_emitter_and_caller(metadata):
 
     return event_emitter, event_caller
 
+
 async def build_chat_response_context(request, form_data, user, model, metadata, tasks, events):
     event_emitter, event_caller = await get_event_emitter_and_caller(metadata)
     return {
@@ -935,6 +952,7 @@ async def build_chat_response_context(request, form_data, user, model, metadata,
         'event_emitter': event_emitter,
         'event_caller': event_caller,
     }
+
 
 def get_response_data(response):
     if isinstance(response, list) and len(response) == 1:
@@ -956,6 +974,7 @@ def get_response_data(response):
 
     return response, response_data
 
+
 def merge_events_into_response(response_data, events):
     if events and isinstance(events, list):
         extra_response = {}
@@ -971,6 +990,7 @@ def merge_events_into_response(response_data, events):
         }
     return response_data
 
+
 def build_response_object(response, response_data):
     if isinstance(response, dict):
         return response_data
@@ -981,6 +1001,7 @@ def build_response_object(response, response_data):
             status_code=response.status_code,
         )
     return response
+
 
 async def background_tasks_handler(ctx):
     request = ctx['request']
@@ -1188,6 +1209,7 @@ async def background_tasks_handler(ctx):
                         except Exception as e:
                             pass
 
+
 async def non_streaming_chat_response_handler(response, ctx):
     request = ctx['request']
 
@@ -1360,6 +1382,7 @@ async def non_streaming_chat_response_handler(response, ctx):
         response = merge_events_into_response(response_data, events)
 
     return response
+
 
 async def streaming_chat_response_handler(response, ctx):
     request = ctx['request']
@@ -1571,9 +1594,8 @@ async def streaming_chat_response_handler(response, ctx):
                     else:
                         save_scanned_length(item, item_text)
 
-                elif (
-                    (last_type == 'reasoning' and content_type == 'reasoning')
-                    or (last_type == 'message' and output[-1].get('_tag_type') == content_type)
+                elif (last_type == 'reasoning' and content_type == 'reasoning') or (
+                    last_type == 'message' and output[-1].get('_tag_type') == content_type
                 ):
                     item = output[-1]
                     start_tag = item.get('start_tag', '')
@@ -2754,5 +2776,3 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 
     form_data = normalize_messages_for_model(form_data)
     return form_data, metadata, []
-
-

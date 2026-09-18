@@ -197,42 +197,6 @@ export const downloadProviderModel = async (
 	return res;
 };
 
-export const getProviderModelDownloadStatus = async (
-	token: string,
-	urlIdx: number,
-	jobId: string,
-	signal?: AbortSignal
-) => {
-	let error = null;
-
-	const res = await fetch(
-		`${OPENAI_API_BASE_URL}/models/${urlIdx}/download/status/${encodeURIComponent(jobId)}`,
-		{
-			signal,
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			}
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = getErrorMessage(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
 export const loadProviderModel = async (token: string, urlIdx: number, model: string) => {
 	let error = null;
 
@@ -442,38 +406,6 @@ export const generateOpenAIChatCompletion = async (
 			error = getErrorMessage(err);
 			return null;
 		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const synthesizeOpenAISpeech = async (
-	token: string = '',
-	speaker: string = 'alloy',
-	text: string = '',
-	model: string = 'tts-1'
-) => {
-	let error = null;
-
-	const res = await fetch(`${OPENAI_API_BASE_URL}/audio/speech`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			model: model,
-			input: text,
-			voice: speaker
-		})
-	}).catch((err) => {
-		console.error(err);
-		error = err;
-		return null;
-	});
 
 	if (error) {
 		throw error;

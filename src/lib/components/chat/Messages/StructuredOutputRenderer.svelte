@@ -25,7 +25,7 @@
 	export let formatMessageContent: (content: string) => string = (content) => content;
 	export let onSave: any = () => {};
 	export let onSourceClick: any = () => {};
-		export let onUpdate: any = () => {};
+	export let onUpdate: any = () => {};
 	export let onPreview: any = () => {};
 
 	const getDetailTitle = (detailToken: OutputDetailToken): any => detailToken.summary;

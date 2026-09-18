@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Backend CI — Python formatting checks via Ruff
-# Runs on pushes and PRs to main/dev when backend files change
+# Backend CI — Ruff checks and the Pure unit tests
+# Runs on pushes and PRs to main when backend files change
 # ─────────────────────────────────────────────────────────────────────────────
-name: Python CI
+name: Backend CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
   pull_request:
-    branches: [main, dev]
+    branches: [main]
     paths: ['backend/**', 'pyproject.toml', 'uv.lock', '.github/workflows/backend.yaml']
 
 concurrency:
@@ -17,9 +17,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Ruff format check across supported Python versions ───────────────────
+  # ── Ruff formatting and logic-error checks ───────────────────────────────
   format-check:
-    name: Ruff Format (${{ matrix.python-version }})
+    name: Ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install formatter
+        run: pip install "ruff>=0.15.5"
+
+      - name: Verify formatting
+        run: ruff format --check . --exclude .venv --exclude venv
+
+      - name: Detect logic errors
+        run: ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841 --output-format=github .
+
+  # ── Unit tests (SSRF hardening, compression negotiation, changelog) ──────
+  tests:
+    name: Unit Tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -33,11 +54,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install formatter
-        run: pip install "ruff>=0.15.5"
+      - name: Install default (SQLite-only) dependencies
+        run: pip install -r backend/requirements-min.txt pytest pytest-asyncio
 
-      - name: Verify formatting
-        run: ruff format --check . --exclude .venv --exclude venv
-
-      - name: Detect logic errors
-        run: ruff check --select=F --ignore=F401,F403,F405,F541,F811,F841 --output-format=github .
+      - name: Run the Pure test suite
+        run: PYTHONPATH=backend pytest backend/open_webui/test -q
+        env:
+          WEBUI_SECRET_KEY: ci-test-key

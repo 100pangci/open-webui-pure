@@ -214,9 +214,7 @@ async def test_sse_not_compressed():
 
 
 async def test_already_encoded_not_double_compressed():
-    messages = await _run(
-        CompressMiddleware(_app(extra_headers=[(b'content-encoding', b'br')])), 'br, gzip'
-    )
+    messages = await _run(CompressMiddleware(_app(extra_headers=[(b'content-encoding', b'br')])), 'br, gzip')
     headers, _ = _response(messages)
     assert headers[b'content-encoding'] == b'br'
 

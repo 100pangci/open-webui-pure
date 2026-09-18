@@ -345,5 +345,3 @@ def moa_response_generation_template(template: str, prompt: str, responses: list
 
     template = template.replace('{{responses}}', responses)
     return template
-
-

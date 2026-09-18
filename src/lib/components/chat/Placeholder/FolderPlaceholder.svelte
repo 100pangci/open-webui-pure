@@ -22,7 +22,6 @@
 
 	export let folder: FolderPlaceholderFolder | null = null;
 
-
 	const CHATS_PAGE_SIZE = 10;
 	let page = 1;
 	let totalChats = 0;

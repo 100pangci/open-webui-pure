@@ -1,7 +1,5 @@
 .github
 .DS_Store
-docs
-kubernetes
 node_modules
 /.svelte-kit
 /package
@@ -18,14 +16,8 @@ venv
 build
 .pytest_cache
 .ruff_cache
-_old
-uploads
 .ipynb_checkpoints
 **/*.db
-_test
 backend/data/*
 Dockerfile
 .dockerignore
-# PDF-only fonts live in pdf-fonts/ at the repository root; the pdf-fonts
-# build stage copies the seven runtime fonts only when ENABLE_PDF=true.
-pdf-fonts/*-Variable.ttf

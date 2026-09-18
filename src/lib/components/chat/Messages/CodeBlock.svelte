@@ -2,7 +2,12 @@
 	import hljs from 'highlight.js';
 	import { getContext, onMount } from 'svelte';
 
-	import { copyToClipboard, initMermaid, renderMermaidDiagram, renderVegaVisualization } from '$lib/utils';
+	import {
+		copyToClipboard,
+		initMermaid,
+		renderMermaidDiagram,
+		renderVegaVisualization
+	} from '$lib/utils';
 
 	import 'highlight.js/styles/github-dark.min.css';
 	import equal from 'fast-deep-equal';
@@ -259,7 +264,6 @@
 					</div>
 				{/if}
 			</div>
-
 		{/if}
 	</div>
 </div>

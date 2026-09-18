@@ -321,12 +321,7 @@
 				{#each token.items as item, itemIdx}
 					<li class="text-start {item?.task ? 'flex -translate-x-6.5 gap-3 ' : ''}">
 						{#if item?.task}
-							<input
-								class="flex-shrink-0"
-								type="checkbox"
-								checked={item.checked}
-								disabled
-							/>
+							<input class="flex-shrink-0" type="checkbox" checked={item.checked} disabled />
 
 							<div>
 								<svelte:self

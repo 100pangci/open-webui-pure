@@ -345,15 +345,11 @@ class CompressMiddleware:
         if brotli:
             if _brotli is None:
                 raise RuntimeError('brotli is enabled but the brotli package is not installed')
-            self._brotli = _CompressionResponder(
-                app, 'br', minimum_size, lambda: _BrotliCompressor(brotli_quality)
-            )
+            self._brotli = _CompressionResponder(app, 'br', minimum_size, lambda: _BrotliCompressor(brotli_quality))
 
         self._gzip = None
         if gzip:
-            self._gzip = _CompressionResponder(
-                app, 'gzip', minimum_size, lambda: _GzipCompressor(gzip_level)
-            )
+            self._gzip = _CompressionResponder(app, 'gzip', minimum_size, lambda: _GzipCompressor(gzip_level))
 
     async def __call__(self, scope, receive, send) -> None:
         if scope['type'] != 'http':
@@ -361,9 +357,7 @@ class CompressMiddleware:
 
         accept_encoding = MutableHeaders(scope=scope).getlist('Accept-Encoding')
         if accept_encoding:
-            header = (
-                ','.join(accept_encoding) if len(accept_encoding) > 1 else accept_encoding[0]
-            )
+            header = ','.join(accept_encoding) if len(accept_encoding) > 1 else accept_encoding[0]
 
             # Server preference order (used for q-value ties): br > gzip.
             available = []

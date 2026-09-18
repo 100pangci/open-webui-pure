@@ -8,12 +8,7 @@
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	import {
-		config,
-		models,
-		settings,
-		user
-	} from '$lib/stores';
+	import { config, models, settings, user } from '$lib/stores';
 	import {
 		copyToClipboard as _copyToClipboard,
 		sanitizeResponseContent,
@@ -602,7 +597,6 @@
 									{readOnly}
 								/>
 							{/if}
-
 						</div>
 					</div>
 				</div>

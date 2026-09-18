@@ -1,36 +1,97 @@
-# Open WebUI Troubleshooting Guide
+# Open WebUI Pure Troubleshooting
 
-## Understanding the Open WebUI Architecture
+Short list of the failures that actually happen with this fork. This is not
+the upstream Open WebUI troubleshooting guide: Ollama, RAG, web search, tools
+and audio do not exist here.
 
-The Open WebUI system is designed to streamline interactions between the client (your browser) and the Ollama API. At the heart of this design is a backend reverse proxy, enhancing security and resolving CORS issues.
+## The container starts but the model list is empty
 
-- **How it Works**: The Open WebUI is designed to interact with the Ollama API through a specific route. When a request is made from the WebUI to Ollama, it is not directly sent to the Ollama API. Initially, the request is sent to the Open WebUI backend via `/ollama` route. From there, the backend is responsible for forwarding the request to the Ollama API. This forwarding is accomplished by using the route specified in the `OLLAMA_BASE_URL` environment variable. Therefore, a request made to `/ollama` in the WebUI is effectively the same as making a request to `OLLAMA_BASE_URL` in the backend. For instance, a request to `/ollama/api/tags` in the WebUI is equivalent to `OLLAMA_BASE_URL/api/tags` in the backend.
+1. Check the provider URL from inside the container — `localhost` there is the
+   container, not your machine:
 
-- **Security Benefits**: This design prevents direct exposure of the Ollama API to the frontend, safeguarding against potential CORS (Cross-Origin Resource Sharing) issues and unauthorized access. Requiring authentication to access the Ollama API further enhances this security layer.
+   ```bash
+   podman exec -it open-webui curl -sS http://<provider-host>:<port>/v1/models \
+     -H "Authorization: Bearer $OPENAI_API_KEY"
+   ```
 
-## Open WebUI: Server Connection Error
+2. For a provider running on the host, use `host.containers.internal` or the
+   host LAN IP (for example `http://192.168.1.20:8000/v1`), not `127.0.0.1`.
+3. Verify `OPENAI_API_BASE_URL` / `OPENAI_API_KEY` (or the connection in
+   **Admin Settings → Connections**) and that the URL ends with `/v1` when the
+   server expects it.
 
-If you're experiencing connection issues, it’s often due to the WebUI docker container not being able to reach the Ollama server at 127.0.0.1:11434 (host.docker.internal:11434) inside the container . Use the `--network=host` flag in your docker command to resolve this. Note that the port changes from 3000 to 8080, resulting in the link: `http://localhost:8080`.
+## The container cannot reach the internet (provider, OAuth, avatars)
 
-**Example Docker Command**:
+Set proxy variables before starting:
 
 ```bash
-docker run -d --network=host -v open-webui:/app/backend/data -e OLLAMA_BASE_URL=http://127.0.0.1:11434 --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+export HTTPS_PROXY=http://host.containers.internal:3128
+./podman.sh update
 ```
 
-### Error on Slow Responses for Ollama
+- `127.0.0.1` inside the container is the container itself.
+- `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` are forwarded to the
+  container by `podman-compose.yaml`; nothing is auto-detected.
+- Some providers are reachable directly — leave the variables unset if so.
 
-Open WebUI has a default timeout of 5 minutes for Ollama to finish generating the response. If needed, this can be adjusted via the environment variable AIOHTTP_CLIENT_TIMEOUT, which sets the timeout in seconds.
+## A feature returns 501 / "not available"
 
-### General Connection Errors
+Most optional features are compiled into the image at build time or installed
+as extras, and are absent by default:
 
-**Ensure Ollama Version is Up-to-Date**: Always start by checking that you have the latest version of Ollama. Visit [Ollama's official site](https://ollama.com/) for the latest updates.
+| Feature                       | Enable with                                                                |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| PostgreSQL                    | `WEBUI_ENABLE_POSTGRES=true` or `pip install "open-webui[postgres]"`       |
+| Redis                         | `WEBUI_ENABLE_REDIS=true` or `pip install "open-webui[redis]"`             |
+| Azure OpenAI / Entra ID token | `WEBUI_ENABLE_AZURE=true` or `pip install "open-webui[azure]"`             |
+| LDAP                          | `WEBUI_ENABLE_LDAP=true` or `pip install "open-webui[ldap]"`               |
+| Backend PDF export            | `WEBUI_ENABLE_PDF=true` or `pip install "open-webui[pdf]"`                 |
+| Admin code formatting         | `WEBUI_ENABLE_CODE_FORMAT=true` or `pip install "open-webui[code-format]"` |
+| Pillow image normalization    | `WEBUI_ENABLE_PILLOW=true` or `pip install "open-webui[pillow]"`           |
 
-**Troubleshooting Steps**:
+Rebuild after changing a build arg: `./podman.sh update`.
 
-1. **Verify Ollama URL Format**:
-   - When running the Web UI container, ensure the `OLLAMA_BASE_URL` is correctly set. (e.g., `http://192.168.1.1:11434` for different host setups).
-   - In the Open WebUI, navigate to "Settings" > "General".
-   - Confirm that the Ollama Server URL is correctly set to `[OLLAMA URL]` (e.g., `http://localhost:11434`).
+## Data disappeared after an update
 
-By following these enhanced troubleshooting steps, connection issues should be effectively resolved. For further assistance or queries, feel free to reach out to us on our community Discord.
+The data lives in the Podman volume attached to `/app/backend/data`. It is
+preserved by `./podman.sh down` and `./podman.sh update`; only explicit volume
+removal (`podman volume rm open-webui_open-webui`) deletes it. Never delete the
+volume to "fix" a container problem.
+
+## Sessions are lost after every rebuild
+
+The JWT signing key must live inside the volume. `podman-compose.yaml` sets
+`WEBUI_SECRET_KEY_FILE=/app/backend/data/.webui_secret_key`; keep that setting
+(or set a fixed `WEBUI_SECRET_KEY`) if you write your own compose file.
+
+## The container keeps running the old image after `podman compose build`
+
+This is a compose quirk: an unchanged compose config does not recreate the
+container when only the image ID changed. Use:
+
+```bash
+./podman.sh update
+```
+
+It rebuilds and recreates the container when the image differs. `podman.sh up`
+does the same check before starting.
+
+## SQLite: slow browsing with a very large database
+
+The defaults (16 MiB page cache, 64 MiB mmap) are tuned for personal and small
+deployments. Raise them for large databases:
+
+```bash
+DATABASE_SQLITE_PRAGMA_CACHE_SIZE=-65536   # KiB (SQLite convention)
+DATABASE_SQLITE_PRAGMA_MMAP_SIZE=268435456
+```
+
+## Where logs are
+
+```bash
+./podman.sh logs                    # container logs
+journalctl -t open-webui            # only if you run it under systemd
+```
+
+For upstream Open WebUI issues unrelated to this fork, see
+<https://github.com/open-webui/open-webui>.

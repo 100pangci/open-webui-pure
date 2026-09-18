@@ -65,10 +65,7 @@
 		updateChatFolderIdById
 	} from '$lib/apis/chats';
 	import { generateOpenAIChatCompletion } from '$lib/apis/openai';
-	import {
-		getAndUpdateUserLocation,
-		getUserInfoById
-	} from '$lib/apis/users';
+	import { getAndUpdateUserLocation, getUserInfoById } from '$lib/apis/users';
 	import {
 		generateMoACompletion,
 		stopTask,
@@ -1456,10 +1453,7 @@
 				} else {
 					taskIds = null;
 					// No active tasks and message incomplete → generation was interrupted
-					if (
-						currentMessage?.role === 'assistant' &&
-						!currentMessage.done
-					) {
+					if (currentMessage?.role === 'assistant' && !currentMessage.done) {
 						currentMessage.done = true;
 					}
 				}
@@ -1946,7 +1940,6 @@
 
 		await sendMessage(history, userMessageId);
 	};
-
 
 	const handleManualCompact = async () => {
 		if (!contextCompactionEnabled) {
@@ -3079,7 +3072,6 @@
 			: `${$WEBUI_NAME}`}
 	</title>
 </svelte:head>
-
 
 {#if getChatVariablesForm(selectedModelIds, chatVariables, $models).conflicts.length > 0}
 	<Modal bind:show={showChatVariablesModal} size="md">

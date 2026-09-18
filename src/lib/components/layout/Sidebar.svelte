@@ -100,7 +100,6 @@
 	// chatId, so this reactive only re-runs once chatId catches up to the same value.
 	$: selectedChatId = $chatId || null;
 
-
 	// Pagination variables
 	let chatListLoading = false;
 	let chatListReady = false;
@@ -1201,8 +1200,6 @@
 							<PinnedModelList bind:selectedChatId {shiftKey} />
 						</SidebarSection>
 					{/if}
-
-
 
 					{#if $config?.features?.enable_folders && ($user?.role === 'admin' || ($user?.permissions?.features?.folders ?? true))}
 						<SidebarSection

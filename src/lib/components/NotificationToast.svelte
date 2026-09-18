@@ -61,7 +61,6 @@
 			clickHandler();
 		}
 	}
-
 </script>
 
 <div

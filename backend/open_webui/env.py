@@ -38,10 +38,6 @@ except ImportError:
     # python-dotenv is a dev convenience only; deployments pass real env vars.
     pass
 
-DOCKER = os.getenv('DOCKER', 'False').lower() == 'true'
-
-DEVICE_TYPE = 'cpu'
-
 ####################################
 # LOGGING
 ####################################
@@ -168,6 +164,7 @@ def get_changelog() -> dict[str, Any]:
 
     _CHANGELOG_CACHE = changelog_json
     return changelog_json
+
 
 ####################################
 # DATA/FRONTEND BUILD DIR
@@ -330,11 +327,9 @@ DATABASE_ENABLE_SESSION_SHARING = os.getenv('DATABASE_ENABLE_SESSION_SHARING', '
 ENABLE_PUBLIC_ACTIVE_USERS_COUNT = os.getenv('ENABLE_PUBLIC_ACTIVE_USERS_COUNT', 'True').lower() == 'true'
 RESET_CONFIG_ON_START = os.getenv('RESET_CONFIG_ON_START', 'False').lower() == 'true'
 ENABLE_REALTIME_CHAT_SAVE = os.getenv('ENABLE_REALTIME_CHAT_SAVE', 'False').lower() == 'true'
-ENABLE_QUERIES_CACHE = os.getenv('ENABLE_QUERIES_CACHE', 'False').lower() == 'true'
 ENABLE_ADMIN_CHAT_ACCESS = os.getenv('ENABLE_ADMIN_CHAT_ACCESS', 'True').lower() == 'true'
 ENABLE_ADMIN_EXPORT = os.getenv('ENABLE_ADMIN_EXPORT', 'True').lower() == 'true'
 IFRAME_CSP = os.getenv('IFRAME_CSP', '')
-RAG_SYSTEM_CONTEXT = os.getenv('RAG_SYSTEM_CONTEXT', 'False').lower() == 'true'
 
 ####################################
 # REDIS
@@ -555,10 +550,6 @@ def _parse_ssl_env(value: str) -> 'bool | _ssl.SSLContext':
     return _GLOBAL_SSL_CONTEXT if _GLOBAL_SSL_CONTEXT is not None else True
 
 
-REQUESTS_VERIFY = os.getenv('REQUESTS_VERIFY', 'True').lower() == 'true'
-
-TAVILY_API_BASE_URL = os.getenv('TAVILY_API_BASE_URL', 'https://api.tavily.com').rstrip('/')
-
 _aiohttp_timeout_raw = os.getenv('AIOHTTP_CLIENT_TIMEOUT', '')
 try:
     AIOHTTP_CLIENT_TIMEOUT = int(_aiohttp_timeout_raw) if _aiohttp_timeout_raw else None
@@ -583,9 +574,6 @@ if AIOHTTP_CLIENT_STREAM_IDLE_TIMEOUT is not None and AIOHTTP_CLIENT_STREAM_IDLE
 # Accepts "True", "False", or a path to a CA bundle file.
 # When "True", falls back to AIOHTTP_CLIENT_SSL_CERT_FILE if set.
 AIOHTTP_CLIENT_SESSION_SSL = _parse_ssl_env(os.getenv('AIOHTTP_CLIENT_SESSION_SSL', 'True'))
-
-SEARXNG_CLIENT_CERT_FILE = os.getenv('SEARXNG_CLIENT_CERT_FILE', '').strip()
-SEARXNG_CLIENT_KEY_FILE = os.getenv('SEARXNG_CLIENT_KEY_FILE', '').strip()
 
 # When False (default), outbound HTTP requests do not follow 3xx redirects.
 AIOHTTP_CLIENT_ALLOW_REDIRECTS = os.getenv('AIOHTTP_CLIENT_ALLOW_REDIRECTS', 'False').lower() == 'true'
@@ -615,16 +603,6 @@ try:
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST = int(_model_list_timeout_raw) if _model_list_timeout_raw else None
 except (ValueError, TypeError):
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST = 10
-
-AIOHTTP_FILE_STREAM_CHUNK_SIZE = os.getenv('AIOHTTP_FILE_STREAM_CHUNK_SIZE', str(1024 * 1024))
-try:
-    AIOHTTP_FILE_STREAM_CHUNK_SIZE = int(AIOHTTP_FILE_STREAM_CHUNK_SIZE)
-except Exception:
-    AIOHTTP_FILE_STREAM_CHUNK_SIZE = 1024 * 1024
-
-if AIOHTTP_FILE_STREAM_CHUNK_SIZE <= 0:
-    AIOHTTP_FILE_STREAM_CHUNK_SIZE = 1024 * 1024
-
 
 ####################################
 # AIOHTTP Connection Pool
@@ -656,17 +634,6 @@ try:
 except ValueError:
     AIOHTTP_POOL_DNS_TTL = 300
 
-RAG_EMBEDDING_TIMEOUT = os.getenv('RAG_EMBEDDING_TIMEOUT', '')
-
-if RAG_EMBEDDING_TIMEOUT == '':
-    RAG_EMBEDDING_TIMEOUT = None
-else:
-    try:
-        RAG_EMBEDDING_TIMEOUT = int(RAG_EMBEDDING_TIMEOUT)
-    except Exception:
-        RAG_EMBEDDING_TIMEOUT = None
-
-
 ####################################
 # Auth
 ####################################
@@ -687,8 +654,6 @@ WEBUI_SECRET_KEY = os.getenv(
     os.getenv('WEBUI_JWT_SECRET_KEY', ''),
 )
 
-ENABLE_VALVE_ENCRYPTION = os.getenv('ENABLE_VALVE_ENCRYPTION', 'False').lower() == 'true'
-
 WEBUI_SESSION_COOKIE_SAME_SITE = os.getenv('WEBUI_SESSION_COOKIE_SAME_SITE', 'lax')
 WEBUI_SESSION_COOKIE_SECURE = os.getenv('WEBUI_SESSION_COOKIE_SECURE', 'false').lower() == 'true'
 WEBUI_AUTH_COOKIE_SAME_SITE = os.getenv('WEBUI_AUTH_COOKIE_SAME_SITE', WEBUI_SESSION_COOKIE_SAME_SITE)
@@ -703,8 +668,8 @@ WEBUI_AUTH_COOKIE_SECURE = (
 if WEBUI_AUTH and WEBUI_SECRET_KEY == '':
     raise SystemExit(
         'WEBUI_SECRET_KEY is not set. It is a hard requirement when authentication is enabled.\n'
-        'The supported start methods set or auto-generate it for you: use start.sh (Linux/macOS), '
-        'start_windows.bat (Windows), or `open-webui serve`.\n'
+        'The supported start methods set or auto-generate it for you: use start.sh, '
+        'the container image (backend/start.sh), or `open-webui serve` with the cli extra.\n'
         'If you start the backend another way (e.g. invoking uvicorn directly, which is unsupported), '
         'you must set WEBUI_SECRET_KEY yourself to a long random value.\n'
         'See https://docs.openwebui.com/reference/env-configuration#webui_secret_key'
@@ -754,29 +719,6 @@ PASSWORD_VALIDATION_HINT = os.getenv('PASSWORD_VALIDATION_HINT', '')
 
 BYPASS_MODEL_ACCESS_CONTROL = os.getenv('BYPASS_MODEL_ACCESS_CONTROL', 'False').lower() == 'true'
 
-# When True, collection names that do not match any known file-*, user-memory-*,
-# web-search-*, or knowledge-base collection are allowed through access control
-# for non-admin users.  When False (default), unknown collection names are
-# denied — closing the legacy unscoped namespace.
-
-# Falls back to the upload size limit, because a document cannot legitimately carry more metadata
-# than the file itself is allowed to be. Left unbounded, a small archive that expands enormously
-# during extraction can exhaust memory. RAG_FILE_MAX_SIZE is in MB.
-RAG_METADATA_MAX_VALUE_CHARS = (
-    int(os.getenv('RAG_METADATA_MAX_VALUE_CHARS'))
-    if os.getenv('RAG_METADATA_MAX_VALUE_CHARS')
-    else ((int(os.getenv('RAG_FILE_MAX_SIZE', '0')) or 0) * 1024 * 1024 or None)
-)
-
-MINERU_MAX_MARKDOWN_BYTES = (
-    int(os.getenv('MINERU_MAX_MARKDOWN_BYTES')) if os.getenv('MINERU_MAX_MARKDOWN_BYTES') else None
-)
-
-# When enabled, skips pydub-based preprocessing (format conversion, compression,
-# and chunked splitting) before sending files to processing engines. Useful when
-# the upstream provider handles these steps or when ffmpeg is unavailable.
-BYPASS_PYDUB_PREPROCESSING = os.getenv('BYPASS_PYDUB_PREPROCESSING', 'False').lower() == 'true'
-
 # When disabled (default), the OpenAI catch-all proxy endpoint (/{path:path})
 # is blocked. Enable only if you need direct passthrough to upstream OpenAI-
 # compatible APIs for endpoints not natively handled by Open WebUI.
@@ -790,8 +732,6 @@ WEBUI_AUTH_SIGNOUT_REDIRECT_URL = os.getenv('WEBUI_AUTH_SIGNOUT_REDIRECT_URL', N
 ENABLE_OAUTH_EMAIL_FALLBACK = os.getenv('ENABLE_OAUTH_EMAIL_FALLBACK', 'False').lower() == 'true'
 
 ENABLE_OAUTH_ID_TOKEN_COOKIE = os.getenv('ENABLE_OAUTH_ID_TOKEN_COOKIE', 'True').lower() == 'true'
-
-OAUTH_CLIENT_INFO_ENCRYPTION_KEY = os.getenv('OAUTH_CLIENT_INFO_ENCRYPTION_KEY', WEBUI_SECRET_KEY)
 
 OAUTH_SESSION_TOKEN_ENCRYPTION_KEY = os.getenv('OAUTH_SESSION_TOKEN_ENCRYPTION_KEY', WEBUI_SECRET_KEY)
 
@@ -873,8 +813,6 @@ TRUSTED_SIGNATURE_KEY = os.getenv('TRUSTED_SIGNATURE_KEY', '')
 SAFE_MODE = os.getenv('SAFE_MODE', 'False').lower() == 'true'
 ENABLE_EASTER_EGGS = os.getenv('ENABLE_EASTER_EGGS', 'True').lower() == 'true'
 ENABLE_STAR_SESSIONS_MIDDLEWARE = os.getenv('ENABLE_STAR_SESSIONS_MIDDLEWARE', 'False').lower() == 'true'
-ENABLE_KB_EXEC = os.getenv('ENABLE_KB_EXEC', 'False').lower() == 'true'
-
 ENABLE_PROFILE_IMAGE_URL_FORWARDING = os.getenv('ENABLE_PROFILE_IMAGE_URL_FORWARDING', 'True').lower() == 'true'
 PROFILE_IMAGE_ALLOWED_MIME_TYPES = frozenset(
     t.strip()
@@ -900,7 +838,6 @@ FORWARD_USER_INFO_HEADER_USER_NAME = os.getenv('FORWARD_USER_INFO_HEADER_USER_NA
 FORWARD_USER_INFO_HEADER_USER_ID = os.getenv('FORWARD_USER_INFO_HEADER_USER_ID', 'X-OpenWebUI-User-Id')
 FORWARD_USER_INFO_HEADER_USER_EMAIL = os.getenv('FORWARD_USER_INFO_HEADER_USER_EMAIL', 'X-OpenWebUI-User-Email')
 FORWARD_USER_INFO_HEADER_USER_ROLE = os.getenv('FORWARD_USER_INFO_HEADER_USER_ROLE', 'X-OpenWebUI-User-Role')
-FORWARD_SESSION_INFO_HEADER_MESSAGE_ID = os.getenv('FORWARD_SESSION_INFO_HEADER_MESSAGE_ID', 'X-OpenWebUI-Message-Id')
 FORWARD_SESSION_INFO_HEADER_CHAT_ID = os.getenv('FORWARD_SESSION_INFO_HEADER_CHAT_ID', 'X-OpenWebUI-Chat-Id')
 
 # If set while ENABLE_FORWARD_USER_INFO_HEADERS is True, send one signed HS256 JWT
@@ -956,7 +893,6 @@ else:
 ENABLE_CHAT_RESPONSE_BASE64_IMAGE_URL_CONVERSION = (
     os.getenv('ENABLE_CHAT_RESPONSE_BASE64_IMAGE_URL_CONVERSION', 'False').lower() == 'true'
 )
-ENABLE_API_OUTLET_FILTERS = os.getenv('ENABLE_API_OUTLET_FILTERS', 'True').lower() == 'true'
 
 # When enabled, uses a hardcoded extension-to-MIME dictionary as a last-resort
 # fallback when both mimetypes.guess_type() and file.meta.content_type fail to
@@ -978,26 +914,6 @@ else:
         CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE = 1
 
 
-# Maximum tool-call iterations per chat response. Set to -1 for unlimited.
-# The old CHAT_RESPONSE_MAX_TOOL_CALL_RETRIES name is accepted as a fallback.
-CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS = os.getenv(
-    'CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS',
-    os.getenv('CHAT_RESPONSE_MAX_TOOL_CALL_RETRIES', '256'),
-)
-
-if CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS == '':
-    CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS = 256
-else:
-    try:
-        CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS = int(CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS)
-    except Exception:
-        CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS = 256
-
-# -1 means unlimited (no cap).
-if CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS == -1:
-    CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS = None
-
-
 # WARNING: Experimental. Only enable if your upstream Responses API endpoint
 # supports stateful sessions (i.e. server-side response storage with
 # previous_response_id anchoring). Most proxies and third-party endpoints
@@ -1017,83 +933,6 @@ else:
 
 
 ####################################
-# SENTENCE TRANSFORMERS
-####################################
-
-
-SENTENCE_TRANSFORMERS_BACKEND = os.getenv('SENTENCE_TRANSFORMERS_BACKEND', '')
-if SENTENCE_TRANSFORMERS_BACKEND == '':
-    SENTENCE_TRANSFORMERS_BACKEND = 'torch'
-
-
-SENTENCE_TRANSFORMERS_MODEL_KWARGS = os.getenv('SENTENCE_TRANSFORMERS_MODEL_KWARGS', '')
-if SENTENCE_TRANSFORMERS_MODEL_KWARGS == '':
-    SENTENCE_TRANSFORMERS_MODEL_KWARGS = None
-else:
-    try:
-        SENTENCE_TRANSFORMERS_MODEL_KWARGS = json.loads(SENTENCE_TRANSFORMERS_MODEL_KWARGS)
-    except Exception:
-        SENTENCE_TRANSFORMERS_MODEL_KWARGS = None
-
-
-SENTENCE_TRANSFORMERS_CROSS_ENCODER_BACKEND = os.getenv('SENTENCE_TRANSFORMERS_CROSS_ENCODER_BACKEND', '')
-if SENTENCE_TRANSFORMERS_CROSS_ENCODER_BACKEND == '':
-    SENTENCE_TRANSFORMERS_CROSS_ENCODER_BACKEND = 'torch'
-
-
-SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS = os.getenv('SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS', '')
-if SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS == '':
-    SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS = None
-else:
-    try:
-        SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS = json.loads(SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS)
-    except Exception:
-        SENTENCE_TRANSFORMERS_CROSS_ENCODER_MODEL_KWARGS = None
-
-# Whether to apply sigmoid normalization to CrossEncoder reranking scores.
-# When enabled (default), scores are normalized to 0-1 range for proper
-# relevance threshold behavior with MS MARCO models.
-SENTENCE_TRANSFORMERS_CROSS_ENCODER_SIGMOID_ACTIVATION_FUNCTION = (
-    os.getenv('SENTENCE_TRANSFORMERS_CROSS_ENCODER_SIGMOID_ACTIVATION_FUNCTION', 'True').lower() == 'true'
-)
-
-####################################
-# KNOWLEDGE TOOLS
-####################################
-
-
-def _int_env(name: str, default: int) -> int:
-    try:
-        return max(int(os.getenv(name) or default), 1)
-    except (ValueError, TypeError):
-        return default
-
-
-# Total output of a single kb_exec call, whatever the command.
-KB_EXEC_MAX_OUTPUT_CHARS = _int_env('KB_EXEC_MAX_OUTPUT_CHARS', 30_000)
-# Files a single kb_exec grep may scan before it asks for a narrower scope.
-KB_EXEC_MAX_GREP_FILES = _int_env('KB_EXEC_MAX_GREP_FILES', 200)
-# Matching lines returned by kb_exec grep and grep_knowledge_files.
-KNOWLEDGE_GREP_MAX_MATCHES = _int_env('KNOWLEDGE_GREP_MAX_MATCHES', 50)
-# Characters returned by view_file / view_knowledge_file.
-VIEW_FILE_MAX_CHARS = _int_env('VIEW_FILE_MAX_CHARS', 100_000)
-VIEW_FILE_DEFAULT_MAX_CHARS = _int_env('VIEW_FILE_DEFAULT_MAX_CHARS', 10_000)
-
-####################################
-# TOOLS/FUNCTIONS PIP OPTIONS
-####################################
-
-ENABLE_PLUGINS = os.getenv('ENABLE_PLUGINS', 'True').lower() == 'true'
-
-ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS = (
-    os.getenv('ENABLE_PIP_INSTALL_FRONTMATTER_REQUIREMENTS', 'True').lower() == 'true'
-)
-
-PIP_OPTIONS = os.getenv('PIP_OPTIONS', '').split()
-PIP_PACKAGE_INDEX_OPTIONS = os.getenv('PIP_PACKAGE_INDEX_OPTIONS', '').split()
-
-
-####################################
 # OFFLINE_MODE
 ####################################
 
@@ -1103,12 +942,6 @@ OFFLINE_MODE = os.getenv('OFFLINE_MODE', 'false').lower() == 'true'
 if OFFLINE_MODE:
     os.environ['HF_HUB_OFFLINE'] = '1'
     ENABLE_VERSION_UPDATE_CHECK = False
-
-####################################
-# Pyodide file persistence
-####################################
-
-ENABLE_PYODIDE_FILE_PERSISTENCE = os.getenv('ENABLE_PYODIDE_FILE_PERSISTENCE', 'false').lower() == 'true'
 
 ####################################
 # Audit logging

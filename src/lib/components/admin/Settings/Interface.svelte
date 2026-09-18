@@ -34,7 +34,7 @@
 		AUTOCOMPLETE_GENERATION_INPUT_MAX_LENGTH: -1,
 		AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE: '',
 		TAGS_GENERATION_PROMPT_TEMPLATE: '',
-		ENABLE_TAGS_GENERATION: true,
+		ENABLE_TAGS_GENERATION: true
 	};
 
 	let chatConfig = {
@@ -476,7 +476,6 @@
 						placeholder={$i18n.t('Leave empty to use the default prompt, or enter a custom prompt')}
 					/>
 				</AdminSettingField>
-
 			</AdminSettingSection>
 		</div>
 

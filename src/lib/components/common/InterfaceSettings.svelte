@@ -92,7 +92,6 @@
 	let showUpdateToast = true;
 	let showChangelog = true;
 
-
 	let hapticFeedback = false;
 
 	let iframeSandboxAllowScripts = true;
@@ -374,7 +373,6 @@
 		fontFamilyInput = fontFamily ?? '';
 		showTextScaleSlider = false;
 		showFontFamilyInput = false;
-
 	};
 
 	let lastSettingsValue = settingsValue;
@@ -1447,7 +1445,6 @@
 		</p>
 	</div>
 
-
 	{#if richTextInput}
 		<div>
 			<div class={settingRowClass}>
@@ -1673,6 +1670,4 @@
 			{$i18n.t('Compress uploaded images before sending or storage.')}
 		</p>
 	</div>
-
-
 </div>

@@ -94,5 +94,4 @@
 			{triggerChar}{label}
 		</span>
 	</LinkPreview.Trigger>
-
 </LinkPreview.Root>

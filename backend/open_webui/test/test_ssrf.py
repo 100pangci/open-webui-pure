@@ -213,9 +213,7 @@ async def test_resolver_blocks_private_address():
 @pytest.mark.asyncio
 async def test_resolver_blocks_mixed_addresses():
     resolver = SSRFResolver()
-    resolver._delegate = _StubDelegate(
-        [_result('rebind.example', PUBLIC_IP), _result('rebind.example', '10.0.0.5')]
-    )
+    resolver._delegate = _StubDelegate([_result('rebind.example', PUBLIC_IP), _result('rebind.example', '10.0.0.5')])
     with pytest.raises(SSRFBlockedError):
         await resolver.resolve('rebind.example', 80)
 

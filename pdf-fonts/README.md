@@ -4,16 +4,13 @@ These fonts are used **only** by the optional backend PDF export
 (`backend/open_webui/utils/pdf_generator.py`, enabled with
 `ENABLE_PDF=true` / `pip install "open-webui[pdf]"`):
 
-| File | Use |
-| --- | --- |
-| `NotoSans-Regular.ttf` / `-Bold` / `-Italic` | PDF body text |
-| `NotoSansSC-Regular.ttf` | CJK fallback (Simplified Chinese) |
-| `NotoSansKR-Regular.ttf` | CJK fallback (Korean) |
-| `NotoSansJP-Regular.ttf` | CJK fallback (Japanese) |
-| `Twemoji.ttf` | Emoji fallback |
-
-The `*-Variable.ttf` files are kept for reference only; the PDF generator
-loads static fonts and never reads them.
+| File                                         | Use                               |
+| -------------------------------------------- | --------------------------------- |
+| `NotoSans-Regular.ttf` / `-Bold` / `-Italic` | PDF body text                     |
+| `NotoSansSC-Regular.ttf`                     | CJK fallback (Simplified Chinese) |
+| `NotoSansKR-Regular.ttf`                     | CJK fallback (Korean)             |
+| `NotoSansJP-Regular.ttf`                     | CJK fallback (Japanese)           |
+| `Twemoji.ttf`                                | Emoji fallback                    |
 
 The frontend uses its own web fonts from `static/assets/fonts/` (Inter,
 Vazirmatn, emoji sprite sheets) and does not read this directory.

@@ -136,8 +136,6 @@ OAUTH_RUNTIME_CONFIG = {
 }
 
 
-
-
 def _default_value(value):
     return getattr(value, 'value', value)
 
@@ -271,7 +269,6 @@ def is_in_blocked_groups(group_name: str, groups: list) -> bool:
                 return True
 
     return False
-
 
 
 class OAuthManager:
@@ -772,8 +769,7 @@ class OAuthManager:
                         return validate_profile_image_url(f'data:{upstream_mime};base64,{base64_encoded_picture}')
                     except ValueError:
                         log.warning(
-                            f'Rejected OAuth profile picture from {picture_url}: '
-                            f'MIME {upstream_mime!r} is not allowed'
+                            f'Rejected OAuth profile picture from {picture_url}: MIME {upstream_mime!r} is not allowed'
                         )
                         return '/user.png'
                 else:

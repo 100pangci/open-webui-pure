@@ -108,7 +108,10 @@ COPY --from=changelog --chown=app:app /build/latest-changelog.json /app/backend/
 # Only the persistent data dir needs to be writable by the app user. Everything
 # else was copied with --chown, so no recursive chown layer is needed (a
 # `chown -R /app` here used to duplicate the whole tree into a new layer).
-RUN mkdir -p /app/backend/data && chown app:app /app/backend/data
+# /app/backend itself is created by WORKDIR (root-owned); start.sh falls back to
+# writing its secret key there when WEBUI_SECRET_KEY_FILE is unset, so make the
+# directory writable too.
+RUN mkdir -p /app/backend/data && chown app:app /app/backend /app/backend/data
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

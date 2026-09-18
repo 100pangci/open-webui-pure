@@ -68,12 +68,12 @@
 	};
 
 	export let id;
-		export let content;
+	export let content;
 	/** @type {import('./structuredOutput').OutputItem[]} */
 	export let output = [];
 
 	export let history;
-	
+
 	export let selectedModels = [];
 
 	export let done = true;

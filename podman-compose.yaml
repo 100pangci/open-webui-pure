@@ -15,7 +15,7 @@ services:
         ENABLE_PDF: "${WEBUI_ENABLE_PDF:-false}"
         ENABLE_CODE_FORMAT: "${WEBUI_ENABLE_CODE_FORMAT:-false}"
         ENABLE_PILLOW: "${WEBUI_ENABLE_PILLOW:-false}"
-    image: localhost/open-webui:${WEBUI_IMAGE_TAG-pure}
+    image: localhost/open-webui:${WEBUI_IMAGE_TAG:-pure}
     container_name: open-webui
     volumes:
       - open-webui:/app/backend/data
@@ -30,20 +30,17 @@ services:
       # Keep the JWT signing key inside the persistent data volume so sessions
       # survive container recreation/upgrades.
       WEBUI_SECRET_KEY_FILE: /app/backend/data/.webui_secret_key
-      # Container -> host proxy.
-      # NOTE: 127.0.0.1 inside the container is the container itself, and on this
-      # machine host.containers.internal (pasta 169.254.1.2) is unreachable.
-      # The working address is the host LAN IP (e.g. http://<host-LAN-IP>:10808).
-      # Leave empty for direct connections, or use ./podman-up.sh which detects
-      # the current host IP automatically.
-      HTTP_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      HTTPS_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      ALL_PROXY: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      NO_PROXY: "${WEBUI_CONTAINER_NO_PROXY:-localhost,127.0.0.1}"
-      http_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      https_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      all_proxy: "${WEBUI_CONTAINER_HTTP_PROXY:-}"
-      no_proxy: "${WEBUI_CONTAINER_NO_PROXY:-localhost,127.0.0.1}"
+      # Proxy: passed through from the caller's environment, empty by default.
+      # Use an address the container can reach (host.containers.internal or
+      # the host LAN IP) — 127.0.0.1 is the container itself.
+      HTTP_PROXY: "${HTTP_PROXY:-}"
+      HTTPS_PROXY: "${HTTPS_PROXY:-}"
+      ALL_PROXY: "${ALL_PROXY:-}"
+      NO_PROXY: "${NO_PROXY:-localhost,127.0.0.1}"
+      http_proxy: "${HTTP_PROXY:-}"
+      https_proxy: "${HTTPS_PROXY:-}"
+      all_proxy: "${ALL_PROXY:-}"
+      no_proxy: "${NO_PROXY:-localhost,127.0.0.1}"
     restart: unless-stopped
 
 volumes:

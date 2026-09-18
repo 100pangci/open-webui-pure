@@ -11,7 +11,6 @@
 
 	const i18n = getContext('i18n');
 
-
 	let updateAvailable = null;
 	let version = {
 		current: '',

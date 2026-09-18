@@ -474,7 +474,6 @@ else:
         validate_cors_origin(origin)
 
 
-
 class BannerModel(BaseModel):
     id: str
     type: str
@@ -497,7 +496,6 @@ WEBUI_BANNERS = banners
 SHOW_ADMIN_DETAILS = os.getenv('SHOW_ADMIN_DETAILS', 'true').lower() == 'true'
 
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', None)
-
 
 
 ####################################
@@ -681,7 +679,6 @@ DEFAULT_MOA_GENERATION_PROMPT_TEMPLATE = """You have been provided with a set of
 Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.
 
 Responses from models: {{responses}}"""
-
 
 
 ####################################
@@ -1021,7 +1018,6 @@ def load_oauth_providers():
 
 
 load_oauth_providers()
-
 
 
 ####################################

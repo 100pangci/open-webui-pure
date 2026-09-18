@@ -15,7 +15,7 @@
 	export let done: boolean = true;
 	export let editCodeBlock: boolean = true;
 	export let sourceIds: string[] = [];
-		export let onSourceClick: Function = () => {};
+	export let onSourceClick: Function = () => {};
 
 	$: fenceType = token.fenceType ?? 'default';
 	$: attributes = token.attributes ?? {};

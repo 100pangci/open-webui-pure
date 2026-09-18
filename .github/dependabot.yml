@@ -4,22 +4,22 @@ updates:
     directory: '/'
     schedule:
       interval: monthly
-    target-branch: dev
+    target-branch: main
 
   - package-ecosystem: pip
     directory: '/backend'
     schedule:
       interval: monthly
-    target-branch: dev
+    target-branch: main
 
   - package-ecosystem: github-actions
     directory: '/'
     schedule:
       interval: monthly
-    target-branch: dev
+    target-branch: main
 
   - package-ecosystem: npm
     directory: '/'
     schedule:
       interval: monthly
-    target-branch: dev
+    target-branch: main

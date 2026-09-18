@@ -974,15 +974,6 @@ export const isValidHttpUrl = (string: string) => {
 	return url.protocol === 'http:' || url.protocol === 'https:';
 };
 
-export const isYoutubeUrl = (url: string) => {
-	return (
-		url.startsWith('https://www.youtube.com') ||
-		url.startsWith('https://youtu.be') ||
-		url.startsWith('https://youtube.com') ||
-		url.startsWith('https://m.youtube.com')
-	);
-};
-
 export const removeEmojis = (str: string) => {
 	// Use Unicode property escape with the 'v' flag (ES2024) to match all
 	// standardised emoji sequences, including text-presentation emoji + variation
