@@ -17,6 +17,42 @@ the configured OpenAI-compatible provider.
 - Responsive desktop and mobile interface
 - Multilingual interface
 
+## Footprint
+
+The default (`pure`) build is tuned for personal, home and small deployments:
+SQLite, a single instance, and a handful of users. Measured with rootless
+Podman and a fresh data volume (empty configuration, OpenAI-compatible
+provider configured):
+
+| Metric | Value |
+| --- | --- |
+| Image size | **~331 MB** |
+| Fresh idle (podman stats / cgroup) | **~105 MB** |
+| Fresh idle (RSS / PSS) | ~120 MB / ~108 MB |
+| Fresh idle (Private_Dirty — genuinely private) | **~94 MB** |
+| Startup to `/health` | **~1.6 s** |
+| After real use (login, chats, images) | ~113 MB stats, ~133 MB RSS |
+| Seeded 78 MB SQLite (400 chats), after browsing | ~203 MB RSS (mostly reclaimable file pages), flat over 5 min idle and repeat browsing |
+
+The footprint is kept small with deliberate choices instead of feature loss:
+
+- **Optional dependencies are opt-in** — PostgreSQL, Redis, Azure, LDAP, PDF
+  export, code formatting and Pillow normalization only enter the image when
+  their build arg / extra is enabled (see the table above).
+- **Lazy imports** for rarely used features (changelog, OAuth, PDF, black,
+  Pillow, Redis, Azure, LDAP) — they are not resident at idle.
+- **Build-time changelog JSON** (`backend/open_webui/utils/changelog.py`), so
+  `beautifulsoup4`/`Markdown` are not runtime dependencies; `zstandard` is not
+  installed either (brotli + gzip compression remain).
+- **Benchmarked SQLite defaults**: 16 MiB page cache and 64 MiB mmap. Personal
+  databases behave identically to more aggressive values while large databases
+  are bounded; raise them for big multi-user instances with
+  `DATABASE_SQLITE_PRAGMA_CACHE_SIZE` (negative = KiB) and
+  `DATABASE_SQLITE_PRAGMA_MMAP_SIZE` (bytes).
+- **SSRF-hardened outbound fetches** (image URLs, OAuth avatars) with DNS
+  resolution checks, a connect-time IP re-check and per-redirect validation —
+  with no additional runtime dependencies.
+
 ## Optional features
 
 The default install and the default container image ship **SQLite only** and
