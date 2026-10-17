@@ -407,12 +407,20 @@
 	let showDeleteConfirm = false;
 
 	const chatTitleInputKeydownHandler = (e) => {
+		// Let Enter and Escape finish IME composition without saving or cancelling the rename.
+		if (e.isComposing || e.keyCode === 229) {
+			return;
+		}
+
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			setTimeout(() => {
-				const input = document.getElementById(`chat-title-input-${id}`);
-				if (input) input.blur();
-			}, 0);
+
+			if (chatTitle !== title) {
+				editChatTitle(id, chatTitle);
+			}
+
+			confirmEdit = false;
+			chatTitle = '';
 		} else if (e.key === 'Escape') {
 			e.preventDefault();
 			confirmEdit = false;
@@ -514,11 +522,11 @@
 
 {#snippet chatItemContent()}
 	{#if ownerUserId}
-		<Tooltip content={ownerName || 'Unknown'}>
+		<Tooltip content={ownerName || 'Unknown'} className="flex items-center self-center shrink-0">
 			<img
 				src="{WEBUI_API_BASE_URL}/users/{ownerUserId}/profile/image"
 				alt=""
-				class="size-3.5 rounded-full shrink-0 object-cover mr-1.5"
+				class="size-3.5 rounded-full shrink-0 object-cover mr-2"
 				on:error={(e) => {
 					if (!e.currentTarget.src.endsWith('/static/favicon.png')) {
 						e.currentTarget.src = `${WEBUI_BASE_URL}/static/favicon.png`;
@@ -786,20 +794,6 @@
 							<MoreHorizontalIcon className="size-3.5" strokeWidth="2" />
 						</button>
 					</ChatMenu>
-
-					{#if id === $chatId && ($user?.role === 'admin' || ($user?.permissions?.chat?.delete ?? true))}
-						<!-- Shortcut support using "delete-chat-button" id -->
-						<button
-							id="delete-chat-button"
-							aria-label={$i18n.t('Delete')}
-							class="hidden"
-							on:click={() => {
-								showDeleteConfirm = true;
-							}}
-						>
-							<MoreHorizontalIcon className="size-3.5" strokeWidth="2" />
-						</button>
-					{/if}
 				</div>
 			{/if}
 		</div>

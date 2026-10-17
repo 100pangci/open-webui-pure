@@ -62,7 +62,9 @@
 					return {
 						chat: chat.chat,
 						meta: chat.meta ?? {},
-						pinned: false,
+						variables: chat?.variables ?? {},
+						pinned: chat?.pinned ?? false,
+						archived: chat?.archived ?? false,
 						folder_id: chat?.folder_id ?? null,
 						created_at: chat?.created_at ?? null,
 						updated_at: chat?.updated_at ?? null

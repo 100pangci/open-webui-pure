@@ -9,7 +9,7 @@
 	const i18n = getContext('i18n');
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
-	import { copyToClipboard, unescapeHtml } from '$lib/utils';
+	import { copyToClipboard, safeLinkUrl, unescapeHtml } from '$lib/utils';
 
 	import Image from '$lib/components/common/Image.svelte';
 	import KatexRenderer from './KatexRenderer.svelte';
@@ -59,7 +59,7 @@
 	{:else if token.type === 'link'}
 		{#if token.tokens}
 			<a
-				href={token.href}
+				href={safeLinkUrl(token.href)}
 				target="_blank"
 				rel="nofollow"
 				title={token.title}
@@ -69,7 +69,7 @@
 			</a>
 		{:else}
 			<a
-				href={token.href}
+				href={safeLinkUrl(token.href)}
 				target="_blank"
 				rel="nofollow"
 				title={token.title}

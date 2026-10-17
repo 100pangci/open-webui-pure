@@ -87,6 +87,7 @@
 
 	let capabilities = { ...DEFAULT_CAPABILITIES };
 	let defaultFeatureIds = [];
+	let hasAdminDefaultFeatures = false;
 
 	let accessGrants = [];
 	export let suggestionTags: { name: string }[] = [];
@@ -187,6 +188,13 @@
 			return;
 		}
 
+		if (/\s/.test(id)) {
+			toast.error($i18n.t('Model ID cannot contain whitespace.'));
+			loading = false;
+
+			return;
+		}
+
 		if (name === '') {
 			toast.error($i18n.t('Model Name is required.'));
 			loading = false;
@@ -207,12 +215,13 @@
 		info.meta.capabilities = capabilities;
 
 		if (enableDescription) {
-			info.meta.description = info.meta.description.trim() === '' ? null : info.meta.description;
+			info.meta.description =
+				(info.meta.description ?? '').trim() === '' ? null : info.meta.description;
 		} else {
 			info.meta.description = null;
 		}
 
-		if (defaultFeatureIds.length > 0) {
+		if (defaultFeatureIds.length > 0 || hasAdminDefaultFeatures) {
 			info.meta.defaultFeatureIds = defaultFeatureIds;
 		} else {
 			if (info.meta.defaultFeatureIds) {
@@ -251,6 +260,8 @@
 		// Use admin defaults as base, falling back to hardcoded defaults
 		capabilities = { ...DEFAULT_CAPABILITIES, ...(defaultMeta.capabilities ?? {}) };
 		defaultFeatureIds = defaultMeta.defaultFeatureIds ?? [];
+		// Persist an explicit empty list so a model can switch off admin defaults.
+		hasAdminDefaultFeatures = (defaultMeta.defaultFeatureIds?.length ?? 0) > 0;
 
 		// Scroll to top 'workspace-container' element
 		const workspaceContainer = document.getElementById('workspace-container');
@@ -324,6 +335,8 @@
 		share={$user?.permissions?.sharing?.models || $user?.role === 'admin'}
 		sharePublic={$user?.permissions?.sharing?.public_models || $user?.role === 'admin'}
 		shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) || $user?.role === 'admin'}
+		allowGroups={($user?.permissions?.access_grants?.allow_groups ?? true) ||
+			$user?.role === 'admin'}
 	/>
 
 	<div class="flex h-full min-h-0 w-full flex-col">

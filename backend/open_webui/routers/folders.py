@@ -161,6 +161,16 @@ async def create_folder(
             detail=ERROR_MESSAGES.DEFAULT('Folder already exists'),
         )
 
+    if (
+        form_data.data
+        and 'files' in form_data.data
+        and not await can_read_all_folder_files(form_data.data['files'], user, db=db)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
+
     # Check if creating a subfolder in a shared folder
     if form_data.parent_id:
         parent = await Folders.get_folder_by_id(form_data.parent_id, db=db)
@@ -200,16 +210,6 @@ async def create_folder(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=ERROR_MESSAGES.DEFAULT('Error creating folder'),
                 )
-
-    if (
-        form_data.data
-        and 'files' in form_data.data
-        and not await can_read_all_folder_files(form_data.data['files'], user, db=db)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
 
     try:
         folder = await Folders.insert_new_folder(user.id, form_data, form_data.parent_id, db=db)
@@ -286,7 +286,12 @@ async def get_shared_folders(
 ############################
 
 
-@router.get('/{id}', response_model=None)
+class FolderResponse(FolderModel):
+    access_grants: list[dict] = []
+    write_access: bool = False
+
+
+@router.get('/{id}', response_model=FolderResponse)
 async def get_folder_by_id(
     request: Request, id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
 ):
@@ -294,13 +299,21 @@ async def get_folder_by_id(
     folder = await Folders.get_folder_by_id_and_user_id(id, user.id, db=db)
     if folder:
         grants = await AccessGrants.get_grants_by_resource('folder', id, db=db)
-        return {**folder.model_dump(), 'access_grants': [g.model_dump() for g in grants]}
+        return FolderResponse(
+            **folder.model_dump(),
+            access_grants=[g.model_dump() for g in grants],
+            write_access=True,
+        )
 
     # Check shared access
     folder = await Folders.get_folder_by_id(id, db=db)
     if folder and (user.role == 'admin' or await _has_folder_access(user.id, folder, 'read', db)):
         grants = await AccessGrants.get_grants_by_resource('folder', id, db=db)
-        return {**folder.model_dump(), 'access_grants': [g.model_dump() for g in grants]}
+        return FolderResponse(
+            **folder.model_dump(),
+            access_grants=[g.model_dump() for g in grants],
+            write_access=user.role == 'admin' or await _has_folder_access(user.id, folder, 'write', db),
+        )
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -333,6 +346,18 @@ async def update_folder_name_by_id(
             )
 
     if folder:
+        if (
+            user.role != 'admin'
+            and user.id != folder.user_id
+            and form_data.data
+            and 'share_mode' in form_data.data
+            and form_data.data['share_mode'] != (folder.data or {}).get('share_mode')
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+            )
+
         if form_data.name is not None:
             # Check if folder with same name exists
             existing_folder = await Folders.get_folder_by_parent_id_and_user_id_and_name(
@@ -352,6 +377,15 @@ async def update_folder_name_by_id(
                     detail=ERROR_MESSAGES.NOT_FOUND,
                 )
             if not await can_read_all_folder_files(form_data.data['files'], owner, db=db):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+                )
+
+            # Editors send back the owner's existing entries, so only new ones are checked against the editor.
+            existing_files = (folder.data or {}).get('files') or []
+            added_files = [entry for entry in form_data.data['files'] or [] if entry not in existing_files]
+            if not await can_read_all_folder_files(added_files, user, db=db):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
@@ -400,7 +434,7 @@ async def update_folder_parent_id_by_id(
             form_data.parent_id, user.id, folder.name, db=db
         )
 
-        if existing_folder:
+        if existing_folder and existing_folder.id != id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=ERROR_MESSAGES.DEFAULT('Folder already exists'),
@@ -507,13 +541,12 @@ async def update_folder_access_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    # Only owner, admin, or write-granted user can update access
+    # Editing folder contents does not grant permission to manage sharing.
     if user.role != 'admin' and user.id != folder.user_id:
-        if not await _has_folder_access(user.id, folder, 'write', db):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
 
     form_data.access_grants = await filter_allowed_access_grants(
         await Config.get('user.permissions'),
@@ -682,7 +715,7 @@ async def delete_folder_by_id(
     folder_owner_id = folder.user_id
 
     folder_ids = await Folders.get_folder_ids_by_id_and_user_id_in_subtree(id, folder_owner_id, db=db)
-    if await Chats.count_chats_by_folder_ids_and_user_id(folder_ids, folder_owner_id, db=db):
+    if delete_contents and await Chats.count_chats_by_folder_ids_and_user_id(folder_ids, folder_owner_id, db=db):
         chat_delete_permission = await has_permission(
             user.id, 'chat.delete', await Config.get('user.permissions'), db=db
         )

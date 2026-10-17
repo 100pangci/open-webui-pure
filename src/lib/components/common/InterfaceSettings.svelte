@@ -39,7 +39,6 @@
 	let userLocation = false;
 
 	// Interface
-	let defaultModelId = '';
 	let showUsername = false;
 
 	let highContrastMode = false;
@@ -234,9 +233,10 @@
 		}
 
 		saveSettings({
-			models: [defaultModelId],
-			imageCompressionSize: imageCompressionSize,
-			fontFamily
+			...(isDefaultSetting('imageCompressionSize') ? {} : { imageCompressionSize }),
+			...(isDefaultSetting('fontFamily') && fontFamily === defaultFontFamily()
+				? {}
+				: { fontFamily })
 		});
 	};
 
@@ -360,11 +360,6 @@
 
 		imageCompression = currentSettings?.imageCompression ?? false;
 		imageCompressionSize = currentSettings?.imageCompressionSize ?? { width: '', height: '' };
-
-		defaultModelId = currentSettings?.models?.at(0) ?? '';
-		if ($config?.default_models) {
-			defaultModelId = $config.default_models.split(',')[0];
-		}
 
 		backgroundImageUrl = currentSettings?.backgroundImageUrl ?? null;
 

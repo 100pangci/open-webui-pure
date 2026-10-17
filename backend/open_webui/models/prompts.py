@@ -346,7 +346,10 @@ class PromptsTable:
                         # Fallback for dialects with no JSON array function: LIKE on the text.
                         tags_text = func.lower(cast(Prompt.tags, String))
                         tag_clause = or_(
-                            *(tags_text.like(f'%"{variant}"%') for variant in json_text_variants(tag_lower))
+                            *(
+                                tags_text.contains(f'"{variant}"', autoescape=True)
+                                for variant in json_text_variants(tag_lower)
+                            )
                         )
                         tag_lower = None
 
@@ -506,14 +509,16 @@ class PromptsTable:
                 )
 
                 # Update prompt fields
-                prompt.name = form_data.name
                 prompt.command = form_data.command
-                prompt.content = form_data.content
-                prompt.data = form_data.data or prompt.data
-                prompt.meta = form_data.meta or prompt.meta
 
-                if form_data.tags is not None:
-                    prompt.tags = form_data.tags
+                if form_data.is_production:
+                    prompt.name = form_data.name
+                    prompt.content = form_data.content
+                    prompt.data = form_data.data or prompt.data
+                    prompt.meta = form_data.meta or prompt.meta
+
+                    if form_data.tags is not None:
+                        prompt.tags = form_data.tags
 
                 if form_data.access_grants is not None:
                     await AccessGrants.set_access_grants('prompt', prompt.id, form_data.access_grants, db=session)
@@ -531,7 +536,7 @@ class PromptsTable:
                         'command': prompt.command,
                         'data': form_data.data or {},
                         'meta': form_data.meta or {},
-                        'tags': prompt.tags or [],
+                        'tags': form_data.tags if form_data.tags is not None else (prompt.tags or []),
                         'access_grants': [grant.model_dump() for grant in current_access_grants],
                     }
 

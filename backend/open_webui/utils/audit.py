@@ -115,6 +115,17 @@ class AuditContext:
             self.response_body.extend(chunk[: self.max_body_size - len(self.response_body)])
 
 
+def redact_passwords(body: str) -> str:
+    if 'password' not in body.lower():
+        return body
+    return re.sub(
+        r'"(\w*password)"\s*:\s*"(?:[^"\\]|\\.)*"',
+        r'"\1": "********"',
+        body,
+        flags=re.IGNORECASE,
+    )
+
+
 class AuditLoggingMiddleware:
     """
     ASGI middleware that intercepts HTTP requests and responses to perform audit logging. It captures request/response bodies (depending on audit level), headers, HTTP methods, and user information, then logs a structured audit entry at the end of the request cycle.
@@ -241,14 +252,17 @@ class AuditLoggingMiddleware:
         if request.method not in self.audited_methods:
             return True
 
+        if request.url.path.startswith('/ws/socket.io'):
+            return True
+
         path = request.url.path.lower()
         for endpoint in self.ALWAYS_LOG_ENDPOINTS:
             if path.startswith(endpoint):
                 return False  # Do NOT skip logging for auth endpoints
 
         # Skip logging if the request is not authenticated
-        # Check both Authorization header (API keys) and token cookie (browser sessions)
-        if not request.headers.get('authorization') and not request.cookies.get('token'):
+        # Token is set by AppHTTPMiddleware from any accepted credential
+        if not getattr(request.state, 'token', None):
             return True
 
         # Whitelist mode: only log paths that match included_paths
@@ -284,12 +298,8 @@ class AuditLoggingMiddleware:
             response_body = context.response_body.decode('utf-8', errors='replace')
 
             # Redact sensitive information
-            if 'password' in request_body:
-                request_body = re.sub(
-                    r'"password":\s*"(.*?)"',
-                    '"password": "********"',
-                    request_body,
-                )
+            request_body = redact_passwords(request_body)
+            response_body = redact_passwords(response_body)
 
             entry = AuditLogEntry(
                 id=str(uuid.uuid4()),

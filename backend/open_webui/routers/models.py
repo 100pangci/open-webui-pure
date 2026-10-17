@@ -19,10 +19,14 @@ from fastapi import (
 from fastapi.responses import RedirectResponse, StreamingResponse
 from open_webui.config import BYPASS_ADMIN_ACCESS_CONTROL
 from open_webui.constants import ERROR_MESSAGES
-from open_webui.env import ENABLE_PROFILE_IMAGE_URL_FORWARDING, PROFILE_IMAGE_ALLOWED_MIME_TYPES
+from open_webui.env import (
+    BYPASS_MODEL_ACCESS_CONTROL,
+    ENABLE_PROFILE_IMAGE_URL_FORWARDING,
+    PROFILE_IMAGE_ALLOWED_MIME_TYPES,
+)
 from open_webui.events import EVENTS, publish_event
 from open_webui.internal.db import get_async_session
-from open_webui.models.access_grants import AccessGrants
+from open_webui.models.access_grants import AccessGrants, normalize_access_grants
 from open_webui.models.config import Config
 from open_webui.models.groups import Groups
 from open_webui.models.models import (
@@ -41,7 +45,7 @@ from open_webui.utils.access_control.files import has_access_to_file
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.chat_variables import get_chat_variables_schema
 from open_webui.utils.models import get_all_models
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
@@ -89,7 +93,7 @@ def _safe_static_redirect_path(url: str) -> str | None:
 
 
 def is_valid_model_id(model_id: str) -> bool:
-    return model_id and len(model_id) <= 256
+    return model_id and len(model_id) <= 256 and not any(char.isspace() for char in model_id)
 
 
 async def _verify_knowledge_file_access(
@@ -652,8 +656,22 @@ async def get_model_profile_image(
     # First, check the database for regular models
     model_meta = await Models.get_model_meta_by_id(id, db=db)
     if model_meta:
-        meta, updated_at = model_meta
-        profile_image_url = (meta or {}).get('profile_image_url')
+        meta, model_user_id, model_updated_at = model_meta
+        # Denied callers receive the same fallback as unknown IDs.
+        if (
+            BYPASS_MODEL_ACCESS_CONTROL
+            or (user.role == 'admin' and BYPASS_ADMIN_ACCESS_CONTROL)
+            or user.id == model_user_id
+            or await AccessGrants.has_access(
+                user_id=user.id,
+                resource_type='model',
+                resource_id=id,
+                permission='read',
+                db=db,
+            )
+        ):
+            profile_image_url = (meta or {}).get('profile_image_url')
+            updated_at = model_updated_at
 
     if profile_image_url:
         if profile_image_url.startswith('http'):
@@ -821,13 +839,30 @@ async def update_model_by_id(
     if 'profile_image_url' not in form_data.meta.model_fields_set:
         form_data.meta.profile_image_url = model.meta.profile_image_url
 
-    form_data.access_grants = await filter_allowed_access_grants(
-        await Config.get('user.permissions'),
-        user.id,
-        user.role,
-        form_data.access_grants,
-        'sharing.public_models',
-    )
+    if form_data.access_grants is not None:
+        # The editor resends every stored grant: re-checking them would strip
+        # sharing this collaborator could not recreate themselves.
+        existing_access_grants = {
+            (grant.principal_type, grant.principal_id, grant.permission) for grant in model.access_grants
+        }
+        submitted_access_grants = {
+            (grant['principal_type'], grant['principal_id'], grant['permission']): grant
+            for grant in normalize_access_grants(form_data.access_grants)
+        }
+        preserved_access_grants = [
+            grant for key, grant in submitted_access_grants.items() if key in existing_access_grants
+        ]
+        new_access_grants = [
+            grant for key, grant in submitted_access_grants.items() if key not in existing_access_grants
+        ]
+
+        form_data.access_grants = preserved_access_grants + await filter_allowed_access_grants(
+            await Config.get('user.permissions'),
+            user.id,
+            user.role,
+            new_access_grants,
+            'sharing.public_models',
+        )
 
     model = await Models.update_model_by_id(form_data.id, ModelForm(**form_data.model_dump()), db=db)
     if model:
@@ -847,7 +882,7 @@ async def update_model_by_id(
 
 
 class ModelAccessGrantsForm(BaseModel):
-    id: str
+    id: str = Field(pattern=r'^\S+$')
     name: str | None = None
     access_grants: list[dict]
 

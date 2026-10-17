@@ -1,39 +1,22 @@
 import time
-from typing import Dict, Optional
+from typing import Any
 
 from open_webui.env import REDIS_KEY_PREFIX
 
 
 class RateLimiter:
-    """
-    General-purpose rate limiter using Redis with a rolling window strategy.
-    Falls back to in-memory storage if Redis is not available.
-    """
+    """Rolling-window throttle with optional async Redis and bounded-age fallback buckets."""
 
-    # In-memory fallback storage
-    _memory_store: Dict[str, Dict[int, int]] = {}
-
-    def __init__(
-        self,
-        redis_client,
-        limit: int,
-        window: int,
-        bucket_size: int = 60,
-        enabled: bool = True,
-    ):
-        """
-        :param redis_client: Redis client instance or None
-        :param limit: Max allowed events in the window
-        :param window: Time window in seconds
-        :param bucket_size: Bucket resolution
-        :param enabled: Turn on/off rate limiting globally
-        """
-        self.r = redis_client
+    def __init__(self, limit: int, window: int, bucket_size: int = 60, enabled: bool = True):
+        if window <= 0 or bucket_size <= 0:
+            raise ValueError('Rate-limit window and bucket size must be positive')
         self.limit = limit
         self.window = window
         self.bucket_size = bucket_size
         self.num_buckets = window // bucket_size
         self.enabled = enabled
+        # Per instance, keyed by time first: inactive identities disappear too.
+        self._memory_store: dict[int, dict[str, int]] = {}
 
     def _bucket_key(self, key: str, bucket_index: int) -> str:
         return f'{REDIS_KEY_PREFIX}:ratelimit:{key.lower()}:{bucket_index}'
@@ -41,96 +24,58 @@ class RateLimiter:
     def _current_bucket(self) -> int:
         return int(time.time()) // self.bucket_size
 
-    def _redis_available(self) -> bool:
-        return self.r is not None
+    def _prune_memory_store(self, now_bucket: int) -> None:
+        min_bucket = now_bucket - self.num_buckets
+        for bucket_index in list(self._memory_store):
+            if bucket_index < min_bucket:
+                del self._memory_store[bucket_index]
 
-    def is_limited(self, key: str) -> bool:
-        """
-        Main rate-limit check.
-        Gracefully handles missing or failing Redis.
-        """
+    async def is_limited(self, redis: Any, key: str) -> bool:
         if not self.enabled:
             return False
-
-        if self._redis_available():
+        key = key.lower()
+        if redis is not None:
             try:
-                return self._is_limited_redis(key)
+                return await self._is_limited_redis(redis, key)
             except Exception:
-                return self._is_limited_memory(key)
-        else:
-            return self._is_limited_memory(key)
+                pass
+        return self._is_limited_memory(key)
 
-    def get_count(self, key: str) -> int:
+    async def get_count(self, redis: Any, key: str) -> int:
         if not self.enabled:
             return 0
-
-        if self._redis_available():
+        key = key.lower()
+        if redis is not None:
             try:
-                return self._get_count_redis(key)
+                return await self._get_count_redis(redis, key)
             except Exception:
-                return self._get_count_memory(key)
-        else:
-            return self._get_count_memory(key)
+                pass
+        return self._get_count_memory(key)
 
-    def remaining(self, key: str) -> int:
-        used = self.get_count(key)
-        return max(0, self.limit - used)
+    async def remaining(self, redis: Any, key: str) -> int:
+        return max(0, self.limit - await self.get_count(redis, key))
 
-    def _is_limited_redis(self, key: str) -> bool:
+    async def _is_limited_redis(self, redis: Any, key: str) -> bool:
         now_bucket = self._current_bucket()
         bucket_key = self._bucket_key(key, now_bucket)
-
-        attempts = self.r.incr(bucket_key)
+        attempts = await redis.incr(bucket_key)
         if attempts == 1:
-            self.r.expire(bucket_key, self.window + self.bucket_size)
+            await redis.expire(bucket_key, self.window + self.bucket_size)
+        return await self._get_count_redis(redis, key) > self.limit
 
-        # Collect buckets
-        buckets = [self._bucket_key(key, now_bucket - i) for i in range(self.num_buckets + 1)]
-
-        counts = self.r.mget(buckets)
-        total = sum(int(c) for c in counts if c)
-
-        return total > self.limit
-
-    def _get_count_redis(self, key: str) -> int:
+    async def _get_count_redis(self, redis: Any, key: str) -> int:
         now_bucket = self._current_bucket()
         buckets = [self._bucket_key(key, now_bucket - i) for i in range(self.num_buckets + 1)]
-        counts = self.r.mget(buckets)
-        return sum(int(c) for c in counts if c)
+        counts = await redis.mget(buckets)
+        return sum(int(count) for count in counts if count)
 
     def _is_limited_memory(self, key: str) -> bool:
         now_bucket = self._current_bucket()
-
-        # Init storage
-        if key not in self._memory_store:
-            self._memory_store[key] = {}
-
-        store = self._memory_store[key]
-
-        # Increment bucket
-        store[now_bucket] = store.get(now_bucket, 0) + 1
-
-        # Drop expired buckets
-        min_bucket = now_bucket - self.num_buckets
-        expired = [b for b in store if b < min_bucket]
-        for b in expired:
-            del store[b]
-
-        # Count totals
-        total = sum(store.values())
-        return total > self.limit
+        self._prune_memory_store(now_bucket)
+        counts = self._memory_store.setdefault(now_bucket, {})
+        counts[key] = counts.get(key, 0) + 1
+        return sum(bucket.get(key, 0) for bucket in self._memory_store.values()) > self.limit
 
     def _get_count_memory(self, key: str) -> int:
-        now_bucket = self._current_bucket()
-        if key not in self._memory_store:
-            return 0
-
-        store = self._memory_store[key]
-        min_bucket = now_bucket - self.num_buckets
-
-        # Remove expired
-        expired = [b for b in store if b < min_bucket]
-        for b in expired:
-            del store[b]
-
-        return sum(store.values())
+        self._prune_memory_store(self._current_bucket())
+        return sum(bucket.get(key, 0) for bucket in self._memory_store.values())

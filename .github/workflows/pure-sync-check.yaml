@@ -1,0 +1,85 @@
+name: Pure container regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'src/**'
+      - 'static/**'
+      - 'pdf-fonts/**'
+      - 'Dockerfile'
+      - 'package*.json'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '*.config.*'
+      - '.github/workflows/pure-sync-check.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pure-container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    name: Container (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [default, optional-extras]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build locally, without publishing
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          push: false
+          tags: open-webui-pure:ci
+          build-args: |
+            BUILD_HASH=${{ github.sha }}
+            ENABLE_POSTGRES=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_REDIS=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_AZURE=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_LDAP=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_PDF=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_CODE_FORMAT=${{ matrix.variant == 'optional-extras' }}
+            ENABLE_PILLOW=${{ matrix.variant == 'optional-extras' }}
+          cache-from: type=gha,scope=pure-${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=pure-${{ matrix.variant }}
+      - name: Check retained imports and optional dependency boundary
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          docker run --rm -e WEBUI_SECRET_KEY=ci-import-check --entrypoint python open-webui-pure:ci -c "import open_webui.utils.rate_limit, open_webui.utils.image_data"
+          if [ "$VARIANT" = default ]; then
+            docker run --rm -e WEBUI_SECRET_KEY=ci-import-check --entrypoint python open-webui-pure:ci -c "import importlib.util; assert all(importlib.util.find_spec(name) is None for name in ('redis', 'psycopg', 'PIL', 'ldap3', 'fpdf', 'black', 'typer'))"
+          fi
+      - name: Start and check SQLite runtime
+        run: |
+          docker run -d --name pure-ci -p 127.0.0.1:8080:8080 \
+            -e WEBUI_SECRET_KEY=ci-only-not-for-production \
+            -e WEBUI_SECRET_KEY_FILE=/app/backend/data/.webui_secret_key \
+            -e ENABLE_VERSION_UPDATE_CHECK=false \
+            open-webui-pure:ci
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8080/health; then
+              curl --fail --silent http://127.0.0.1:8080/api/config
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs pure-ci
+          exit 1
+      - name: Container logs
+        if: always()
+        run: docker logs pure-ci 2>/dev/null || true
+      - name: Remove ephemeral test container
+        if: always()
+        run: docker rm -f pure-ci 2>/dev/null || true

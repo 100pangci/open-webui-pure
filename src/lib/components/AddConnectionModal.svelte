@@ -175,6 +175,7 @@
 				}
 				headers = JSON.stringify(_headers, null, 2);
 			} catch (error) {
+				loading = false;
 				toast.error($i18n.t('Headers must be a valid JSON object'));
 				return;
 			}
@@ -215,6 +216,12 @@
 		showAdvanced = false;
 		tags = [];
 		modelIds = [];
+		headers = '';
+		enable = true;
+		connectionType = 'external';
+		provider = '';
+		apiVersion = '';
+		apiType = '';
 	};
 
 	const init = () => {
@@ -572,7 +579,7 @@
 										<select
 											id="provider-select"
 											bind:value={provider}
-											class="text-xs text-gray-700 dark:text-gray-300 bg-transparent outline-hidden"
+											class="text-xs text-gray-700 dark:text-gray-300 bg-transparent pr-5 outline-hidden"
 										>
 											<option value="">{$i18n.t('Default')}</option>
 											<option value="azure">{$i18n.t('Azure OpenAI')}</option>
