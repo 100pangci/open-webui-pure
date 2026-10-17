@@ -16,10 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
 
-# Track invalid profile_image_url values we've already warned about so we
-# don't flood the logs on every DB read (the validator fires per-row).
-_warned_profile_urls: set[str] = set()
-
 
 def normalize_model_tags(tags: Any) -> list[dict[str, str]]:
     if not isinstance(tags, list):
@@ -59,12 +55,6 @@ class ModelMeta(BaseModel):
         try:
             return validate_profile_image_url(v)
         except ValueError:
-            if v not in _warned_profile_urls:
-                _warned_profile_urls.add(v)
-                log.warning(
-                    'Clearing invalid profile_image_url stored in DB (likely a legacy SVG data-URI): %.80s…',
-                    v,
-                )
             return None
 
     @model_validator(mode='before')
@@ -401,11 +391,13 @@ class ModelsTable:
 
             return ModelListResponse(items=models, total=total)
 
-    async def get_model_meta_by_id(self, id: str, db: AsyncSession | None = None) -> tuple[dict, int | None]:
-        """Return (meta, updated_at) for a model, skipping access grant resolution."""
+    async def get_model_meta_by_id(
+        self, id: str, db: AsyncSession | None = None
+    ) -> tuple[dict, str, int | None] | None:
+        """Return (meta, user_id, updated_at) without resolving access grants."""
         try:
             async with get_async_db_context(db) as db:
-                result = await db.execute(select(Model.meta, Model.updated_at).filter_by(id=id))
+                result = await db.execute(select(Model.meta, Model.user_id, Model.updated_at).filter_by(id=id))
                 return result.first()
         except Exception:
             return None
@@ -573,15 +565,19 @@ class ModelsTable:
                         await db.execute(update(Model).filter_by(id=model.id).values(**model_data))
                     else:
                         db.add(Model(**model_data))
-                    await AccessGrants.set_access_grants('model', model.id, model.access_grants, db=db)
 
                 # Remove models that are no longer present
                 for model in existing_models:
                     if model.id not in new_model_ids:
-                        await AccessGrants.revoke_all_access('model', model.id, db=db)
                         await db.delete(model)
 
                 await db.commit()
+
+                # Grants after the commit to avoid SQLite write-lock contention when session sharing is off
+                for model in models:
+                    await AccessGrants.set_access_grants('model', model.id, model.access_grants, db=db)
+                for model_id in existing_ids - new_model_ids:
+                    await AccessGrants.revoke_all_access('model', model_id, db=db)
 
                 result = await db.execute(select(Model))
                 all_models = result.scalars().all()

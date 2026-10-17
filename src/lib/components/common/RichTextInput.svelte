@@ -65,18 +65,19 @@
 		filter: 'table',
 		replacement: function (content, node) {
 			// Extract rows
-			const rows = Array.from(node.querySelectorAll('tr'));
+			const rows = Array.from(node.rows);
 			if (rows.length === 0) return content;
 
 			let markdown = '\n';
 
 			rows.forEach((row, rowIndex) => {
-				const cells = Array.from(row.querySelectorAll('th, td'));
+				const cells = Array.from(row.cells);
 				const cellContents = cells.map((cell) => {
 					// Get the text content and clean it up
 					let cellContent = turndownService.turndown(cell.innerHTML).trim();
 					// Remove extra paragraph tags that might be added
 					cellContent = cellContent.replace(/^\n+|\n+$/g, '');
+					cellContent = cellContent.replace(/\n/g, '<br>');
 					return cellContent;
 				});
 
@@ -684,9 +685,9 @@
 					props: {
 						decorations: (state) => {
 							const { selection } = state;
-							const { focused } = this.editor;
+							const { isFocused } = this.editor;
 
-							if (focused || selection.empty) {
+							if (isFocused || selection.empty) {
 								return null;
 							}
 
@@ -784,7 +785,7 @@
 				...(messageInput ? [PromptItalic] : []),
 				...(dragHandle ? [ListItemDragHandle] : []),
 				Placeholder.configure({ placeholder: () => _placeholder, showOnlyWhenEditable: false }),
-				SelectionDecoration,
+				...(messageInput ? [] : [SelectionDecoration]),
 
 				...(richText
 					? [

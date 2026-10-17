@@ -619,7 +619,7 @@ class OAuthManager:
             log.debug('Using creator ID %s for potential group creation.', creator_id)
 
             for group_name in user_oauth_groups:
-                if group_name not in all_group_names:
+                if group_name not in all_group_names and not is_in_blocked_groups(group_name, blocked_groups):
                     log.info("Group '%s' not found via OAuth claim. Creating group...", group_name)
                     try:
                         new_group_form = GroupForm(
@@ -871,7 +871,7 @@ class OAuthManager:
             if provider == 'feishu' and isinstance(user_data, dict) and 'data' in user_data:
                 user_data = user_data['data']
             if not user_data:
-                log.warning(f'OAuth callback failed, user data is missing: {token}')
+                log.warning('OAuth callback failed for provider %s, user data is missing', provider)
                 raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
 
             # Extract the "sub" claim, using custom claim if configured

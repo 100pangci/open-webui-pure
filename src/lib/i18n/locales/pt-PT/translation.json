@@ -825,7 +825,7 @@
 	"Message counts and response timestamps": "Contagem de mensagens e carimbos de data/hora de respostas",
 	"Message text...": "",
 	"messages": "mensagens",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "As mensagens que enviar após criar o seu link não serão partilhadas. Os utilizadores com o URL poderão visualizar a conversa partilhada.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Modelo",
 	"Model {{modelName}} is not vision capable": "O modelo {{modelName}} não é capaz de visão",
 	"Model {{name}} is now {{status}}": "Modelo {{name}} agora é {{status}}",

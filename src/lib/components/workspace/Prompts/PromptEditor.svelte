@@ -80,6 +80,7 @@
 	}
 
 	const submitHandler = async () => {
+		if (loading) return;
 		if (disabled) {
 			toast.error($i18n.t('You do not have permission to edit this prompt.'));
 			return;
@@ -181,9 +182,15 @@
 		}
 
 		try {
-			await setProductionPromptVersion(localStorage.token, prompt.id, historyEntry.id);
+			const res = await setProductionPromptVersion(localStorage.token, prompt.id, historyEntry.id);
 			// Update local prompt object to trigger reactivity
-			prompt = { ...prompt, version_id: historyEntry.id };
+			prompt = { ...prompt, ...(res ?? {}), version_id: historyEntry.id };
+
+			name = prompt.name || '';
+			content = prompt.content ?? '';
+			tags = (prompt.tags || []).map((tag) => ({ name: tag }));
+			originalName = name;
+			originalTags = tags;
 			toast.success($i18n.t('Production version updated'));
 		} catch (error) {
 			toast.error(`${error}`);
@@ -651,7 +658,7 @@
 				<button
 					class="{modal
 						? 'px-3.5 py-1.5 text-xs rounded-full w-fit'
-						: 'text-xs w-full lg:w-fit px-4 py-2 rounded-xl'} transition bg-black hover:bg-gray-900 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-black flex justify-center"
+						: 'text-xs w-full lg:w-fit px-4 py-2 rounded-xl'} transition bg-black hover:bg-gray-900 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-black flex justify-center disabled:cursor-not-allowed disabled:opacity-50"
 					type="submit"
 					disabled={loading}
 				>

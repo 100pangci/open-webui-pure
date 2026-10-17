@@ -823,7 +823,7 @@
 	"Message counts and response timestamps": "",
 	"Message text...": "",
 	"messages": "",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Tin nhắn bạn gửi sau khi tạo liên kết sẽ không được chia sẻ. Người dùng có URL sẽ có thể xem cuộc trò chuyện được chia sẻ.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Mô hình",
 	"Model {{modelName}} is not vision capable": "Model {{modelName}} không có khả năng nhìn",
 	"Model {{name}} is now {{status}}": "Model {{name}} bây giờ là {{status}}",

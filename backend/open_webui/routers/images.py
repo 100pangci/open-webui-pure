@@ -35,6 +35,7 @@ from open_webui.utils.headers import include_user_info_headers
 from open_webui.utils.json_codec import JSONCodec
 from open_webui.utils.session_pool import get_session
 from open_webui.utils.ssrf import ssrf_safe_get
+from open_webui.utils.image_data import detect_image_content_type, image_request_headers
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -254,7 +255,9 @@ async def get_image_data(data: str, headers=None, trusted_base_url: str | None =
             trusted_origins = [trusted_base_url] if trusted_base_url else []
             async with ssrf_safe_get(
                 data,
-                headers=headers,
+                # The backend may return a CDN URL directly, without a redirect.
+                # Its credentials must never reach that other origin, even on the first hop.
+                headers=image_request_headers(data, headers, trusted_base_url),
                 trusted_origins=trusted_origins,
                 ssl=AIOHTTP_CLIENT_SESSION_SSL,
                 # Each redirect hop is re-validated; following redirects keeps
@@ -274,8 +277,8 @@ async def get_image_data(data: str, headers=None, trusted_base_url: str | None =
                 mime_type = header.split(';')[0].lstrip('data:')
                 img_data = base64.b64decode(encoded)
             else:
-                mime_type = 'image/png'
                 img_data = base64.b64decode(data)
+                mime_type = detect_image_content_type(img_data)
             return img_data, mime_type
     except Exception as e:
         log.exception(f'Error loading image data: {e}')
@@ -285,7 +288,7 @@ async def get_image_data(data: str, headers=None, trusted_base_url: str | None =
 async def upload_image(request, image_data, content_type, metadata, user, db=None):
     if image_data is None or content_type is None:
         raise ValueError('Failed to retrieve image data from the generation backend')
-    image_format = mimetypes.guess_extension(content_type)
+    image_format = IMAGE_FILE_EXTENSIONS.get(content_type.lower()) or mimetypes.guess_extension(content_type) or '.png'
     file = UploadFile(
         file=io.BytesIO(image_data),
         filename=f'generated-image{image_format}',  # will be converted to a unique ID on upload_file

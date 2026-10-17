@@ -366,7 +366,20 @@ def get_redis_connection(
         )
     elif redis_url:
         factory = getattr(redis_mod, 'from_url', None) or redis_mod.Redis.from_url
-        connection = factory(redis_url, decode_responses=decode_responses, **extra)
+        # Reconnect once when Redis has closed a pooled connection, e.g. after a restart.
+        try:
+            from redis.backoff import NoBackoff
+            from redis.retry import Retry
+
+            retry = Retry(NoBackoff(), 1, supported_errors=(redis_mod.ConnectionError,))
+        except ImportError:
+            retry = None
+        connection = factory(
+            redis_url,
+            decode_responses=decode_responses,
+            **({'retry': retry} if retry is not None else {}),
+            **extra,
+        )
 
     _CONNECTION_POOL[cache_key] = connection
     return connection

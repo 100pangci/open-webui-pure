@@ -824,7 +824,7 @@
 	"Message counts and response timestamps": "Boðatal og tíðarstempul á svarum",
 	"Message text...": "Boðtekstur...",
 	"messages": "boð",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Boð, sum tú sendir eftir at hava stovnað leinkið, verða ikki deild. Brúkarar við URL-inum kunnu síggja deilda kjattið.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Modell",
 	"Model {{modelName}} is not vision capable": "Modellið {{modelName}} kann ikki viðgera myndir",
 	"Model {{name}} is now {{status}}": "Modellið {{name}} er nú {{status}}",

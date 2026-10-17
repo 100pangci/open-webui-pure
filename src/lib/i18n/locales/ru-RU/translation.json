@@ -826,7 +826,7 @@
 	"Message counts and response timestamps": "Количество сообщений и временные метки ответов",
 	"Message text...": "Текст сообщения...",
 	"messages": "сообщения",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Сообщения, отправленные вами после создания ссылки, не будут передаваться другим. Пользователи, у которых есть URL, смогут просматривать общий чат.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Модель",
 	"Model {{modelName}} is not vision capable": "Модель {{modelName}} не поддерживает зрение",
 	"Model {{name}} is now {{status}}": "Модель {{name}} теперь {{status}}",

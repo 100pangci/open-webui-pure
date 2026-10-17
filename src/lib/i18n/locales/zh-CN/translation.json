@@ -824,7 +824,7 @@
 	"Message counts and response timestamps": "消息数量与响应时间戳",
 	"Message text...": "消息文本……",
 	"messages": "条消息",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "创建链接后发送的消息将不会被分享。通过该链接访问的用户可以查看对话记录。",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "模型",
 	"Model {{modelName}} is not vision capable": "模型 {{modelName}} 不支持视觉能力",
 	"Model {{name}} is now {{status}}": "模型 {{name}} 现在是 {{status}}",

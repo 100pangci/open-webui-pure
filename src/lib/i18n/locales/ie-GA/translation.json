@@ -824,7 +824,7 @@
 	"Message counts and response timestamps": "Comhaireamh teachtaireachtaí agus stampaí ama freagartha",
 	"Message text...": "Téacs teachtaireachta...",
 	"messages": "teachtaireachtaí",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Ní roinnfear teachtaireachtaí a sheolann tú tar éis do nasc a chruthú. Beidh úsáideoirí leis an URL in ann féachaint ar an gcomhrá roinnte.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Samhail",
 	"Model {{modelName}} is not vision capable": "Níl samhail {{modelName}} in ann amharc",
 	"Model {{name}} is now {{status}}": "Tá samhail {{name}} {{status}} anois",

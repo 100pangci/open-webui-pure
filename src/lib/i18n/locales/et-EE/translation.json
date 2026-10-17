@@ -824,7 +824,7 @@
 	"Message counts and response timestamps": "Sõnumite arv ja vastuste ajatemplid",
 	"Message text...": "",
 	"messages": "sõnumid",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Teie saadetud sõnumeid pärast lingi loomist ei jagata. Kasutajad, kellel on URL, saavad vaadata jagatud vestlust.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Mudel",
 	"Model {{modelName}} is not vision capable": "Mudel {{modelName}} ei ole võimeline visuaalseid sisendeid töötlema",
 	"Model {{name}} is now {{status}}": "Mudel {{name}} on nüüd {{status}}",

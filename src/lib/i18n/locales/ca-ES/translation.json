@@ -825,7 +825,7 @@
 	"Message counts and response timestamps": "Recompte de missatges i marques de temps de resposta",
 	"Message text...": "Text del missatge...",
 	"messages": "missatges",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "Els missatges enviats després de crear el teu enllaç no es compartiran. Els usuaris amb la URL podran veure el xat compartit.",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "Model",
 	"Model {{modelName}} is not vision capable": "El model {{modelName}} no és capaç de visió",
 	"Model {{name}} is now {{status}}": "El model {{name}} ara és {{status}}",

@@ -559,15 +559,13 @@
 											if (updatedOutput !== sourceMessage.output) {
 												sourceMessage.output = updatedOutput;
 											} else {
-												sourceMessage.content = sourceMessage.content.replace(
-													raw,
-													raw.replace(oldContent, newContent)
+												sourceMessage.content = sourceMessage.content.replace(raw, () =>
+													raw.replace(oldContent, () => newContent)
 												);
 											}
 										} else {
-											sourceMessage.content = sourceMessage.content.replace(
-												raw,
-												raw.replace(oldContent, newContent)
+											sourceMessage.content = sourceMessage.content.replace(raw, () =>
+												raw.replace(oldContent, () => newContent)
 											);
 										}
 
@@ -835,7 +833,7 @@
 													? 'visible'
 													: 'hover-reveal'} p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
 												on:click={() => {
-													continueResponse();
+													continueResponse(message);
 												}}
 											>
 												<svg

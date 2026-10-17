@@ -824,7 +824,7 @@
 	"Message counts and response timestamps": "",
 	"Message text...": "",
 	"messages": "",
-	"Messages you send after creating your link won't be shared. Users with the URL will be able to view the shared chat.": "अपना लिंक बनाने के बाद आपके द्वारा भेजे गए संदेश साझा नहीं किए जाएंगे। यूआरएल वाले यूजर्स शेयर की गई चैट देख पाएंगे।",
+	"Messages you send after creating your link won't be shared. Your link is private until you choose who can view it.": "",
 	"Model": "",
 	"Model {{modelName}} is not vision capable": "मॉडल {{modelName}} दृष्टि सक्षम नहीं है",
 	"Model {{name}} is now {{status}}": "मॉडल {{name}} अब {{status}} है",
