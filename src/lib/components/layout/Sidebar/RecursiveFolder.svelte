@@ -565,6 +565,9 @@
 			// Always use getSharedFolderChats so owners also see chats
 			// created by users who have write access to this folder.
 			const nextPage = append ? chatsPage + 1 : 1;
+			if (!append) {
+				pendingUpsertChats = [];
+			}
 			try {
 				const res = await getSharedFolderChats(localStorage.token, folderId, {
 					page: nextPage

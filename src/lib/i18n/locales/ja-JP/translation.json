@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "モデルフィルタリング",
 	"Model ID": "モデルID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "モデルIDは必須です",
 	"Model IDs": "モデルID",

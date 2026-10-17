@@ -208,7 +208,7 @@
 			(event) => {
 				if (event.origin !== url) return;
 				if (event.data === 'loaded') {
-					tab.postMessage(JSON.stringify(prompt), '*');
+					tab.postMessage(JSON.stringify(prompt), url);
 				}
 			},
 			false

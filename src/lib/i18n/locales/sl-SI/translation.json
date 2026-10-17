@@ -844,6 +844,7 @@
 	"Model download started": "",
 	"Model Filtering": "Filtriranje modelov",
 	"Model ID": "ID modela",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "ID modela je obvezen.",
 	"Model IDs": "ID-ji modelov",

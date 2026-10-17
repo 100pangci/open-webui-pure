@@ -843,6 +843,7 @@
 	"Model download started": "",
 	"Model Filtering": "Filtragem de Modelos",
 	"Model ID": "ID do modelo",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "ID do modelo é obrigatório.",
 	"Model IDs": "IDs dos modelos",

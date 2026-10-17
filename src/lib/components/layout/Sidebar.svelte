@@ -150,7 +150,7 @@
 
 	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
 
-	const isMenuItemVisible = (id) => {
+	$: isMenuItemVisible = (id) => {
 		switch (id) {
 			case 'workspace':
 				return (

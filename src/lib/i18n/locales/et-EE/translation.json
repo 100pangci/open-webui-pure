@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "Mudeli filtreerimine",
 	"Model ID": "Mudeli ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Mudeli ID on nõutav.",
 	"Model IDs": "Mudeli ID-d",

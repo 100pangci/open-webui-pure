@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "მოდელების გაფილტვრა",
 	"Model ID": "მოდელის ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "მოდელის ID აუცილებელია.",
 	"Model IDs": "მოდელის ID-ები",

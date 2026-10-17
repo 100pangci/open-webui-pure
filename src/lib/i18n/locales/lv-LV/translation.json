@@ -843,6 +843,7 @@
 	"Model download started": "",
 	"Model Filtering": "Modeļu filtrēšana",
 	"Model ID": "Modeļa ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Modeļa ID ir nepieciešams.",
 	"Model IDs": "Modeļu ID",

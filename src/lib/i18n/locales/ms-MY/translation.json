@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "Penapis Model",
 	"Model ID": "ID Model",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "ID Model diperlukan.",
 	"Model IDs": "ID Model",

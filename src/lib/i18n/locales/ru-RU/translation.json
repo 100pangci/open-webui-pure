@@ -844,6 +844,7 @@
 	"Model download started": "",
 	"Model Filtering": "Фильтрация Моделей",
 	"Model ID": "ID Модели",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Требуется ID модели.",
 	"Model IDs": "IDs Модели",

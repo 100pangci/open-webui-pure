@@ -230,6 +230,19 @@ def _build_oauth_callback_error_message(e: Exception) -> str:
     return message[:197] + '...' if len(message) > 200 else message
 
 
+def _parse_blocked_groups(value) -> list[str]:
+    """Accept JSON arrays, persisted lists, and comma-separated admin input."""
+    if isinstance(value, str):
+        try:
+            parsed = JSONCodec.loads(value)
+        except JSONCodec.JSONDecodeError:
+            parsed = None
+        value = parsed if isinstance(parsed, list) else [group.strip() for group in value.split(',')]
+    if not isinstance(value, list):
+        return []
+    return [group for group in value if isinstance(group, str) and group]
+
+
 def is_in_blocked_groups(group_name: str, groups: list) -> bool:
     """
     Check if a group name matches any blocked pattern.
@@ -580,11 +593,7 @@ class OAuthManager:
         log.debug('Running OAUTH Group management')
         oauth_claim = auth_config.OAUTH_GROUPS_CLAIM
 
-        try:
-            blocked_groups = JSONCodec.loads(auth_config.OAUTH_BLOCKED_GROUPS)
-        except Exception as e:
-            log.exception(f'Error loading OAUTH_BLOCKED_GROUPS: {e}')
-            blocked_groups = []
+        blocked_groups = _parse_blocked_groups(auth_config.OAUTH_BLOCKED_GROUPS)
 
         user_oauth_groups = []
         # Nested claim search for groups claim
@@ -840,7 +849,7 @@ class OAuthManager:
                         detailed_error,
                         exc_info=True,
                     )
-                    raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                    raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
             except Exception as e:
                 detailed_error = _build_oauth_callback_error_message(e)
                 log.warning(
@@ -849,7 +858,7 @@ class OAuthManager:
                     detailed_error,
                     exc_info=True,
                 )
-                raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
 
             # Try to get userinfo from the token first, some providers include it there
             user_data: UserInfo = token.get('userinfo')
@@ -872,7 +881,7 @@ class OAuthManager:
                 user_data = user_data['data']
             if not user_data:
                 log.warning('OAuth callback failed for provider %s, user data is missing', provider)
-                raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
 
             # Extract the "sub" claim, using custom claim if configured
             if auth_config.OAUTH_SUB_CLAIM:
@@ -882,7 +891,7 @@ class OAuthManager:
                 sub = user_data.get(OAUTH_PROVIDERS[provider].get('sub_claim', 'sub'))
             if not sub:
                 log.warning(f'OAuth callback failed, sub is missing: {user_data}')
-                raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
             sub = str(sub)
 
             oauth_data = {}
@@ -917,18 +926,18 @@ class OAuthManager:
                                         email = primary_email
                                     else:
                                         log.warning('No primary email found in GitHub response')
-                                        raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                                        raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
                                 else:
                                     log.warning('Failed to fetch GitHub email')
-                                    raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                                    raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
                     except Exception as e:
                         log.warning(f'Error fetching GitHub email: {e}')
-                        raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                        raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
                 elif ENABLE_OAUTH_EMAIL_FALLBACK:
                     email = f'{provider}@{sub}.local'
                 else:
                     log.warning(f'OAuth callback failed, email is missing: {user_data}')
-                    raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                    raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
 
             email = email.lower()
             # If allowed domains are configured, check if the email domain is in the list
@@ -937,7 +946,7 @@ class OAuthManager:
                 and email.split('@')[-1] not in auth_config.OAUTH_ALLOWED_DOMAINS
             ):
                 log.warning(f'OAuth callback failed, e-mail domain is not in the list of allowed domains: {user_data}')
-                raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
+                raise HTTPException(400, detail=ERROR_MESSAGES.OAUTH_LOGIN_FAILED)
 
             # Check if the user exists
             user = await Users.get_user_by_oauth_sub(provider, sub, db=db)

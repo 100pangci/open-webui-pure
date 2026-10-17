@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "فیلتر کردن مدل",
 	"Model ID": "شناسه مدل",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "شناسه مدل مورد نیاز است.",
 	"Model IDs": "شناسه\u200cهای مدل",

@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "",
 	"Model ID": "ماڈل آئی ڈی",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "",
 	"Model IDs": "",

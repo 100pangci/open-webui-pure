@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "དཔེ་དབྱིབས་འཚག་མ།",
 	"Model ID": "དཔེ་དབྱིབས་ཀྱི་ ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "",
 	"Model IDs": "དཔེ་དབྱིབས་ཀྱི་ IDs",

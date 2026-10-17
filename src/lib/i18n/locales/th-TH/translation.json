@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "การกรองโมเดล",
 	"Model ID": "รหัสโมเดล",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "จำเป็นต้องระบุ Model ID",
 	"Model IDs": "รหัสโมเดล",

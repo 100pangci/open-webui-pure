@@ -843,6 +843,7 @@
 	"Model download started": "S'ha iniciat la descàrrega del model",
 	"Model Filtering": "Filtrat de models",
 	"Model ID": "Identificador del model",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "L'identificador del model ja s'ha afegit",
 	"Model ID is required.": "L'ID del model és necessari",
 	"Model IDs": "Identificadors del model",

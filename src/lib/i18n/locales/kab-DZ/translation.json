@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "Asizdeg n tmudmiwin",
 	"Model ID": "Asulay n tmudemt",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Asulay n timudemt yettwasra.",
 	"Model IDs": "Isulayen n tmudmiwin",

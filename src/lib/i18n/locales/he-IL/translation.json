@@ -843,6 +843,7 @@
 	"Model download started": "",
 	"Model Filtering": "",
 	"Model ID": "מזהה דגם",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "",
 	"Model IDs": "",

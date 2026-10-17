@@ -844,6 +844,7 @@
 	"Model download started": "",
 	"Model Filtering": "Filtrování modelů",
 	"Model ID": "ID modelu",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "ID modelu je vyžadováno.",
 	"Model IDs": "ID modelů",

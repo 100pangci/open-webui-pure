@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "Model Filtreleme",
 	"Model ID": "Model ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Model ID'si gereklidir.",
 	"Model IDs": "Model ID'leri",

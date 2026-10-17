@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "Lọc Mô hình",
 	"Model ID": "ID mẫu",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "",
 	"Model IDs": "Các ID Mô hình",

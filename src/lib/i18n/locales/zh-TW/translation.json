@@ -841,6 +841,7 @@
 	"Model download started": "",
 	"Model Filtering": "模型篩選",
 	"Model ID": "模型 ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "模型 ID 為必填項目。",
 	"Model IDs": "模型 IDs",

@@ -126,7 +126,7 @@ class ModelAccessListResponse(BaseModel):
 class ModelForm(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
-    id: str
+    id: str = Field(pattern=r'^\S+$')
     base_model_id: str | None = None
     name: str
     meta: ModelMeta
@@ -335,7 +335,9 @@ class ModelsTable:
                     else:
                         meta_text = func.lower(cast(Model.meta, String))
                         variants = json_text_variants(tag.lower())
-                    stmt = stmt.filter(or_(*(meta_text.like(f'%"{variant}"%') for variant in variants)))
+                    stmt = stmt.filter(
+                        or_(*(meta_text.contains(f'"{variant}"', autoescape=True) for variant in variants))
+                    )
 
                 order_by = filter.get('order_by')
                 direction = filter.get('direction')

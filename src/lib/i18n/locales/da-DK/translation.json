@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "Model filtrering",
 	"Model ID": "Model-ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Model ID er påkrævet.",
 	"Model IDs": "Model-ID'er",

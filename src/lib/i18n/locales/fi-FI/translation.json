@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "Mallin suodatus",
 	"Model ID": "Mallin tunnus",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "Mallin tunnus on pakollinen",
 	"Model IDs": "Mallitunnukset",

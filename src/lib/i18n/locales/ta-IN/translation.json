@@ -842,6 +842,7 @@
 	"Model download started": "",
 	"Model Filtering": "மாதிரி வடிகட்டுதல்",
 	"Model ID": "மாதிரி ID",
+	"Model ID cannot contain whitespace.": "",
 	"Model ID is already added": "",
 	"Model ID is required.": "மாதிரி ID தேவை.",
 	"Model IDs": "மாதிரி ஐடிகள்",
