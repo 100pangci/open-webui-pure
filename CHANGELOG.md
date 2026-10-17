@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.3] - 2026-10-18
+
+### Changed
+
+- 🔄 **Upstream sync to Open WebUI v0.12.3.** Ported the retained security and bug fixes from upstream `91ea4e342`: chat and streamline corrections, sharing and admin-access checks, audit-log redaction, login rate limiting, image download hardening, folder permissions, OAuth/SSO refreshes and retained UI fixes. Removed features stay removed; the default install remains SQLite-only and the optional extras are unchanged.
+- 🔐 **Account and access checks.** Administrators without `ENABLE_ADMIN_CHAT_ACCESS` can no longer read or change other users' chats through chat, task or share endpoints; model profile images honour model read access; enforced temporary chats can no longer be bypassed through cloning or import.
+- 🖼️ **Image generation and editing.** Backend credentials are no longer sent to the first cross-origin image URL returned by a provider, and generated image types are recognised without requiring Pillow.
+- 🧩 **Saving shared resources.** A collaborator saving a shared model or prompt keeps access grants they cannot recreate themselves; folder sharing can only be changed by the owner or an administrator.
+- 🔗 **Links in messages.** Markdown and attachment links only open `http`, `https`, `mailto`, `tel` and relative app URLs.
+- 📝 **Settings and model metadata.** Interface settings no longer overwrite the user's default model or the administrator's default font; model IDs containing whitespace are rejected; a model can explicitly switch off admin default features.
+
+### Fixed
+
+- Folder chat pages render their dates correctly and refresh after chat changes.
+- Temporary chats keep attachments received after the first message.
+- Chat replay omits empty assistant placeholders left by a stopped or failed reply.
+- Deleting a folder also removes the shared links of the chats inside it.
+- OAuth blocked groups round-trip correctly, and revoked tokens no longer disconnect newer sessions.
+- The OpenAI-compatible proxy drops forwarded `Server` and `Date` headers.
+
 ## [0.11.3] - 2026-08-31
 
 ### Added

@@ -20,7 +20,8 @@ Open WebUI.
 - **~300 MB image**, **~100 MB fresh idle cgroup**, **~1.6 s startup** on a
   fresh data volume (see [Footprint](#footprint)).
 - **Upstream-derived, aggressively subtractive** — based on Open WebUI
-  v0.11.3, with every removal recorded in [`HANDOFF.md`](./HANDOFF.md).
+  v0.11.3 and synced through v0.12.3, with every removal recorded in
+  [`HANDOFF.md`](./HANDOFF.md).
 
 ## Footprint
 
@@ -131,7 +132,7 @@ WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true ./podman.sh update
 #### Prebuilt images
 
 Multi-arch images (amd64/arm64) are published to Docker Hub on version tags:
-`docker.io/ywpc05/open-webui-pure` (`latest`, `0.11.3`, `0.11`, `v0.11.3`,
+`docker.io/ywpc05/open-webui-pure` (`latest`, `0.12.3`, `0.12`, `v0.12.3`,
 `git-<sha>`). Use the published image instead of building:
 
 ```bash
@@ -178,7 +179,7 @@ npm run dev        # Vite dev server, proxies /api and /openai to :8080
 ## Tests
 
 ```bash
-# backend (100 tests: SSRF, compression negotiation, changelog)
+# backend (125 tests: SSRF, compression, rate limiting, image types, changelog)
 PYTHONPATH=backend pytest backend/open_webui/test -q
 
 # frontend
@@ -190,8 +191,9 @@ CI runs exactly these checks on `main`.
 
 ## Upstream sync
 
-Pure is based on upstream Open WebUI v0.11.3. Security fixes and bug fixes
-from upstream are welcome, but every sync must keep the subtraction intact:
+Pure is based on upstream Open WebUI v0.11.3 and currently includes the
+retained fixes through v0.12.3. Security fixes and bug fixes from upstream
+are welcome, but every sync must keep the subtraction intact:
 do not import a module, dependency or configuration entry whose feature is
 listed under [Removed](#removed). See [`HANDOFF.md`](./HANDOFF.md) for the
 product boundary, footprint history and the data/volume rules.
