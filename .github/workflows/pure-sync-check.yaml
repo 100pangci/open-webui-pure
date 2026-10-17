@@ -57,9 +57,9 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
         run: |
-          docker run --rm --entrypoint python open-webui-pure:ci -c "import open_webui.utils.rate_limit, open_webui.utils.image_data"
+          docker run --rm -e WEBUI_SECRET_KEY=ci-import-check --entrypoint python open-webui-pure:ci -c "import open_webui.utils.rate_limit, open_webui.utils.image_data"
           if [ "$VARIANT" = default ]; then
-            docker run --rm --entrypoint python open-webui-pure:ci -c "import importlib.util; assert all(importlib.util.find_spec(name) is None for name in ('redis', 'psycopg', 'PIL', 'ldap3', 'fpdf', 'black', 'typer'))"
+            docker run --rm -e WEBUI_SECRET_KEY=ci-import-check --entrypoint python open-webui-pure:ci -c "import importlib.util; assert all(importlib.util.find_spec(name) is None for name in ('redis', 'psycopg', 'PIL', 'ldap3', 'fpdf', 'black', 'typer'))"
           fi
       - name: Start and check SQLite runtime
         run: |
