@@ -126,6 +126,12 @@ After a dependency or Dockerfile change, run `pip check` inside the image
    Alembic head `d4c1a8e37b62`).
 5. Re-run the test commands above; keep `npm run build` and the container
    regression green.
+6. After auditing an upstream release, record it as a `git merge -s ours`
+   baseline (for example v0.12.3 at `91ea4e342`). The baseline keeps the
+   fork's ancestry aligned so the next sync only has to audit genuinely new
+   upstream commits and GitHub does not report the fork as endlessly behind.
+   It never imports upstream files: the working tree stays Pure's. Do not
+   use a normal merge strategy for this.
 
 ## Data and volumes — hard rules
 
