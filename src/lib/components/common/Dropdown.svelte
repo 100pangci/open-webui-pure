@@ -353,6 +353,7 @@
 		transition:flyAndScale
 		on:click={(e) => e.stopPropagation()}
 		on:pointerdown={(e) => e.stopPropagation()}
+		on:keydown={handleKeydown}
 	>
 		<slot name="content" />
 	</div>

@@ -6,7 +6,7 @@ logs live in git history, not here.
 ## Product boundary
 
 Open WebUI Pure is an unofficial, aggressively subtractive fork of upstream
-Open WebUI (baseline **v0.11.3**, synced through **v0.12.3**). The goal is not to reimplement Open WebUI:
+Open WebUI (baseline **v0.11.3**, synced through **v0.12.5**). The goal is not to reimplement Open WebUI:
 it is to keep the mature chat core and the original branding while physically
 removing the features, dependencies and background costs that personal / home
 / small multi-user deployments do not need.
@@ -127,7 +127,7 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 5. Re-run the test commands above; keep `npm run build` and the container
    regression green.
 6. After auditing an upstream release, record it as a `git merge -s ours`
-   baseline (for example v0.12.3 at `91ea4e342`). The baseline keeps the
+   baseline (for example v0.12.5 at `f7ac7ee10`). The baseline keeps the
    fork's ancestry aligned so the next sync only has to audit genuinely new
    upstream commits and GitHub does not report the fork as endlessly behind.
    It never imports upstream files: the working tree stays Pure's. Do not

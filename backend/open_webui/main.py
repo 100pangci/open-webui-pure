@@ -742,6 +742,7 @@ async def chat_completion(
             'user_message': user_message,
             'user_message_id': user_message.get('id') if user_message else None,
             'assistant_message_id': form_data.pop('assistant_message_id', None),
+            'regeneration_message_id': form_data.pop('regeneration_message_id', None),
             'session_id': form_data.pop('session_id', None),
             'folder_id': form_data.pop('folder_id', None),
             'files': form_data.get('files', None),
@@ -1861,6 +1862,8 @@ async def check_db_health():
 mimetypes.add_type('text/javascript', '.js')
 mimetypes.add_type('text/javascript', '.mjs')
 mimetypes.add_type('application/wasm', '.wasm')
+# Python before 3.13 only knows .webp from /etc/mime.types, which the Docker image does not ship
+mimetypes.add_type('image/webp', '.webp')
 
 # Serve build-time static assets (CSS, JS, images, favicon, etc.)
 app.mount('/static', StaticFiles(directory=STATIC_DIR), name='static')

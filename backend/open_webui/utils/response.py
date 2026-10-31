@@ -84,15 +84,9 @@ def merge_usage(current: dict | None, incoming: dict | None) -> dict:
                 incoming_usage.get(key) if isinstance(incoming_usage.get(key), dict) else {},
             )
 
-    result['prompt_tokens'] = (
-        incoming_usage.get('prompt_tokens')
-        or incoming_usage.get('input_tokens')
-        or current_usage.get('prompt_tokens', 0)
-    )
-    result['completion_tokens'] = (
-        incoming_usage.get('completion_tokens')
-        or incoming_usage.get('output_tokens')
-        or current_usage.get('completion_tokens', 0)
-    )
+    # Aliases keep the latest call's size, which context compaction reads.
+    for alias, canonical in (('prompt_tokens', 'input_tokens'), ('completion_tokens', 'output_tokens')):
+        if canonical in incoming_usage:
+            result[alias] = incoming_usage[canonical]
 
     return result

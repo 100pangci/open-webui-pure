@@ -753,6 +753,9 @@
 						message.statusHistory = [data];
 					}
 				} else if (type === 'context_compaction') {
+					if (data?.checkpoint_message_id && history.messages[data.checkpoint_message_id]) {
+						history.messages[data.checkpoint_message_id].contextSummary = data.context_summary;
+					}
 					handleContextCompactionStatus(data);
 				} else if (type === 'chat:active') {
 					if (!data?.active) {
@@ -1246,6 +1249,10 @@
 			}
 		}
 
+		if (!($user?.role === 'admin' || ($user?.permissions?.chat?.multiple_models ?? true))) {
+			selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [''];
+		}
+
 		if ($mobile) {
 			await showControls.set(false);
 		}
@@ -1260,9 +1267,10 @@
 		// resetInput() must stay last: the selected model's defaults override the draft's selection.
 		await restoreChatInput(sessionStorage.getItem('chat-input'));
 		const previousChatId = $chatId;
+		const previousMessageId = history.currentId;
 		await resetInput();
-		// A chat opened in the meantime keeps its id
-		if ($chatId !== previousChatId) return;
+		// A chat opened or a message sent in the meantime keeps its id and history
+		if (($chatId && $chatId !== previousChatId) || history.currentId !== previousMessageId) return;
 		await chatId.set('');
 		await chatTitle.set('');
 
@@ -2066,7 +2074,7 @@
 	};
 
 	const handleForkChat = async (messageId: string | null = null) => {
-		if (!$chatId || !history?.currentId) {
+		if (!$chatId || $temporaryChatEnabled || !history?.currentId) {
 			toast.message($i18n.t('No chat to fork'));
 			return;
 		}
@@ -2243,12 +2251,14 @@
 			messages = null,
 			modelId = null,
 			modelIdx = null,
-			regenerationPrompt = null
+			regenerationPrompt = null,
+			regenerationMessageId = null
 		}: {
 			messages?: any[] | null;
 			modelId?: string | null;
 			modelIdx?: number | null;
 			regenerationPrompt?: string | null;
+			regenerationMessageId?: string | null;
 		} = {}
 	) => {
 		if (autoScroll) {
@@ -2394,7 +2404,8 @@
 						// regenerations in a duplicate-model chat, which would otherwise lose their
 						// column identity and collapse on reload.
 						messageIdsList: messageIdsList.length > 0 ? messageIdsList : undefined,
-						regenerationPrompt
+						regenerationPrompt,
+						regenerationMessageId
 					}
 				);
 			} finally {
@@ -2424,9 +2435,13 @@
 
 		const tokens = Array.isArray(stop) ? stop : stop.split(',').map((s) => s.trim());
 
-		return tokens
-			.filter(Boolean)
-			.map((token) => decodeURIComponent(JSON.parse(`"${token.replace(/"/g, '\\"')}"`)));
+		return tokens.filter(Boolean).map((token) => {
+			try {
+				return decodeURIComponent(JSON.parse(`"${token.replace(/"/g, '\\"')}"`));
+			} catch {
+				return token;
+			}
+		});
 	};
 
 	const sendMessageSocket = async (
@@ -2438,10 +2453,12 @@
 		{
 			messageIdsList,
 			regenerationPrompt,
+			regenerationMessageId,
 			continueResponse = false
 		}: {
 			messageIdsList?: Array<{ model_id: string; message_id: string }>;
 			regenerationPrompt?: string | null;
+			regenerationMessageId?: string | null;
 			continueResponse?: boolean;
 		} = {}
 	) => {
@@ -2523,7 +2540,9 @@
 
 					if (message.role === 'user' && imageFiles.length > 0) {
 						return {
+							id: message.id,
 							role: message.role,
+							contextSummary: message?.contextSummary,
 							content: [
 								{
 									type: 'text',
@@ -2540,7 +2559,9 @@
 					}
 
 					return {
+						id: message.id,
 						role: message.role,
+						contextSummary: message?.contextSummary,
 						content: message?.merged?.content ?? message.content
 					};
 				})
@@ -2587,6 +2608,7 @@
 				parent_id: userMessage?.parentId ?? null,
 				user_message: userMessage,
 				...(regenerationPrompt ? { regeneration_prompt: regenerationPrompt } : {}),
+				...(regenerationMessageId ? { regeneration_message_id: regenerationMessageId } : {}),
 				...(continueResponse ? { assistant_message_id: responseMessageId } : {}),
 
 				background_tasks: {
@@ -2815,7 +2837,8 @@
 				...(suggestionPrompt
 					? {
 							messages: createMessagesList(history, message.id),
-							regenerationPrompt: suggestionPrompt
+							regenerationPrompt: suggestionPrompt,
+							regenerationMessageId: message.id
 						}
 					: {}),
 				...((userMessage?.models ?? [...selectedModels]).length > 1
@@ -3358,7 +3381,7 @@
 										{mergeResponses}
 										{addMessages}
 										allowDelete={!(generating || taskIds?.length)}
-										forkHandler={handleForkChat}
+										forkHandler={$temporaryChatEnabled ? null : handleForkChat}
 										topPadding={!embedded}
 										bottomPadding={files.length > 0}
 										{onSelect}
@@ -3404,7 +3427,7 @@
 										{contextCompactionEnabled}
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
-										forkHandler={handleForkChat}
+										forkHandler={$temporaryChatEnabled ? null : handleForkChat}
 										onChange={(data: any) => {
 											if (!$temporaryChatEnabled) {
 												saveDraft(data, getDraftChatId());
@@ -3483,7 +3506,7 @@
 										{contextCompactionEnabled}
 										compactHandler={handleManualCompact}
 										statusHandler={handleStatusCommand}
-										forkHandler={handleForkChat}
+										forkHandler={$temporaryChatEnabled ? null : handleForkChat}
 										onChange={(data: any) => {
 											if (!$temporaryChatEnabled) {
 												saveDraft(data, getDraftChatId());

@@ -32,6 +32,7 @@ from contextlib import asynccontextmanager
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
+from open_webui.constants import ERROR_MESSAGES
 
 log = logging.getLogger(__name__)
 
@@ -182,6 +183,18 @@ def _host_addresses(host: str, resolver=None) -> list[ipaddress.IPv4Address | ip
     return addresses
 
 
+def is_identity_encoding(content_encodings: Sequence[str]) -> bool:
+    """True when no content coding was applied, so the body costs what the sender transmitted."""
+    return all(content_encoding.lower() in ('', 'identity') for content_encoding in content_encodings)
+
+
+def assert_identity_encoding(content_encodings: Sequence[str]) -> None:
+    """Reject a compressed body, whose decoded size the sender would choose for us."""
+    if not is_identity_encoding(content_encodings):
+        log.warning('Blocked compressed response body: %s', ', '.join(content_encodings))
+        raise ValueError(ERROR_MESSAGES.COMPRESSED_RESPONSE)
+
+
 def validate_url(
     url: str,
     *,
@@ -319,7 +332,8 @@ async def ssrf_safe_get(
     session = create_ssrf_safe_session(trusted_origins=trusted_origins, timeout=timeout)
     current_url = url
     current_origin = _parse_origin(url)
-    request_headers = dict(headers) if headers else None
+    # Ask for an uncompressed body; a response that is compressed anyway is refused below.
+    request_headers = {**(headers or {}), 'Accept-Encoding': 'identity'}
 
     try:
         for hop in range(max_redirects + 1):
@@ -333,6 +347,7 @@ async def ssrf_safe_get(
                 allow_redirects=False,
                 **kwargs,
             )
+            assert_identity_encoding(response.headers.getall('Content-Encoding', ()))
 
             location = response.headers.get('Location') if response.status in _REDIRECT_STATUSES else None
             if not allow_redirects or not location:

@@ -48,7 +48,7 @@ from open_webui.tasks import clear_response_stream, save_response_stream
 from open_webui.utils.access_control import has_permission
 from open_webui.utils.access_control.folders import has_folder_access
 from open_webui.utils.chat import generate_chat_completion
-from open_webui.utils.chat_id import is_saved_chat_id
+from open_webui.utils.chat_id import is_saved_chat_id, is_temporary_chat_id
 from open_webui.utils.context_compaction import compact_messages_for_request
 from open_webui.utils.files import (
     convert_markdown_base64_images,
@@ -2643,7 +2643,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
     chat_id = metadata.get('chat_id')
     user_message_id = metadata.get('user_message_id')
 
-    if is_saved_chat_id(chat_id) and user_message_id:
+    if (is_saved_chat_id(chat_id) or is_temporary_chat_id(chat_id)) and user_message_id:
         db_messages = await load_messages_from_db(chat_id, user_message_id)
         if db_messages:
             # Continue: the frontend sends assistant_message_id when continuing
@@ -2653,6 +2653,13 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 assistant_message = await Chats.get_message_by_id_and_message_id(chat_id, assistant_message_id)
                 if assistant_message and (assistant_message.get('content') or assistant_message.get('output')):
                     db_messages.append({k: v for k, v in assistant_message.items() if k in MESSAGE_REPLAY_KEYS})
+
+            # Guided regeneration: show the model the reply it is asked to revise.
+            regeneration_message_id = metadata.get('regeneration_message_id')
+            if regeneration_message_id:
+                regenerated_message = await Chats.get_message_by_id_and_message_id(chat_id, regeneration_message_id)
+                if regenerated_message and (regenerated_message.get('content') or regenerated_message.get('output')):
+                    db_messages.append({k: v for k, v in regenerated_message.items() if k in MESSAGE_REPLAY_KEYS})
 
             system_message = get_system_message(form_data.get('messages', []))
             form_data['messages'] = [system_message, *db_messages] if system_message else db_messages

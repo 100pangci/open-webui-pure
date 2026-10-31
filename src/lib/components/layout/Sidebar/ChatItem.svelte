@@ -52,6 +52,7 @@
 	import ChatHoverPreview from './ChatHoverPreview.svelte';
 	import ChatIcon from './icons/Chat.svelte';
 	import MoreHorizontalIcon from './icons/MoreHorizontal.svelte';
+	import EditPencilIcon from './icons/EditPencil.svelte';
 	import SparklesIcon from './icons/Sparkles.svelte';
 	import ArchiveBoxIcon from '$lib/components/icons/ArchiveBox.svelte';
 	import GarbageBinIcon from '$lib/components/icons/GarbageBin.svelte';
@@ -75,6 +76,8 @@
 	export let selected = false;
 	export let shiftKey = false;
 	export let readonly = false;
+	export let canMove = false;
+	export let canRename = false;
 
 	export let ownerName: string | null = null;
 	export let ownerUserId: string | null = null;
@@ -170,7 +173,7 @@
 	};
 
 	const renameChatFromDoubleClick = async (e: MouseEvent) => {
-		if (readonly) return;
+		if (readonly && !canRename) return;
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -204,7 +207,8 @@
 	let chatTitle = title;
 
 	const editChatTitle = async (id, title) => {
-		if (title === '') {
+		title = title?.trim();
+		if (!title) {
 			toast.error($i18n.t('Title cannot be an empty string.'));
 			return;
 		}
@@ -553,14 +557,14 @@
 			dir="auto"
 			class="text-left self-center overflow-hidden w-full h-5 truncate {unread
 				? 'font-normal text-gray-800 dark:text-gray-200'
-				: ''} {($mobile || showInlineActions) && !readonly ? 'pr-12' : ''}"
+				: ''} {($mobile || showInlineActions) && (!readonly || canRename) ? 'pr-12' : ''}"
 		>
 			{title}
 		</div>
 	</div>
 
 	<!-- Time ago indicator -->
-	{#if (updatedAt ?? createdAt) && !showInlineActions && !($mobile && !readonly)}
+	{#if (updatedAt ?? createdAt) && !showInlineActions && !($mobile && (!readonly || canRename))}
 		<div class="shrink-0 self-center text-[0.625rem] text-gray-400 dark:text-gray-500 pl-2">
 			{formatTimeAgo((updatedAt ?? createdAt) as number)}
 		</div>
@@ -599,7 +603,7 @@
 	id="sidebar-chat-group"
 	bind:this={itemElement}
 	class=" w-full {className} relative group"
-	draggable={!confirmEdit && !readonly}
+	draggable={!confirmEdit && (!readonly || canMove)}
 	on:mouseenter={() => {
 		mouseOver = true;
 	}}
@@ -692,7 +696,7 @@
 		</LinkPreview.Root>
 	{/if}
 
-	{#if !readonly}
+	{#if !readonly || canRename}
 		<div
 			id="sidebar-chat-item-menu"
 			class="{$mobile
@@ -703,7 +707,20 @@
 				? 'right-[0.5rem]'
 				: 'right-1'} inset-y-0 mr-1.5 flex items-center"
 		>
-			{#if confirmEdit}
+			{#if readonly}
+				{#if !confirmEdit}
+					<Tooltip content={$i18n.t('Rename')} className="flex self-center z-10 items-end">
+						<button
+							type="button"
+							aria-label={$i18n.t('Rename')}
+							class="flex size-5 items-center justify-center self-center dark:hover:text-white transition"
+							on:click={renameHandler}
+						>
+							<EditPencilIcon className="size-3.5" strokeWidth="1.5" />
+						</button>
+					</Tooltip>
+				{/if}
+			{:else if confirmEdit}
 				<div
 					class="flex self-center items-center space-x-1.5 z-10 translate-y-[0.5px] -translate-x-[0.5px]"
 				>

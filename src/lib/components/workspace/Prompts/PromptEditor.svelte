@@ -54,6 +54,7 @@
 
 	let accessGrants = [];
 	let showAccessControlModal = false;
+	let savedAccessGrants = [];
 	let hasManualEdit = false;
 
 	let history: any[] = [];
@@ -304,9 +305,11 @@
 	onChange={async () => {
 		if (edit && prompt?.id) {
 			try {
-				await updatePromptAccessGrants(localStorage.token, prompt.id, accessGrants);
+				const saved = await updatePromptAccessGrants(localStorage.token, prompt.id, accessGrants);
+				savedAccessGrants = structuredClone(saved.access_grants);
 				toast.success($i18n.t('Saved'));
 			} catch (error) {
+				accessGrants = structuredClone(savedAccessGrants);
 				toast.error(`${error}`);
 			}
 		}
@@ -436,7 +439,12 @@
 						{$i18n.t('Edit')}
 					</button>
 
-					<AccessButton on:click={() => (showAccessControlModal = true)} />
+					<AccessButton
+						on:click={() => {
+							savedAccessGrants = structuredClone(accessGrants);
+							showAccessControlModal = true;
+						}}
+					/>
 				{:else}
 					<span class="rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-gray-850">
 						{$i18n.t('Read Only')}
@@ -584,7 +592,12 @@
 								required
 							/>
 							<div class="self-center shrink-0">
-								<AccessButton on:click={() => (showAccessControlModal = true)} />
+								<AccessButton
+									on:click={() => {
+										savedAccessGrants = structuredClone(accessGrants);
+										showAccessControlModal = true;
+									}}
+								/>
 							</div>
 						</div>
 						<div class="flex gap-0.5 items-center text-xs text-gray-500">

@@ -32,10 +32,11 @@ from open_webui.models.config import Config
 from open_webui.models.folders import Folders
 from open_webui.models.shared_chats import SharedChatResponse, SharedChats
 from open_webui.models.tags import TagModel, Tags
+from open_webui.models.users import UserModel
 from open_webui.socket.main import get_event_emitter
 from open_webui.tasks import get_response_streams_by_chat_id, has_active_tasks, stop_item_tasks
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
-from open_webui.utils.access_control.folders import has_folder_write_access
+from open_webui.utils.access_control.folders import has_chat_move_access, has_folder_write_access
 from open_webui.utils.auth import bearer_security, get_admin_user, get_current_user, get_verified_user
 from open_webui.utils.chat_fork import build_fork_history
 from open_webui.utils.context_compaction import compact_chat_branch, get_chat_context_usage
@@ -82,6 +83,16 @@ def overlay_response_streams(chat_data: dict, response_streams: list[dict]) -> d
                 message['done'] = False
 
     return chat_data
+
+
+def set_message_authors(chat: dict, user: UserModel) -> None:
+    """Attribute client-supplied messages to the user."""
+    messages = list((chat.get('history', {}).get('messages') or {}).values())
+    messages.extend(chat.get('messages') or [])
+    for message in messages:
+        message['user_id'] = user.id
+        if message.get('role') == 'user':
+            message['user'] = {'id': user.id, 'name': user.name}
 
 
 async def get_optional_verified_user(
@@ -785,6 +796,7 @@ async def create_new_chat(
         )
 
     try:
+        set_message_authors(form_data.chat, user)
         chat = await Chats.insert_new_chat(str(uuid4()), user.id, form_data, db=db)
         await publish_event(
             request,
@@ -816,6 +828,8 @@ async def import_chats(
     await require_chat_import_permission(request, user, db)
 
     try:
+        for chat_form in form_data.chats:
+            set_message_authors(chat_form.chat, user)
         chats = await Chats.import_chats(user.id, form_data.chats, db=db)
         await Tags.ensure_tags_exist(
             list({tag_id for chat in chats for tag_id in (chat.meta or {}).get('tags', [])}), user.id, db=db
@@ -1372,8 +1386,22 @@ async def update_chat_by_id(
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    chat = await Chats.get_chat_by_id_and_user_id(id, user.id, db=db)
+    chat = await Chats.get_chat_by_id(id, db=db)
+    if chat and chat.user_id != user.id:
+        folder = await Folders.get_folder_by_id_and_user_id(chat.folder_id, user.id, db=db) if chat.folder_id else None
+        if (
+            not folder
+            or set(form_data.chat) != {'title'}
+            or form_data.variables is not None
+            or form_data.folder_id is not None
+        ):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+        title = form_data.chat['title']
+        if not isinstance(title, str) or not title.strip():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.DEFAULT('Invalid title'))
+        form_data.chat['title'] = title.strip()
     if chat:
+        set_message_authors(form_data.chat, user)
         touch = 'history' in form_data.chat or 'messages' in form_data.chat
         chat = await Chats.update_chat_by_id(id, form_data.chat, db=db, touch=touch)
         if form_data.variables is not None:
@@ -2143,7 +2171,10 @@ async def update_chat_folder_id_by_id(
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    chat = await Chats.get_chat_by_id_and_user_id(id, user.id, db=db)
+    chat = await Chats.get_chat_by_id(id, db=db)
+    if chat and chat.user_id != user.id:
+        if not await has_chat_move_access(user.id, chat.folder_id, form_data.folder_id, db=db):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_MESSAGES.DEFAULT())
     if chat:
         # None is allowed: it moves the chat out of any folder.
         if form_data.folder_id is not None and not await has_folder_write_access(user.id, form_data.folder_id, db=db):

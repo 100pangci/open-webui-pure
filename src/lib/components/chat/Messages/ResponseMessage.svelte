@@ -778,7 +778,7 @@
 									</button>
 								</Tooltip>
 
-								{#if message.usage}
+								{#if Object.keys(message.usage ?? {}).some((key) => key !== 'incomplete')}
 									<Tooltip
 										content={message.usage
 											? `<pre>${sanitizeResponseContent(

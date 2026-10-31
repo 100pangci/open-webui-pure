@@ -1441,7 +1441,7 @@ class ChatTable:
     async def archive_all_chats_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
         try:
             async with get_async_db_context(db) as session:
-                await session.execute(update(Chat).filter_by(user_id=user_id).values(archived=True))
+                await session.execute(update(Chat).filter_by(user_id=user_id).values(archived=True, folder_id=None))
                 await session.commit()
                 return True
         except Exception:
@@ -2310,9 +2310,9 @@ class ChatTable:
             async with get_async_db_context(db) as session:
                 chat = await session.get(Chat, id)
                 chat.folder_id = folder_id
-                chat.updated_at = int(time.time())
-                chat.last_read_at = int(time.time())
-                chat.pinned = False
+                if chat.user_id == user_id:
+                    chat.last_read_at = int(time.time())
+                    chat.pinned = False
                 if folder_id is not None:
                     # Folder listings only show unarchived chats, so moving an archived
                     # chat into a folder would otherwise have no visible effect: the chat
