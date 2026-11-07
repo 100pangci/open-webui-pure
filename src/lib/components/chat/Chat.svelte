@@ -76,7 +76,8 @@
 		generateMoACompletion,
 		stopTask,
 		stopTasksByChatId,
-		getTaskIdsByChatId
+		getTaskIdsByChatId,
+		resumeTemporaryChat
 	} from '$lib/apis';
 	import { createOpenAITextStream } from '$lib/apis/streaming';
 	import { updateFolderById } from '$lib/apis/folders';
@@ -725,6 +726,8 @@
 	};
 
 	const chatEventHandler = async (event, cb) => {
+		if (isTemporaryChatId(event.chat_id) && event.chat_id !== $chatId) return;
+
 		console.log(event);
 
 		// A new chat's title can arrive before its id; the response message already exists.
@@ -966,8 +969,38 @@
 		);
 
 	const handleSocketConnect = async () => {
+		if (!$chatId || !$socket?.id) {
+			return;
+		}
+
+		if (isTemporaryChatId($chatId)) {
+			const id = $chatId;
+			try {
+				const result = await resumeTemporaryChat(localStorage.token, id, $socket.id);
+				if ($chatId !== id) return;
+				taskIds = result.task_ids?.length ? result.task_ids : null;
+				for (const stream of result.streams ?? []) {
+					const message = history.messages[stream.message_id];
+					if (message && !message.done) message.output = stream.output;
+				}
+
+				if (!taskIds) {
+					for (const message of Object.values(history.messages) as any[]) {
+						if (message.role === 'assistant' && !message.done) {
+							message.done = true;
+							message.error = { content: $i18n.t('Connection lost. Please retry.') };
+						}
+					}
+				}
+				history = history;
+			} catch (error) {
+				toast.error(`${error?.detail ?? error?.message ?? error}`);
+			}
+			return;
+		}
+
 		// Gate on $chatId, not chatIdProp: chats started from the home page keep an empty chatIdProp
-		if (!$chatId || $temporaryChatEnabled) {
+		if ($temporaryChatEnabled) {
 			return;
 		}
 
@@ -2971,7 +3004,7 @@
 
 			selectedFolder.set(null);
 		} else {
-			_chatId = createTemporaryChatId($socket?.id);
+			_chatId = isTemporaryChatId(_chatId) ? _chatId : createTemporaryChatId($socket?.id);
 			await chatId.set(_chatId);
 		}
 		await tick();

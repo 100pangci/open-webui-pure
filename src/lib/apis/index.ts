@@ -275,6 +275,16 @@ export const getTaskIdsByChatId = async (token: string, chat_id: string) => {
 	return res;
 };
 
+export const resumeTemporaryChat = async (token: string, chatId: string, sessionId: string) => {
+	const res = await fetch(`${WEBUI_BASE_URL}/api/tasks/chat/${encodeURIComponent(chatId)}/resume`, {
+		method: 'POST',
+		headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+		body: JSON.stringify({ session_id: sessionId })
+	});
+	if (!res.ok) throw await res.json();
+	return res.json();
+};
+
 export const getTaskConfig = async (token: string = '') => {
 	let error = null;
 

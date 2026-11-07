@@ -311,6 +311,7 @@
 	"Confirm Your Password": "Bevestig je wachtwoord",
 	"Connect to an AI provider to start chatting": "Verbind met een AI-provider om te beginnen met chatten",
 	"Connect to your own OpenAI compatible API endpoints.": "Verbind met je eigen OpenAI-compatibele API-endpoints",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "Verbinding verbroken. Opnieuw verbinden...",
 	"Connection Type": "Connectietype",
 	"Connections": "Verbindingen",

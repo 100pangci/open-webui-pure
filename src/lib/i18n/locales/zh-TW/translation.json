@@ -310,6 +310,7 @@
 	"Confirm Your Password": "確認您的密碼",
 	"Connect to an AI provider to start chatting": "連線至 AI 服務後即可開始對話",
 	"Connect to your own OpenAI compatible API endpoints.": "連線至您自有或其他與 OpenAI API 相容的端點。",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "連線中斷，正在重新連線...",
 	"Connection Type": "連線類型",
 	"Connections": "連線",

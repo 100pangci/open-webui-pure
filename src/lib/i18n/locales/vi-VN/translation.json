@@ -310,6 +310,7 @@
 	"Confirm Your Password": "",
 	"Connect to an AI provider to start chatting": "",
 	"Connect to your own OpenAI compatible API endpoints.": "Kết nối với các điểm cuối API tương thích OpenAI của riêng bạn.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "",
 	"Connection Type": "",
 	"Connections": "Kết nối",

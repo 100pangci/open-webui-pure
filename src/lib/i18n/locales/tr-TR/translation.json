@@ -311,6 +311,7 @@
 	"Confirm Your Password": "Parolanızı Onaylayın",
 	"Connect to an AI provider to start chatting": "Sohbete başlamak için bir AI sağlayıcısına bağlanın",
 	"Connect to your own OpenAI compatible API endpoints.": "Kendi OpenAI uyumlu API uç noktalarınıza bağlanın.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "Bağlantı kesildi. Yeniden bağlanılıyor...",
 	"Connection Type": "Bağlantı Tipi",
 	"Connections": "Bağlantılar",
