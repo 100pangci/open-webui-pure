@@ -74,7 +74,7 @@ from open_webui.utils.misc import (
     strip_empty_content_blocks,
 )
 from open_webui.utils.payload import apply_params_to_form_data, apply_system_prompt_to_body, resolve_system_prompt
-from open_webui.utils.response import merge_usage, normalize_usage
+from open_webui.utils.response import convert_responses_stream_to_chat_completions, merge_usage, normalize_usage
 from open_webui.utils.task import get_task_model_id
 from starlette.responses import Response, StreamingResponse
 
@@ -506,8 +506,8 @@ def handle_responses_streaming_event(
 
         return current_output, None
 
-    elif event_type == 'response.completed':
-        # State Machine Event: Completed
+    elif event_type in ('response.completed', 'response.incomplete'):
+        # State Machine Event: Completed / Incomplete (token limit, content filter)
         response_data = data.get('response', {})
         final_output = response_data.get('output')
 
@@ -2585,8 +2585,8 @@ async def streaming_chat_response_handler(response, ctx):
         return await response_handler(response, events)
 
     else:
-        # Fallback: no event emitter (e.g. API/background contexts) — pass the
-        # provider stream through untouched.
+        # Fallback: no event emitter (e.g. API/background contexts) — convert
+        # Responses API streams to Chat Completions chunks; pass others through.
         async def stream_wrapper(original_generator, events):
             def wrap_item(item):
                 return f'data: {item}\n\n'
@@ -2600,7 +2600,7 @@ async def streaming_chat_response_handler(response, ctx):
                     yield data
 
         return StreamingResponse(
-            stream_wrapper(response.body_iterator, events),
+            convert_responses_stream_to_chat_completions(stream_wrapper(response.body_iterator, events)),
             headers=dict(response.headers),
             background=response.background,
         )
