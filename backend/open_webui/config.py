@@ -41,16 +41,48 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 ####################################
 
 
+def _read_alembic_version(engine) -> list[str]:
+    from sqlalchemy import text
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        with engine.connect() as connection:
+            return [
+                version for (version,) in connection.execute(text('SELECT version_num FROM alembic_version')) if version
+            ]
+    except SQLAlchemyError:
+        # A fresh database has no alembic_version table yet.
+        return []
+
+
+def _unknown_migration_revisions(database_revisions: list[str], known_revisions: set[str]) -> list[str]:
+    return sorted({revision for revision in database_revisions if revision not in known_revisions})
+
+
 def run_migrations():
     log.info('Running migrations')
     try:
         from alembic import command
         from alembic.config import Config as AlembicConfig
+        from alembic.script import ScriptDirectory
 
         alembic_cfg = AlembicConfig(OPEN_WEBUI_DIR / 'alembic.ini')
 
         migrations_path = OPEN_WEBUI_DIR / 'migrations'
         alembic_cfg.set_main_option('script_location', str(migrations_path))
+
+        from open_webui.internal.db import engine
+
+        known_revisions = {revision.revision for revision in ScriptDirectory.from_config(alembic_cfg).walk_revisions()}
+        unknown_revisions = _unknown_migration_revisions(_read_alembic_version(engine), known_revisions)
+        if unknown_revisions:
+            raise RuntimeError(
+                'This database was migrated by an unsupported Open WebUI release '
+                f'(alembic revision(s): {", ".join(unknown_revisions)}). '
+                'Open WebUI Pure cannot upgrade a database created or migrated by upstream Open WebUI. '
+                'Restore the backup taken before the upstream migration, or export the data and import it '
+                'into a fresh Pure database. Do not stamp or edit alembic_version by hand.'
+            )
 
         command.upgrade(alembic_cfg, 'head')
     except Exception as e:

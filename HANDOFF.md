@@ -123,7 +123,9 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 3. Never import a module, dependency or config entry whose feature is under
    "Removed". Keep lazy imports lazy.
 4. Do not touch `backend/open_webui/migrations/` (58 historical revisions;
-   Alembic head `d4c1a8e37b62`).
+   Alembic head `d4c1a8e37b62`). Startup checks that the database revision
+   belongs to Pure's history and refuses databases migrated by upstream Open
+   WebUI; see [`docs/db-compat.md`](./docs/db-compat.md).
 5. Re-run the test commands above; keep `npm run build` and the container
    regression green.
 6. After auditing an upstream release, record it as a `git merge -s ours`
@@ -146,6 +148,11 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 - Historical migrations and existing SQLite data must keep working; verify
   with a copy of a real volume before publishing a change that touches
   `config.py`, `internal/db.py` or migrations.
+- Never start Pure on a database that was created or migrated by upstream
+  Open WebUI. The startup guard rejects unknown `alembic_version` revisions
+  with a readable error; recover from a pre-migration backup or export/import
+  into a fresh Pure database. Never `alembic stamp` or edit the version table
+  by hand. See [`docs/db-compat.md`](./docs/db-compat.md).
 
 ## Known design trade-offs and traps
 

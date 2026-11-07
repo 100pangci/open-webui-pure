@@ -123,6 +123,13 @@ recreate a container when only the image ID changed, while the script detects
 that and forces a recreate. The data volume (`open-webui_open-webui`) is never
 removed by the script or by `down`.
 
+Pure keeps its own Alembic history and only upgrades databases whose
+`alembic_version` belongs to that history. A database migrated by upstream
+Open WebUI (for example v0.12.5 or v0.13.0) is rejected at startup with a
+readable error instead of being partially upgraded. Restore the
+pre-migration backup or export/import into a fresh Pure database; see
+[`docs/db-compat.md`](./docs/db-compat.md).
+
 Enable optional dependencies at build time:
 
 ```bash
