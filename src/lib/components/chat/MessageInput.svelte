@@ -30,6 +30,7 @@
 
 	import {
 		convertHeicToJpeg,
+		normalizeImageFile,
 		compressImage,
 		createMessagesList,
 		extractCurlyBraceWords,
@@ -449,7 +450,7 @@
 			await temporaryChatEnabled.set(!$temporaryChatEnabled);
 		}
 
-		if (location.pathname !== '/') {
+		if (location.pathname !== '/' && !location.pathname.startsWith('/folders/')) {
 			await goto('/');
 		}
 
@@ -846,6 +847,8 @@
 				);
 				return;
 			}
+
+			file = await normalizeImageFile(file);
 
 			if (file['type'].startsWith('image/')) {
 				if (visionCapableModels.length === 0) {
