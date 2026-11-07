@@ -311,6 +311,7 @@
 	"Confirm Your Password": "确认您的密码",
 	"Connect to an AI provider to start chatting": "连接 AI 服务后即可开始对话",
 	"Connect to your own OpenAI compatible API endpoints.": "连接到符合 OpenAI 接口格式的接口",
+	"Connection lost. Please retry.": "连接已断开，请重试。",
 	"Connection lost. Reconnecting...": "连接已断开，正在重新连接……",
 	"Connection Type": "连接类型",
 	"Connections": "外部连接",

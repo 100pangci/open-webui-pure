@@ -280,6 +280,7 @@
 					{done}
 					{save}
 					{preview}
+					{onPreview}
 					{compactPreview}
 					{editCodeBlock}
 					{sourceIds}
@@ -308,6 +309,7 @@
 							{done}
 							{save}
 							{preview}
+							{onPreview}
 							{compactPreview}
 							{editCodeBlock}
 							{sourceIds}
@@ -331,6 +333,7 @@
 									{done}
 									{save}
 									{preview}
+									{onPreview}
 									{compactPreview}
 									{editCodeBlock}
 									{sourceIds}
@@ -345,6 +348,7 @@
 								{done}
 								{save}
 								{preview}
+								{onPreview}
 								{compactPreview}
 								{editCodeBlock}
 								{sourceIds}
@@ -384,6 +388,7 @@
 									{done}
 									{save}
 									{preview}
+									{onPreview}
 									{compactPreview}
 									{editCodeBlock}
 									{sourceIds}
@@ -427,6 +432,7 @@
 						{done}
 						{save}
 						{preview}
+						{onPreview}
 						{compactPreview}
 						{editCodeBlock}
 						{sourceIds}

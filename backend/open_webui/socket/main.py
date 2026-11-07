@@ -34,13 +34,15 @@ from open_webui.models.folders import Folders
 from open_webui.models.users import Users
 from open_webui.socket.utils import RedisDict, RedisLock
 from open_webui.utils.auth import get_verified_user_by_token
-from open_webui.utils.chat_id import is_saved_chat_id
+from open_webui.utils.chat_id import is_saved_chat_id, is_temporary_chat_id
 from open_webui.utils.json_codec import SOCKETIO_JSON
 from open_webui.utils.redis import (
     build_sentinel_url,
+    get_redis_client,
     get_redis_connection,
     get_sentinels_from_env,
 )
+from open_webui.utils.temporary_chat import get_temporary_chat
 from socketio.packet import Packet
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
@@ -514,6 +516,8 @@ async def disconnect(sid, reason=None):
 
 
 async def get_event_emitter(request_info, update_db=True):
+    redis = get_redis_client(async_mode=True) if is_temporary_chat_id(request_info.get('chat_id')) else None
+
     async def __event_emitter__(event_data):
         user_id = request_info['user_id']
         chat_id = request_info['chat_id']
@@ -525,6 +529,11 @@ async def get_event_emitter(request_info, update_db=True):
             return
 
         room = f'user:{user_id}'
+        if is_temporary_chat_id(chat_id):
+            owner = await get_temporary_chat(redis, chat_id)
+            room = owner['session_id'] if owner and owner['user_id'] == user_id else request_info.get('session_id')
+            if not room or get_user_id_from_session_pool(room) != user_id:
+                return
         # Local rooms are authoritative; Redis may have listeners on another instance.
         if WEBSOCKET_MANAGER == 'redis' or room in sio.manager.rooms.get('/', {}):
             await sio.emit(
@@ -634,8 +643,16 @@ async def get_event_emitter(request_info, update_db=True):
 
 
 async def get_event_call(request_info):
+    redis = get_redis_client(async_mode=True) if is_temporary_chat_id(request_info.get('chat_id')) else None
+
     async def __event_caller__(event_data):
         session_id = request_info['session_id']
+        if is_temporary_chat_id(request_info['chat_id']):
+            owner = await get_temporary_chat(redis, request_info['chat_id'])
+            if owner and owner['user_id'] == request_info['user_id']:
+                session_id = request_info['session_id'] = owner['session_id']
+                if 'session_id' in (event_data.get('data') or {}):
+                    event_data = {**event_data, 'data': {**event_data['data'], 'session_id': session_id}}
 
         # session_id is client-supplied; only the requesting user's own live session may be targeted.
         session = SESSION_POOL.get(session_id)

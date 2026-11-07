@@ -313,6 +313,7 @@
 	"Confirm Your Password": "Potrdite geslo",
 	"Connect to an AI provider to start chatting": "Poveži to an AI provider to start chatting",
 	"Connect to your own OpenAI compatible API endpoints.": "Poveži to your own OpenAI compatible API endpoints.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "Povezava je prekinjena. Ponovno povezovanje ...",
 	"Connection Type": "Vrsta povezave",
 	"Connections": "Povezave",

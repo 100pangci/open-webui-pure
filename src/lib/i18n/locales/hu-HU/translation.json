@@ -311,6 +311,7 @@
 	"Confirm Your Password": "Jelszavad megerősítése",
 	"Connect to an AI provider to start chatting": "Csatlakozz egy AI-szolgáltatóhoz a beszélgetés megkezdéséhez",
 	"Connect to your own OpenAI compatible API endpoints.": "Csatlakozz saját OpenAI kompatibilis API végpontjaidhoz.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "A kapcsolat megszakadt. Újracsatlakozás...",
 	"Connection Type": "Kapcsolat típusa",
 	"Connections": "Kapcsolatok",

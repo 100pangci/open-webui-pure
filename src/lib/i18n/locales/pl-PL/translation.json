@@ -313,6 +313,7 @@
 	"Confirm Your Password": "Potwierdź swoje hasło",
 	"Connect to an AI provider to start chatting": "Połącz się z dostawcą AI, aby rozpocząć czat",
 	"Connect to your own OpenAI compatible API endpoints.": "Połącz z własnymi punktami końcowymi API zgodnymi z OpenAI.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "Utracono połączenie. Ponowne łączenie...",
 	"Connection Type": "Typ połączenia",
 	"Connections": "Połączenia",

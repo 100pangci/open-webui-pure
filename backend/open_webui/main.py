@@ -145,6 +145,7 @@ from open_webui.socket.main import (
 from open_webui.tasks import (
     cleanup_task,
     create_task,
+    get_response_streams_by_chat_id,
     has_active_tasks,
     list_task_ids_by_item_id,
     list_tasks,
@@ -198,6 +199,7 @@ from open_webui.utils.models import (
 from open_webui.utils.oauth_manager import get_oauth_manager
 from open_webui.utils.redis import get_redis_client
 from open_webui.utils.session_pool import get_session
+from open_webui.utils.temporary_chat import get_temporary_chat, register_temporary_chat_session
 
 if SAFE_MODE:
     print('SAFE MODE ENABLED')
@@ -766,6 +768,18 @@ async def chat_completion(
         if is_new_chat:
             metadata['chat_id'] = str(uuid4())
 
+        if is_temporary_chat_id(metadata.get('chat_id')):
+            session_id = metadata.get('session_id')
+            if not isinstance(session_id, str) or not await register_temporary_chat_session(
+                request.app.state.redis,
+                metadata['chat_id'],
+                user.id,
+                session_id,
+                get_user_id_from_session_pool(session_id),
+                create=True,
+            ):
+                raise HTTPException(status_code=404, detail='Temporary chat expired or unavailable')
+
         initial_title_generation = None
         if is_new_chat and tasks and TASKS.TITLE_GENERATION in tasks:
             initial_title_generation = tasks.pop(TASKS.TITLE_GENERATION)
@@ -1305,7 +1319,8 @@ async def list_tasks_endpoint(request: Request, user=Depends(get_admin_user)):
 async def list_tasks_by_chat_id_endpoint(request: Request, chat_id: str, user=Depends(get_verified_user)):
     socket_id = get_temporary_chat_session_id(chat_id)
     if socket_id:
-        owner_id = get_user_id_from_session_pool(socket_id)
+        owner = await get_temporary_chat(request.app.state.redis, chat_id)
+        owner_id = owner['user_id'] if owner else get_user_id_from_session_pool(socket_id)
         if owner_id != user.id and not (user.role == 'admin' and ENABLE_ADMIN_CHAT_ACCESS):
             return {'task_ids': []}
     else:
@@ -1319,12 +1334,31 @@ async def list_tasks_by_chat_id_endpoint(request: Request, chat_id: str, user=De
     return {'task_ids': task_ids}
 
 
+@app.post('/api/tasks/chat/{chat_id:path}/resume')
+async def resume_temporary_chat(request: Request, chat_id: str, form_data: dict, user=Depends(get_verified_user)):
+    session_id = form_data.get('session_id')
+    if not isinstance(session_id, str) or not await register_temporary_chat_session(
+        request.app.state.redis,
+        chat_id,
+        user.id,
+        session_id,
+        get_user_id_from_session_pool(session_id),
+        create=True,
+    ):
+        raise HTTPException(status_code=404, detail='Temporary chat expired or unavailable')
+    return {
+        'task_ids': await list_task_ids_by_item_id(request.app.state.redis, chat_id),
+        'streams': await get_response_streams_by_chat_id(request.app.state.redis, chat_id),
+    }
+
+
 @app.post('/api/tasks/chat/{chat_id:path}/stop')
 async def stop_tasks_by_chat_id_endpoint(request: Request, chat_id: str, user=Depends(get_verified_user)):
     socket_id = get_temporary_chat_session_id(chat_id)
     chat = None
     if socket_id:
-        owner_id = get_user_id_from_session_pool(socket_id)
+        owner = await get_temporary_chat(request.app.state.redis, chat_id)
+        owner_id = owner['user_id'] if owner else get_user_id_from_session_pool(socket_id)
         if owner_id != user.id and not (user.role == 'admin' and ENABLE_ADMIN_CHAT_ACCESS):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
     else:

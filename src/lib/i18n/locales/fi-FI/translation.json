@@ -311,6 +311,7 @@
 	"Confirm Your Password": "Vahvista salasanasi",
 	"Connect to an AI provider to start chatting": "Yhdistä tekoälypalveluntarjoajaan aloittaaksesi keskustelut",
 	"Connect to your own OpenAI compatible API endpoints.": "Yhdistä omat OpenAI yhteensopivat API päätepisteet.",
+	"Connection lost. Please retry.": "",
 	"Connection lost. Reconnecting...": "Yhteys katkaistu. Yhdistetään uudelleen...",
 	"Connection Type": "Yhteystyyppi",
 	"Connections": "Yhteydet",

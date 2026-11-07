@@ -6,7 +6,7 @@ logs live in git history, not here.
 ## Product boundary
 
 Open WebUI Pure is an unofficial, aggressively subtractive fork of upstream
-Open WebUI (baseline **v0.11.3**, synced through **v0.12.5**). The goal is not to reimplement Open WebUI:
+Open WebUI (baseline **v0.11.3**, synced through **v0.13.0**). The goal is not to reimplement Open WebUI:
 it is to keep the mature chat core and the original branding while physically
 removing the features, dependencies and background costs that personal / home
 / small multi-user deployments do not need.
@@ -95,8 +95,9 @@ image. `backend/requirements-optional.txt` aggregates the rest.
 ## Tests and verification
 
 ```bash
-# backend: 125 tests (SSRF hardening, compression q-value negotiation,
-# rate limiting, generated image types, changelog parsing)
+# backend: 166 tests (SSRF hardening, compression q-value negotiation,
+# rate limiting, generated image types, changelog parsing, temporary-chat
+# ownership, Responses API conversion, database revision guard)
 PYTHONPATH=backend pytest backend/open_webui/test -q
 
 # frontend
@@ -123,11 +124,13 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 3. Never import a module, dependency or config entry whose feature is under
    "Removed". Keep lazy imports lazy.
 4. Do not touch `backend/open_webui/migrations/` (58 historical revisions;
-   Alembic head `d4c1a8e37b62`).
+   Alembic head `d4c1a8e37b62`). Startup checks that the database revision
+   belongs to Pure's history and refuses databases migrated by upstream Open
+   WebUI; see [`docs/db-compat.md`](./docs/db-compat.md).
 5. Re-run the test commands above; keep `npm run build` and the container
    regression green.
 6. After auditing an upstream release, record it as a `git merge -s ours`
-   baseline (for example v0.12.5 at `f7ac7ee10`). The baseline keeps the
+   baseline (for example v0.13.0 at `c38885a1a`). The baseline keeps the
    fork's ancestry aligned so the next sync only has to audit genuinely new
    upstream commits and GitHub does not report the fork as endlessly behind.
    It never imports upstream files: the working tree stays Pure's. Do not
@@ -146,6 +149,11 @@ After a dependency or Dockerfile change, run `pip check` inside the image
 - Historical migrations and existing SQLite data must keep working; verify
   with a copy of a real volume before publishing a change that touches
   `config.py`, `internal/db.py` or migrations.
+- Never start Pure on a database that was created or migrated by upstream
+  Open WebUI. The startup guard rejects unknown `alembic_version` revisions
+  with a readable error; recover from a pre-migration backup or export/import
+  into a fresh Pure database. Never `alembic stamp` or edit the version table
+  by hand. See [`docs/db-compat.md`](./docs/db-compat.md).
 
 ## Known design trade-offs and traps
 
@@ -182,12 +190,13 @@ After a dependency or Dockerfile change, run `pip check` inside the image
   `ENABLE_*` build args, build-time `pip check`, runtime bytecode off.
 - `podman.sh` + `docker-compose.yml` — the single supported container entry
   point; generic proxy pass-through, persistent volume, recreate-on-change.
-- `backend/open_webui/` — application; `test/` holds the 100 tests;
+- `backend/open_webui/` — application; `test/` holds the 166 tests;
   `migrations/` is append-only history.
 - `src/` — SvelteKit frontend; `static/` — SPA assets (branding notices in
   `static/BRANDING.md`).
-- `.github/workflows/` — three Pure workflows: backend CI (Ruff + tests),
+- `.github/workflows/` — four Pure workflows: backend CI (Ruff + tests),
   frontend CI (format + i18n + build + tests), image publish (test +
   amd64/arm64 to Docker Hub, `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`
-  secrets, tags and manual dispatch only).
+  secrets, tags and manual dispatch only), and container regression
+  (`pure-sync-check`, pull requests and manual dispatch only).
 - `.env.example` — the supported configuration surface.
