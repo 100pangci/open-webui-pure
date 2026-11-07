@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type { TerminalContext } from '$lib/types';
+	import {
+		estimateTokens,
+		estimateMessagesTokens,
+		estimateUsageGrowth,
+		captureUsageCheckpoint
+	} from '$lib/utils/contextUsage';
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 
@@ -194,52 +201,34 @@
 		}
 	}
 
-	const estimateTokens = (value) => {
-		if (value === null || value === undefined || value === '') {
-			return 0;
-		}
-		if (typeof value !== 'string') {
-			try {
-				value = JSON.stringify(value);
-			} catch {
-				value = String(value);
-			}
-		}
-		return Math.max(1, Math.floor(value.length / 4));
-	};
-
-	const estimateMessagesTokens = (messages) =>
-		messages.reduce((total, message) => {
-			let next = total + 4 + estimateTokens(message.content);
-			next += estimateTokens(message.output);
-			next += estimateTokens(message.files);
-			return next;
-		}, 0);
-
 	$: contextCompactionEnabled = Boolean($config?.features?.enable_context_compaction);
 
-	const getContextThreshold = () => {
+	const getContextThreshold = (
+		modelId: string | undefined,
+		models: Model[],
+		params: { compact_token_threshold?: unknown }
+	) => {
 		const chatThreshold = Number(params?.compact_token_threshold);
 		if (Number.isFinite(chatThreshold) && chatThreshold > 0) {
 			return chatThreshold;
 		}
 
-		const modelId = atSelectedModel?.id ?? selectedModels.find((id) => id);
-		const model = $models.find((item) => item.id === modelId);
+		const model = models.find((item) => item.id === modelId);
 		const threshold = Number(model?.info?.params?.compact_token_threshold);
 		return Number.isFinite(threshold) && threshold > 0 ? threshold : null;
 	};
 
-	const getContextUsage = () => {
-		if (!history?.currentId) {
+	const getContextUsage = (
+		chatHistory: typeof history,
+		system: string,
+		threshold: number | null
+	) => {
+		if (!chatHistory?.currentId) {
 			return null;
 		}
 
-		const messages = createMessagesList(history, history.currentId);
-		const threshold = contextCompactionEnabled
-			? (getContextThreshold() ?? serverContextUsage?.threshold ?? null)
-			: null;
-		const systemTokens = estimateTokens($settings?.system ?? '');
+		const messages = createMessagesList(chatHistory, chatHistory.currentId);
+		const systemTokens = estimateTokens(system);
 		let estimatedTokens = systemTokens;
 		let hasUsageCheckpoint = false;
 		let summary = '';
@@ -260,7 +249,10 @@
 			const usageTokens = getUsageTokenCount(usage);
 			if (usageTokens) {
 				hasUsageCheckpoint = true;
-				estimatedTokens = usageTokens + estimateMessagesTokens(activeMessages.slice(idx + 1));
+				estimatedTokens =
+					usageTokens +
+					estimateUsageGrowth(activeMessages[idx]) +
+					estimateMessagesTokens(activeMessages.slice(idx + 1));
 				break;
 			}
 		}
@@ -278,7 +270,18 @@
 		};
 	};
 
-	$: contextUsage = getContextUsage() ?? (contextCompactionEnabled ? serverContextUsage : null);
+	$: contextThreshold = contextCompactionEnabled
+		? (getContextThreshold(
+				atSelectedModel?.id ?? selectedModels.find((id) => id),
+				$models,
+				params
+			) ??
+			serverContextUsage?.threshold ??
+			null)
+		: null;
+	$: contextUsage =
+		getContextUsage(history, $settings?.system ?? '', contextThreshold) ??
+		(contextCompactionEnabled ? serverContextUsage : null);
 	$: embeddedHeaderTitle = embeddedTitle || $chatTitle || $i18n.t('Chat');
 
 	let imageGenerationEnabled = false;
@@ -1298,7 +1301,9 @@
 		autoScroll = true;
 
 		// resetInput() must stay last: the selected model's defaults override the draft's selection.
-		await restoreChatInput(sessionStorage.getItem('chat-input'));
+		const chatInputPrompt = (await restoreChatInput(sessionStorage.getItem('chat-input')))
+			? prompt
+			: null;
 		const previousChatId = $chatId;
 		const previousMessageId = history.currentId;
 		await resetInput();
@@ -1369,6 +1374,8 @@
 		);
 
 		await tick();
+		// Mounting the editor clears prompt, so apply the saved text afterward.
+		if (chatInputPrompt !== null) messageInput?.setText(chatInputPrompt);
 		messageInput?.focus({ preventScroll: true });
 	};
 
@@ -1912,6 +1919,7 @@
 
 		if (usage) {
 			message.usage = usage;
+			captureUsageCheckpoint(message);
 		}
 
 		history.messages[message.id] = message;
