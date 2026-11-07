@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { TerminalContext } from '$lib/types';
 	import {
 		estimateTokens,
 		estimateMessagesTokens,

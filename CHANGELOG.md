@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-11-07
+
+### Changed
+
+- 🔄 **Upstream sync to Open WebUI v0.13.0.** Audited all 194 upstream commits between v0.12.5 and v0.13.0 and ported only the fixes that affect retained features. The retained v0.12.5 changes are folded into this release; v0.12.5 was not tagged separately. No removed feature, dependency or migration was imported. The per-commit decisions are recorded in [`docs/upstream-audit/2026-11-07-summary.md`](./docs/upstream-audit/2026-11-07-summary.md).
+- 🗄️ **Databases migrated by upstream Open WebUI are rejected at startup.** Before upgrading, Pure now compares the database's `alembic_version` with its own migration history. A database stamped by another release (for example upstream v0.12.5 `0bd252b206fb` or v0.13.0 `e42c8f710a36`) stops with a readable error instead of being partially upgraded. Recover from a pre-migration backup or export/import into a fresh Pure database; see [`docs/db-compat.md`](./docs/db-compat.md).
+
+### Fixed
+
+- 🔒 **Temporary chats stay with their creator.** A temporary chat is bound to the socket session and user that started it, so another user cannot read, resume or stop its tasks. Ownership is kept in Redis with an atomic compare-and-set when Redis is configured, with a process-local fallback otherwise. A reconnecting client can resume its task list and partial streams, and unfinished replies are marked with a retryable error when recovery is no longer possible.
+- 🔁 **Responses API replies now use Chat Completions framing.** Streaming replies from a Responses API connection are converted into standard `chat.completion.chunk` events with a stable id, `created`, role, finish reason and usage. Replies that end at the token limit or on a content filter (`response.incomplete`) keep their usage instead of losing it, and non-streaming replies report `refusal`, `created` and the correct finish reason.
+- 🔤 **Non-ASCII stop sequences reach the provider intact.** Stop sequences such as `終` or `café` are no longer mangled into invalid escape sequences.
+- ✍️ **Drafts survive opening a chat.** Text that was typed but not sent is restored after the editor mounts instead of being cleared by the model defaults.
+- 📊 **Context usage follows the growing reply.** Estimates now anchor on the latest usage checkpoint and count only the text produced after it, including structured output and file attachments.
+- 📁 **Temporary Chat works from folder pages.** Starting a temporary chat while viewing a folder no longer navigates away from the folder.
+- 🖼️ **Images without a MIME type are still recognised.** Files dragged from sources that omit both the MIME type and extension (for example macOS Photos) are identified by their header bytes before upload.
+- 🧩 **Code-block previews work inside nested lists, quotes and details.** The Preview action is passed down through nested Markdown containers.
+
 ## [0.12.3] - 2026-10-18
 
 ### Changed
