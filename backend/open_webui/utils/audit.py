@@ -115,15 +115,79 @@ class AuditContext:
             self.response_body.extend(chunk[: self.max_body_size - len(self.response_body)])
 
 
+# Key names may contain characters a \w* pattern does not cross, such as the
+# hyphen in "x-api-key" that custom OpenAI connection headers use.
+_SECRET_KEY = re.compile(r'"([^"]*(?:password|secret|token|key|authorization)s?)"\s*:\s*', re.IGNORECASE)
+
+
+def _secret_value_end(body: str, start: int) -> int | None:
+    """Index just past the string or array value at `start`, or None.
+
+    Only strings and arrays are masked; values cut off by the body-size limit
+    have no closing delimiter and are masked to the end.
+    """
+    if start >= len(body):
+        return None
+
+    if body[start] == '"':
+        i = start + 1
+        while i < len(body):
+            if body[i] == '\\':
+                i += 2
+                continue
+            if body[i] == '"':
+                return i + 1
+            i += 1
+        return len(body)
+
+    if body[start] == '[':
+        depth = 0
+        i = start
+        while i < len(body):
+            char = body[i]
+            if char == '"':
+                i += 1
+                while i < len(body):
+                    if body[i] == '\\':
+                        i += 2
+                        continue
+                    if body[i] == '"':
+                        break
+                    i += 1
+            elif char == '[':
+                depth += 1
+            elif char == ']':
+                depth -= 1
+                if depth == 0:
+                    return i + 1
+            i += 1
+        return len(body)
+
+    return None
+
+
 def redact_secrets(body: str) -> str:
-    # Secrets cut off by the size limit have no closing quote.
-    quoted = r'"(?:[^"\\]|\\.)*\\?(?:"|$)'
-    return re.sub(
-        rf'"(\w*(?:password|secret|token|key|authorization)s?)"\s*:\s*(?:{quoted}|\[(?:{quoted}|[^\]"])*(?:\]|$))',
-        r'"\1": "********"',
-        body,
-        flags=re.IGNORECASE,
-    )
+    """Mask secret values, including ones cut off by the size limit.
+
+    Scans values instead of matching brackets with a regex so nested arrays
+    and hyphens in key names cannot leak their contents.
+    """
+    parts = []
+    last = 0
+    for match in _SECRET_KEY.finditer(body):
+        if match.start() < last:
+            continue
+
+        value_end = _secret_value_end(body, match.end())
+        if value_end is None:
+            continue
+
+        parts.append(body[last : match.end()])
+        parts.append('"********"')
+        last = value_end
+
+    parts.append(body[last:])
+    return ''.join(parts)
 
 
 class AuditLoggingMiddleware:
