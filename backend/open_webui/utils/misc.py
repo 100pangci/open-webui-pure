@@ -17,6 +17,7 @@ from open_webui.utils.json_codec import JSONCodec
 log = logging.getLogger(__name__)
 SURROGATE_RE = re.compile('[\ud800-\udfff]')
 MAX_DIFF_LINES = 5000
+MAX_DIFF_CHARS = 1_000_000
 
 
 def deep_update(d, u):
@@ -690,7 +691,17 @@ def unified_text_diff(old: str, new: str, fromfile: str, tofile: str, keepends: 
     `keepends` preserves Pure's prompt-history output where each line keeps its
     trailing newline; callers that join with '\n' keep the default.
     """
+    # Count newlines before splitting so an oversized version is rejected
+    # without allocating its line list. A single line may still be arbitrarily
+    # long, so cap the character count as well.
+    if max(len(old), len(new)) > MAX_DIFF_CHARS:
+        raise HTTPException(status_code=413, detail=f'Diff input is limited to {MAX_DIFF_CHARS} characters')
+    for text in (old, new):
+        if text.count('\n') > MAX_DIFF_LINES:
+            raise HTTPException(status_code=413, detail=f'Diff is limited to {MAX_DIFF_LINES} lines per version')
+
     old_lines, new_lines = old.splitlines(keepends), new.splitlines(keepends)
     if max(len(old_lines), len(new_lines)) > MAX_DIFF_LINES:
         raise HTTPException(status_code=413, detail=f'Diff is limited to {MAX_DIFF_LINES} lines per version')
+
     return list(difflib.unified_diff(old_lines, new_lines, fromfile=fromfile, tofile=tofile, lineterm=''))
