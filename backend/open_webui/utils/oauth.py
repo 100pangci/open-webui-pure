@@ -623,7 +623,7 @@ class OAuthManager:
 
         return user
 
-    async def update_user_groups(self, request, user, user_data, default_permissions, db=None):
+    async def update_user_groups(self, request, user, user_data, default_permissions, db=None, *, require_claim=False):
         auth_config = await get_oauth_runtime_config()
         log.debug('Running OAUTH Group management')
         oauth_claim = auth_config.OAUTH_GROUPS_CLAIM
@@ -631,12 +631,20 @@ class OAuthManager:
         blocked_groups = _parse_blocked_groups(auth_config.OAUTH_BLOCKED_GROUPS)
 
         user_oauth_groups = []
+        claim_data = None
+        claim_missing = False
         # Nested claim search for groups claim
         if oauth_claim:
             claim_data = user_data
             nested_claims = oauth_claim.split('.')
             for nested_claim in nested_claims:
-                claim_data = claim_data.get(nested_claim, {})
+                if not isinstance(claim_data, dict):
+                    claim_data = None
+                    break
+                claim_data = claim_data.get(nested_claim)
+
+            # Distinguish a missing claim from an explicit empty list/string.
+            claim_missing = claim_data is None
 
             if isinstance(claim_data, list):
                 user_oauth_groups = claim_data
@@ -650,6 +658,14 @@ class OAuthManager:
                 user_oauth_groups = []
 
         user_current_groups: list[GroupModel] = await Groups.get_groups_by_member_id(user.id, db=db)
+
+        if require_claim and claim_missing and user_current_groups:
+            # Token exchange cannot revoke stale group membership without a
+            # readable claim, so granting a session would leave old group
+            # permissions active. Refuse instead of silently skipping the sync.
+            log.warning('Token exchange denied: no readable groups claim in userinfo')
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+
         all_available_groups: list[GroupModel] = await Groups.get_all_groups(db=db)
 
         # Create groups if they don't exist and creation is enabled

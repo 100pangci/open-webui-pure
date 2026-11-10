@@ -1713,6 +1713,7 @@ async def token_exchange(
             user_data=user_data,
             default_permissions=await Config.get('user.permissions'),
             db=db,
+            require_claim=True,
         )
 
     return await create_session_response(request, user, db, source='oauth')
