@@ -386,6 +386,15 @@ async def _authenticate(sid: str, token: str | None, environ=None) -> dict | Non
     if not user:
         return None
 
+    # A browser keeps one socket across logout/login: refuse to re-bind a sid
+    # that already belongs to another account. Otherwise the old sid stays in
+    # the previous user's room and receives their private events.
+    previous = await get_socket_session_user(sid)
+    if previous and previous.get('id') not in (None, user.id):
+        log.warning('Refusing to re-authenticate socket %s as a different user', sid)
+        await sio.disconnect(sid)
+        return None
+
     socket_user = {
         **user.model_dump(
             exclude=[
