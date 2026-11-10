@@ -497,7 +497,27 @@
 		if (event.type === 'query' && (event.data?.query || event.data?.files?.length)) {
 			// Bind the handoff to the account that received it: the SPA can be
 			// signed out or logged into another account before Chat consumes it.
-			desktopEvent.set({ ...event, receivedForUserId: $user?.id ?? null });
+			// The session may still be restoring ($user undefined) and then turn
+			// out to be the same account, so wait for restore when a token exists
+			// and only treat a truly signed-out session as "no account". If the
+			// restore never settles, drop the handoff rather than misattribute it.
+			let receivedForUserId: string | null = $user?.id ?? null;
+			if ($user === undefined && localStorage.getItem('token')) {
+				receivedForUserId = await new Promise<string | null>((resolve) => {
+					let timer: ReturnType<typeof setTimeout>;
+					const unsubscribe = user.subscribe((value) => {
+						if (value === undefined) return;
+						clearTimeout(timer);
+						unsubscribe();
+						resolve(value?.id ?? null);
+					});
+					timer = setTimeout(() => {
+						unsubscribe();
+						resolve(null);
+					}, 15000);
+				});
+			}
+			desktopEvent.set({ ...event, receivedForUserId });
 			await goto('/');
 			return;
 		}
