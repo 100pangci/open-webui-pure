@@ -1699,13 +1699,9 @@ async def token_exchange(
             detail='User not found. Please sign in via the web interface first.',
         )
 
-    user = await oauth_manager.update_user_role_from_oauth(
-        request=request,
-        user=user,
-        user_data=user_data,
-        provider=provider,
-        db=db,
-    )
+    # Group mapping runs before the role update: a rejected exchange must not
+    # leave a persisted role change behind (the refusal is a 403 and the
+    # caller never receives a session).
     if await Config.get('oauth.enable_group_mapping'):
         await oauth_manager.update_user_groups(
             request=request,
@@ -1715,5 +1711,13 @@ async def token_exchange(
             db=db,
             require_claim=True,
         )
+
+    user = await oauth_manager.update_user_role_from_oauth(
+        request=request,
+        user=user,
+        user_data=user_data,
+        provider=provider,
+        db=db,
+    )
 
     return await create_session_response(request, user, db, source='oauth')

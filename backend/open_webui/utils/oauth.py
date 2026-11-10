@@ -278,6 +278,35 @@ def _parse_blocked_groups(value) -> list[str]:
     return [group for group in value if isinstance(group, str) and group]
 
 
+def _parse_groups_claim(oauth_claim: str | None, user_data) -> tuple[list[str], bool]:
+    """Read the configured groups claim from provider userinfo.
+
+    Returns (groups, missing). A list or string is a readable claim; anything
+    else (absent, dict, number) counts as missing so callers can tell an
+    explicit "no groups" from an unreadable claim.
+    """
+    if not oauth_claim:
+        return [], False
+
+    claim_data = user_data
+    for nested_claim in oauth_claim.split('.'):
+        if not isinstance(claim_data, dict):
+            claim_data = None
+            break
+        claim_data = claim_data.get(nested_claim)
+
+    if isinstance(claim_data, list):
+        return claim_data, False
+    if isinstance(claim_data, str):
+        if not claim_data.strip():
+            # An empty claim means "no groups", not a group named ''.
+            return [], False
+        if OAUTH_GROUPS_SEPARATOR in claim_data:
+            return claim_data.split(OAUTH_GROUPS_SEPARATOR), False
+        return [claim_data], False
+    return [], True
+
+
 def is_in_blocked_groups(group_name: str, groups: list) -> bool:
     """
     Check if a group name matches any blocked pattern.
@@ -630,32 +659,7 @@ class OAuthManager:
 
         blocked_groups = _parse_blocked_groups(auth_config.OAUTH_BLOCKED_GROUPS)
 
-        user_oauth_groups = []
-        claim_data = None
-        claim_missing = False
-        # Nested claim search for groups claim
-        if oauth_claim:
-            claim_data = user_data
-            nested_claims = oauth_claim.split('.')
-            for nested_claim in nested_claims:
-                if not isinstance(claim_data, dict):
-                    claim_data = None
-                    break
-                claim_data = claim_data.get(nested_claim)
-
-            # Distinguish a missing claim from an explicit empty list/string.
-            claim_missing = claim_data is None
-
-            if isinstance(claim_data, list):
-                user_oauth_groups = claim_data
-            elif isinstance(claim_data, str):
-                # Split by the configured separator if present
-                if OAUTH_GROUPS_SEPARATOR in claim_data:
-                    user_oauth_groups = claim_data.split(OAUTH_GROUPS_SEPARATOR)
-                else:
-                    user_oauth_groups = [claim_data]
-            else:
-                user_oauth_groups = []
+        user_oauth_groups, claim_missing = _parse_groups_claim(oauth_claim, user_data)
 
         user_current_groups: list[GroupModel] = await Groups.get_groups_by_member_id(user.id, db=db)
 
@@ -665,6 +669,18 @@ class OAuthManager:
             # permissions active. Refuse instead of silently skipping the sync.
             log.warning('Token exchange denied: no readable groups claim in userinfo')
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+
+        # An explicit empty claim is authoritative on the token-exchange path,
+        # so stale membership is revoked there. The normal callback keeps its
+        # historical no-op behaviour for an empty claim, and an unset claim
+        # never touches membership.
+        revoke_stale_groups = (
+            require_claim
+            and bool(oauth_claim)
+            and not claim_missing
+            and not user_oauth_groups
+            and bool(user_current_groups)
+        )
 
         all_available_groups: list[GroupModel] = await Groups.get_all_groups(db=db)
 
@@ -725,7 +741,7 @@ class OAuthManager:
         # Remove groups that user is no longer a part of
         for group_model in user_current_groups:
             if (
-                user_oauth_groups
+                (user_oauth_groups or revoke_stale_groups)
                 and group_model.name not in user_oauth_groups
                 and not is_in_blocked_groups(group_model.name, blocked_groups)
             ):
