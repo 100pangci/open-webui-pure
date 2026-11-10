@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections.abc
+import difflib
 import hashlib
 import logging
 import re
@@ -9,11 +10,13 @@ import time
 from datetime import timedelta
 
 import aiohttp
+from fastapi import HTTPException
 from open_webui.env import CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE
 from open_webui.utils.json_codec import JSONCodec
 
 log = logging.getLogger(__name__)
 SURROGATE_RE = re.compile('[\ud800-\udfff]')
+MAX_DIFF_LINES = 5000
 
 
 def deep_update(d, u):
@@ -679,3 +682,15 @@ def get_latest_semver_tag(tags: list) -> str | None:
             best_key = key
             best_tag = tag.strip().lstrip('v')
     return best_tag
+
+
+def unified_text_diff(old: str, new: str, fromfile: str, tofile: str, keepends: bool = False) -> list[str]:
+    """Diff two text blobs for the history viewers, bounded by MAX_DIFF_LINES.
+
+    `keepends` preserves Pure's prompt-history output where each line keeps its
+    trailing newline; callers that join with '\n' keep the default.
+    """
+    old_lines, new_lines = old.splitlines(keepends), new.splitlines(keepends)
+    if max(len(old_lines), len(new_lines)) > MAX_DIFF_LINES:
+        raise HTTPException(status_code=413, detail=f'Diff is limited to {MAX_DIFF_LINES} lines per version')
+    return list(difflib.unified_diff(old_lines, new_lines, fromfile=fromfile, tofile=tofile, lineterm=''))
