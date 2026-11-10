@@ -1331,29 +1331,36 @@
 			desktopEvent.set(null);
 
 			if (event.type === 'query') {
-				const query = event.data?.query;
-				const eventFiles = event.data?.files;
+				// Drop the handoff unless the same account that received it is
+				// still signed in; otherwise a draft captured under another
+				// session could be submitted as this user.
+				if (event.receivedForUserId == null || event.receivedForUserId !== $user?.id) {
+					console.warn('Discarding desktop query: the signed-in account changed');
+				} else {
+					const query = event.data?.query;
+					const eventFiles = event.data?.files;
 
-				// Attach screenshot images from desktop (e.g. Spotlight region capture)
-				if (eventFiles?.length) {
-					for (const ef of eventFiles) {
-						files = [
-							...files,
-							{
-								type: 'image',
-								url: ef.dataUrl,
-								name: ef.name
-							}
-						];
+					// Attach screenshot images from desktop (e.g. Spotlight region capture)
+					if (eventFiles?.length) {
+						for (const ef of eventFiles) {
+							files = [
+								...files,
+								{
+									type: 'image',
+									url: ef.dataUrl,
+									name: ef.name
+								}
+							];
+						}
 					}
-				}
 
-				if (query || eventFiles?.length) {
-					if (query) {
-						messageInput?.setText(query);
+					if (query || eventFiles?.length) {
+						if (query) {
+							messageInput?.setText(query);
+						}
+						await tick();
+						submitHandler(query || '');
 					}
-					await tick();
-					submitHandler(query || '');
 				}
 			}
 		} else if ($page.url.searchParams.get('q')) {

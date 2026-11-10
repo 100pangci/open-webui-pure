@@ -495,7 +495,9 @@
 			return;
 		}
 		if (event.type === 'query' && (event.data?.query || event.data?.files?.length)) {
-			desktopEvent.set(event);
+			// Bind the handoff to the account that received it: the SPA can be
+			// signed out or logged into another account before Chat consumes it.
+			desktopEvent.set({ ...event, receivedForUserId: $user?.id ?? null });
 			await goto('/');
 			return;
 		}

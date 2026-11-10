@@ -125,6 +125,9 @@ export type DesktopEventFile = { name: string; mimeType: string; dataUrl: string
 export type DesktopEvent = {
 	type: string;
 	data?: any;
+	// Account the event was received for. Chat.svelte drops the event when no
+	// user is signed in or a different account consumes it.
+	receivedForUserId?: string | null;
 };
 export const desktopEvent: Writable<DesktopEvent | null> = writable(null);
 
