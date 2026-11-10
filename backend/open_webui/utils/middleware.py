@@ -1023,9 +1023,16 @@ async def background_tasks_handler(ctx):
     tasks = ctx['tasks']
     event_emitter = ctx['event_emitter']
 
+    # Without tasks there is nothing to generate; this also keeps the
+    # per-response user lookup below off requests that opted out.
+    if not tasks:
+        return
+
     # The account may have been deactivated or demoted while the response was
-    # streaming; do not keep generating follow-ups/titles/tags for it.
-    if not await get_verified_user_by_id(user.id):
+    # streaming; do not keep generating follow-ups/titles/tags for it. Use the
+    # fresh record so a revoked role cannot ride along on the request-time one.
+    user = await get_verified_user_by_id(user.id)
+    if not user:
         return
 
     message = None
