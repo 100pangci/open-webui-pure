@@ -46,6 +46,7 @@ from open_webui.socket.main import (
 )
 from open_webui.tasks import clear_response_stream, save_response_stream
 from open_webui.utils.access_control import has_permission
+from open_webui.utils.auth import get_verified_user_by_id
 from open_webui.utils.access_control.folders import has_folder_access
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.chat_id import is_saved_chat_id, is_temporary_chat_id
@@ -1021,6 +1022,11 @@ async def background_tasks_handler(ctx):
     metadata = ctx['metadata']
     tasks = ctx['tasks']
     event_emitter = ctx['event_emitter']
+
+    # The account may have been deactivated or demoted while the response was
+    # streaming; do not keep generating follow-ups/titles/tags for it.
+    if not await get_verified_user_by_id(user.id):
+        return
 
     message = None
     messages = []
