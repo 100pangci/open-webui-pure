@@ -379,7 +379,7 @@ export const userSignUp = async (
 	return res;
 };
 
-export const userSignOut = async () => {
+export const userSignOut = async (signal?: AbortSignal) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/signout`, {
@@ -387,7 +387,8 @@ export const userSignOut = async () => {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		credentials: 'include'
+		credentials: 'include',
+		signal
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();

@@ -1679,7 +1679,7 @@
 					};
 				});
 			}
-			throw error;
+			toast.error(error?.message ?? error?.detail ?? `${error}`);
 		} finally {
 			processingQueueChats.delete(targetChatId);
 			// Completion can arrive before submitPrompt returns, while the queue is locked.
@@ -2003,7 +2003,8 @@
 	//////////////////////////
 
 	const submitPrompt = async (inputContent, inputFiles) => {
-		if (selectedModels.includes('')) throw new Error($i18n.t('Model not selected'));
+		if (!atSelectedModel && selectedModels.includes(''))
+			throw new Error($i18n.t('Model not selected'));
 		const _files = structuredClone(inputFiles);
 
 		chatFiles.push(
@@ -2856,7 +2857,8 @@
 	};
 
 	const submitMessage = async (parentId, prompt) => {
-		if (selectedModels.includes('')) {
+		// An @ model selection overrides the chat's stale model list.
+		if (!atSelectedModel && selectedModels.includes('')) {
 			toast.error($i18n.t('Model not selected'));
 			return;
 		}

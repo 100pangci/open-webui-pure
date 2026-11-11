@@ -100,6 +100,7 @@
 	};
 
 	const showPreviousMessage = async (modelIdx) => {
+		const refocus = document.activeElement?.classList.contains('previous-message-button');
 		groupedMessageIdsIdx[modelIdx] = Math.max(0, groupedMessageIdsIdx[modelIdx] - 1);
 
 		let messageId = groupedMessageIds[modelIdx].messageIds[groupedMessageIdsIdx[modelIdx]];
@@ -116,10 +117,18 @@
 
 		await tick();
 		await updateChat();
+
+		if (refocus) {
+			document
+				.querySelector<HTMLElement>(`#message-${messageId} .previous-message-button`)
+				?.focus();
+		}
+
 		triggerScroll();
 	};
 
 	const showNextMessage = async (modelIdx) => {
+		const refocus = document.activeElement?.classList.contains('next-message-button');
 		groupedMessageIdsIdx[modelIdx] = Math.min(
 			groupedMessageIds[modelIdx].messageIds.length - 1,
 			groupedMessageIdsIdx[modelIdx] + 1
@@ -139,6 +148,11 @@
 
 		await tick();
 		await updateChat();
+
+		if (refocus) {
+			document.querySelector<HTMLElement>(`#message-${messageId} .next-message-button`)?.focus();
+		}
+
 		triggerScroll();
 	};
 

@@ -1734,6 +1734,17 @@ async def fork_chat_by_id(
     history = (chat.chat or {}).get('history') or {}
     messages_map = await Chats.get_messages_map_by_chat_id(id) or history.get('messages') or {}
 
+    # The normalized chat_message rows only keep the model id, so a fork built
+    # from them would lose the saved model name.  The embedded history still
+    # has it; copy it across so a deleted model keeps its name in the fork.
+    if history.get('messages') is not messages_map:
+        for message_id, message in messages_map.items():
+            if not isinstance(message, dict) or message.get('modelName'):
+                continue
+            source_message = (history.get('messages') or {}).get(message_id)
+            if isinstance(source_message, dict) and source_message.get('modelName'):
+                message['modelName'] = source_message['modelName']
+
     source_message_id = (
         (form_data.message_id if form_data else None) or chat.current_message_id or history.get('currentId')
     )

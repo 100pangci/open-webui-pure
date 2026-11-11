@@ -87,8 +87,8 @@
 	visualViewportAware
 	maxHeight="18rem"
 	contentClass="flex flex-col overflow-hidden!"
-	on:change={(e) => {
-		if (e.detail === false) {
+	onOpenChange={(state) => {
+		if (state === false) {
 			onClose();
 		}
 	}}

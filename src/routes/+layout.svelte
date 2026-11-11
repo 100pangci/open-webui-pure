@@ -446,7 +446,9 @@
 			clearInterval(tokenTimer);
 			tokenTimer = null;
 		}
-		await userSignOut().catch((error) => {
+		// Await sign-out so it cannot clear the state of the new OAuth login;
+		// bound it so a stalled request cannot keep the expired session on screen.
+		await userSignOut(AbortSignal.timeout(5_000)).catch((error) => {
 			console.error('Error signing out expired session:', error);
 		});
 		user.set(null);

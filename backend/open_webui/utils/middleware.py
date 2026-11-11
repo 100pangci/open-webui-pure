@@ -1268,13 +1268,15 @@ async def non_streaming_chat_response_handler(response, ctx):
                         metadata['message_id'],
                         {
                             'error': {'content': error},
+                            'done': True,
+                            'meta': {'response_ended_at': time.time()},
                         },
                     )
                 if isinstance(error, str) or isinstance(error, dict):
                     await event_emitter(
                         {
                             'type': 'chat:message:error',
-                            'data': {'error': {'content': error}},
+                            'data': {'error': {'content': error}, 'done': True},
                         }
                     )
 

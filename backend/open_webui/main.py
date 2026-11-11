@@ -1096,6 +1096,26 @@ async def chat_completion(
             try:
 
                 async def emit_cancel_event():
+                    chat_id = metadata.get('chat_id')
+                    message_id = metadata.get('message_id')
+                    # A cancel before the first token may arrive before the reply is
+                    # saved; only update a message that exists so stopping does not
+                    # create an empty reply.  The streaming handler persists its own
+                    # cancellation, so keep an end time it already recorded.
+                    if chat_id and message_id and is_saved_chat_id(chat_id):
+                        try:
+                            saved_message = await Chats.get_message_by_id_and_message_id(chat_id, message_id)
+                            if saved_message:
+                                response_meta = dict(saved_message.get('meta') or {})
+                                response_meta.setdefault('response_ended_at', time.time())
+                                await Chats.upsert_message_to_chat_by_id_and_message_id(
+                                    chat_id,
+                                    message_id,
+                                    {'done': True, 'meta': response_meta},
+                                )
+                        except Exception:
+                            log.exception('Failed to persist the cancelled reply state')
+
                     event_emitter = await get_event_emitter(metadata)
                     if event_emitter:
                         await event_emitter({'type': 'chat:tasks:cancel'})

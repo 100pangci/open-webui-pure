@@ -155,6 +155,16 @@
 	$: model = $models.find((m) => m.id === message.model);
 	$: responseTimestamp = message?.meta?.response_ended_at ?? message?.timestamp;
 
+	// DEFAULT_LOCALE may not be a valid BCP 47 tag (for example "en_US"),
+	// which makes toLocaleString throw while the message renders.
+	const formatTokenCount = (count) => {
+		try {
+			return Number(count).toLocaleString($i18n.language);
+		} catch {
+			return `${count}`;
+		}
+	};
+
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
 	$: hasVisibleStatus =
 		(model?.info?.meta?.capabilities?.status_updates ?? true) &&
@@ -798,10 +808,7 @@
 														.map((line) => line.slice(2))
 														.map((line) => (line.endsWith(',') ? line.slice(0, -1) : line))
 														.map((line) =>
-															line.replace(
-																/: (\d+)$/,
-																(_, count) => `: ${Number(count).toLocaleString($i18n.language)}`
-															)
+															line.replace(/: (\d+)$/, (_, count) => `: ${formatTokenCount(count)}`)
 														)
 														.join('\n')
 												)}</pre>`
