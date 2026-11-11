@@ -27,20 +27,16 @@
 		return key;
 	}
 
-	function displayKeys(): string {
-		const id = name as Shortcut;
-		if (isConfigurableShortcut(id)) {
-			return formatChord($keybindings[id]);
-		}
-		const keys = shortcuts[id]?.keys ?? [];
-		return keys.map(formatKey).join(isMac ? '' : '+');
-	}
+	$: id = name as Shortcut;
+	$: text = isConfigurableShortcut(id)
+		? formatChord($keybindings[id])
+		: (shortcuts[id]?.keys ?? []).map(formatKey).join(isMac ? '' : '+');
 </script>
 
 {#if mounted && isVisible}
 	<div
 		class="hidden md:flex items-center self-center text-xs text-gray-400 dark:text-gray-600 {className}"
 	>
-		<span>{displayKeys()}</span>
+		<span>{text}</span>
 	</div>
 {/if}

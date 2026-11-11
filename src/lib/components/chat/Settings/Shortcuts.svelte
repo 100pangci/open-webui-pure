@@ -76,15 +76,16 @@
 	};
 
 	const getConflict = (id: Shortcut, chord: string): Shortcut | null => {
-		if (!isConfigurableShortcut(id) || !chord) return null;
+		if (!isConfigurableShortcut(id) || !chord || chord === 'Escape') return null;
 		for (const [otherId, otherChord] of Object.entries($keybindings)) {
-			if (otherId !== id && otherChord === chord) return otherId as Shortcut;
+			if (otherId !== id && formatChord(otherChord) === formatChord(chord))
+				return otherId as Shortcut;
 		}
 		return null;
 	};
 
 	const handleRecordingKeydown = async (event: KeyboardEvent) => {
-		if (!recordingShortcut) return;
+		if (!recordingShortcut || event.isComposing || event.keyCode === 229) return;
 		event.preventDefault();
 		event.stopPropagation();
 

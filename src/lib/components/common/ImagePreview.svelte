@@ -20,6 +20,8 @@
 	let previewElement = null;
 
 	const handleKeyDown = (event: KeyboardEvent) => {
+		if (event.isComposing || event.keyCode === 229) return;
+
 		if (
 			event.key === 'Escape' ||
 			($settings?.keyboardShortcuts !== false && matchKeybinding(event) === Shortcut.CLOSE_MODAL)

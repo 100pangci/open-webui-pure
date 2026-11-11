@@ -132,6 +132,10 @@ export function eventToChord(event: KeyboardEvent): string {
 
 	let key = event.key;
 	if (['Meta', 'Control', 'Alt', 'Shift'].includes(key)) return '';
+	// Option produces characters such as ø and ∂ on Mac even in command shortcuts.
+	if (IS_MAC && event.altKey && /^Key[A-Z]$/.test(event.code) && !/^[a-z]$/i.test(key)) {
+		key = event.code.slice(3);
+	}
 
 	if (key === ' ') key = 'Space';
 	if (key.length === 1) key = key.toUpperCase();
@@ -183,14 +187,14 @@ function buildReverseLookup(bindings: KeybindingsMap): Map<string, ConfigurableS
 	const lookup = new Map<string, ConfigurableShortcut>();
 	for (const id of CONFIGURABLE_SHORTCUTS) {
 		const chord = bindings[id];
-		if (chord) lookup.set(chord, id);
+		if (chord) lookup.set(IS_MAC ? chord : chord.replace(/^Ctrl\+/, 'Cmd+'), id);
 	}
 	return lookup;
 }
 
 export function matchKeybinding(event: KeyboardEvent): ConfigurableShortcut | null {
 	const chord = eventToChord(event);
-	if (!chord) return null;
+	if (!chord || event.isComposing || event.keyCode === 229) return null;
 	return buildReverseLookup(get(keybindings)).get(chord) ?? null;
 }
 
