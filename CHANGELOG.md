@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- 🔄 **Upstream sync to Open WebUI v0.13.3.** Audited all 314 upstream commits between v0.13.0 and v0.13.3 and ported only the fixes that affect retained features: 7 P1 security/correctness fixes, 13 P2 and 26 P3 fixes. No removed feature, dependency or migration was imported; the Alembic head is still `d4c1a8e37b62`. The per-commit decisions and the local-to-upstream commit map are recorded in [`docs/upstream-audit/2026-11-10-summary.md`](./docs/upstream-audit/2026-11-10-summary.md).
+- ⬆️ **`turndown` 7.2.5.** Typing in the chat input no longer freezes after pasting a large document.
+
+### Fixed
+
+- 🧭 **Keyboard focus survives sidebar actions.** Deleting, archiving, moving, pinning or renaming a chat from its menu keeps focus on the nearest surviving row instead of dropping it to the page body; message version switching, cancelling an edit, the auth page, the pagination control and the workspace lists were fixed the same way.
+- ⌨️ **Shortcuts match the physical key and skip IME input.** Shortcuts keep working when a layout reports a different character, and pressing Escape while composing text no longer closes dialogs.
+- ✂️ **Clipboard works over plain HTTP on a LAN address.** Copy actions, the long-message prompt and Auto-Copy Response fall back to `execCommand` when `navigator.clipboard` is unavailable.
+- ↔️ **Lists cancel stale requests.** User, chat and archive lists abort the previous request when the search term changes, so an older response can no longer overwrite a newer one.
+- 🕐 **Replies record when they finished.** A saved reply shows the completion time (with the prompt time as fallback for older replies), and usage tooltips group large token counts.
+- 🛡️ **Hardening.** Prompt-cache markers survive on tool results, OAuth token refresh no longer logs out on a transient network error, expired sessions finish signing out before redirecting, and model settings nested beyond the JSON depth limit are rejected.
+- ⚡ **Chat actions no longer load whole conversations.** Marking a chat read or unread, removing a tag, and checking shared-chat access now read only the columns they need, and chat search is capped at twelve distinct terms.
+
 ## [0.13.0] - 2026-11-07
 
 ### Changed
