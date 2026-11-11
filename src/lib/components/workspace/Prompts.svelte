@@ -70,7 +70,6 @@
 	let prompts = null;
 	let tags = [];
 	let total = null;
-	let loading = false;
 
 	let showDeleteConfirm = false;
 	let showCreateModal = false;
@@ -118,7 +117,6 @@
 	}
 
 	const handleSearchInput = () => {
-		loading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			if (page !== 1) {
@@ -161,7 +159,6 @@
 	const getPromptList = async () => {
 		if (!loaded) return;
 
-		loading = true;
 		try {
 			const res = await getPromptItems(
 				localStorage.token,
@@ -189,8 +186,6 @@
 			}
 		} catch (err) {
 			console.error(err);
-		} finally {
-			loading = false;
 		}
 	};
 
@@ -508,7 +503,7 @@
 			</div>
 		</div>
 
-		{#if prompts === null || loading}
+		{#if prompts === null}
 			<div class="w-full h-full flex justify-center items-center my-16 mb-24">
 				<Spinner className="size-5" />
 			</div>
