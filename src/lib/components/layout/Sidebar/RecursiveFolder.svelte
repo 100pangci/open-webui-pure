@@ -811,6 +811,7 @@
 				}}
 				role="button"
 				tabindex="0"
+				aria-expanded={open}
 				on:click={async (e) => {
 					e.stopPropagation();
 					if (shouldIgnoreRowClick(e.target)) return;
@@ -1004,6 +1005,7 @@
 					{#each chats ?? [] as chat (chat.id)}
 						<ChatItem
 							id={chat.id}
+							{folderId}
 							title={chat.title}
 							createdAt={chat.created_at}
 							updatedAt={chat.updated_at}

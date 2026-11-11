@@ -34,7 +34,9 @@
 	import {
 		chatId,
 		chatTitle as _chatTitle,
+		folders,
 		mobile,
+		pinnedChats,
 		showSidebar,
 		tags,
 		selectedFolder,
@@ -67,6 +69,7 @@
 	export let className = '';
 
 	export let id;
+	export let folderId: string | null = null;
 	export let title;
 	export let createdAt: number | null = null;
 	export let updatedAt: number | null = null;
@@ -203,6 +206,7 @@
 
 	let showShareChatModal = false;
 	let confirmEdit = false;
+	let menuButtonElement: HTMLButtonElement;
 
 	let chatTitle = title;
 
@@ -277,7 +281,9 @@
 					await tick();
 				}
 
+				const focusContext = captureSidebarFocusContext();
 				dispatch('change', { type: 'delete', id });
+				await restoreFocusAfterSidebarChange(focusContext, folderId, true);
 			}
 		} finally {
 			deleting = false;
@@ -298,8 +304,10 @@
 				chatId.set('');
 			}
 
+			const focusContext = captureSidebarFocusContext();
 			dispatch('change', { type: 'archive', id });
 			toast.success($i18n.t('Chat archived.'));
+			await restoreFocusAfterSidebarChange(focusContext, folderId, true);
 		} catch (error) {
 			console.error('Error archiving chat:', error);
 			toast.error($i18n.t('Failed to archive chat.'));
@@ -318,13 +326,139 @@
 			);
 
 			if (res) {
+				const focusContext = captureSidebarFocusContext();
 				dispatch('change', { type: 'move', id: chatId, folderId, chat: res });
 
 				toast.success($i18n.t('Chat moved successfully'));
+				await restoreFocusAfterSidebarChange(focusContext, folderId);
 			}
 		} else {
 			toast.error($i18n.t('Failed to move chat'));
 		}
+	};
+
+	type SidebarFocusContext = {
+		menuId: string;
+		neighborMenuIds: string[];
+	};
+
+	/**
+	 * The sidebar applies chat changes through a parent `change` event, so the
+	 * row may move or disappear a few ticks after the action.  Snapshot the
+	 * menu positions first, then focus the closest surviving control once the
+	 * parent has had a chance to update its lists.
+	 */
+	const captureSidebarFocusContext = (): SidebarFocusContext => {
+		const menuButtons = Array.from(
+			document.getElementsByName('sidebar-chat-menu')
+		) as HTMLElement[];
+		const index = menuButtonElement ? menuButtons.indexOf(menuButtonElement) : -1;
+
+		return {
+			menuId: `sidebar-chat-menu-${id}`,
+			neighborMenuIds:
+				index === -1
+					? []
+					: [...menuButtons.slice(index + 1), ...menuButtons.slice(0, index).reverse()].map(
+							(button) => button.id
+						)
+		};
+	};
+
+	const waitForElementById = (elementId: string, timeout = 2000): Promise<HTMLElement | null> => {
+		const element = document.getElementById(elementId);
+		if (element) {
+			return Promise.resolve(element);
+		}
+
+		return new Promise((resolve) => {
+			const deadline = Date.now() + timeout;
+
+			const check = () => {
+				const element = document.getElementById(elementId);
+				if (element) {
+					resolve(element);
+				} else if (Date.now() >= deadline) {
+					resolve(null);
+				} else {
+					setTimeout(check, 50);
+				}
+			};
+
+			setTimeout(check, 50);
+		});
+	};
+
+	const isFolderOpen = (folderId: string): boolean =>
+		document.getElementById(`folder-${folderId}-button`)?.getAttribute('aria-expanded') === 'true';
+
+	const findFolderButton = (folderId: string | null): HTMLElement | null => {
+		const folderList = $folders as { id: string; parent_id?: string | null }[];
+		let currentFolderId = folderId;
+
+		while (currentFolderId) {
+			const button = document.getElementById(`folder-${currentFolderId}-button`);
+			if (button) {
+				return button;
+			}
+
+			currentFolderId =
+				folderList.find((folder) => folder.id === currentFolderId)?.parent_id ?? null;
+		}
+
+		return null;
+	};
+
+	const getSectionFallbackId = (folderId: string | null): string => {
+		if (folderId) {
+			return 'sidebar-folders-button';
+		}
+
+		const pinnedChatList = $pinnedChats as { id?: string }[];
+
+		return pinnedChatList.some((chat) => chat.id === id)
+			? 'sidebar-pinned-chats-button'
+			: 'sidebar-chats-button';
+	};
+
+	const restoreFocusAfterSidebarChange = async (
+		{ menuId, neighborMenuIds }: SidebarFocusContext,
+		folderId: string | null,
+		removed = false,
+		waitForMenu = true
+	) => {
+		await tick();
+
+		const restoreFocus =
+			document.activeElement === document.body || !!itemElement?.contains(document.activeElement);
+		if (!restoreFocus) {
+			return;
+		}
+
+		let target: HTMLElement | null = null;
+
+		if (removed) {
+			target = neighborMenuIds.map((id) => document.getElementById(id)).find(Boolean) ?? null;
+		} else {
+			target = document.getElementById(menuId);
+
+			if (!target && waitForMenu && (!folderId || isFolderOpen(folderId))) {
+				target = await waitForElementById(menuId);
+			}
+
+			if (!target && itemElement?.isConnected) {
+				target = itemElement.querySelector<HTMLElement>('#sidebar-chat-item');
+			}
+		}
+
+		if (document.activeElement !== document.body) {
+			return;
+		}
+
+		target = target ?? findFolderButton(folderId);
+		target = target ?? document.getElementById(getSectionFallbackId(folderId));
+
+		target?.focus();
 	};
 
 	let itemElement;
@@ -410,7 +544,7 @@
 
 	let showDeleteConfirm = false;
 
-	const chatTitleInputKeydownHandler = (e) => {
+	const chatTitleInputKeydownHandler = async (e) => {
 		// Let Enter and Escape finish IME composition without saving or cancelling the rename.
 		if (e.isComposing || e.keyCode === 229) {
 			return;
@@ -422,13 +556,19 @@
 			if (chatTitle !== title) {
 				editChatTitle(id, chatTitle);
 			}
+		}
 
-			confirmEdit = false;
-			chatTitle = '';
-		} else if (e.key === 'Escape') {
+		if (e.key === 'Enter' || e.key === 'Escape') {
 			e.preventDefault();
 			confirmEdit = false;
 			chatTitle = '';
+
+			await restoreFocusAfterSidebarChange(
+				{ menuId: `sidebar-chat-menu-${id}`, neighborMenuIds: [] },
+				folderId,
+				false,
+				false
+			);
 		}
 	};
 
@@ -795,16 +935,24 @@
 							dispatch('unselect');
 						}}
 						onPinChange={async (detail) => {
+							const focusContext = captureSidebarFocusContext();
 							dispatch('change', {
 								type: 'pin',
 								id,
 								pinned: detail?.pinned,
 								chat: detail?.chat ?? null
 							});
+							await restoreFocusAfterSidebarChange(
+								focusContext,
+								detail?.pinned ? null : ((detail?.chat?.folder_id as string | null) ?? null)
+							);
 						}}
 					>
 						<button
 							type="button"
+							bind:this={menuButtonElement}
+							id="sidebar-chat-menu-{id}"
+							name="sidebar-chat-menu"
 							aria-label="Chat Menu"
 							class="flex size-5 items-center justify-center self-center dark:hover:text-white transition m-0"
 						>

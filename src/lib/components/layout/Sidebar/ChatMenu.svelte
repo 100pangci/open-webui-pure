@@ -57,7 +57,7 @@
 		id: string;
 		pinned?: boolean;
 		chat?: ChatListItem | null;
-	}) => void = () => {};
+	}) => void | Promise<void> = () => {};
 
 	const pinHandler = async () => {
 		try {
@@ -65,7 +65,7 @@
 			if (res) {
 				pinned = res.pinned ?? !pinned;
 			}
-			onPinChange({ id: chatId, pinned, chat: res });
+			await onPinChange({ id: chatId, pinned, chat: res });
 		} catch (error) {
 			console.error('Error toggling pinned status:', error);
 		}
