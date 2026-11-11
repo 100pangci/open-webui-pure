@@ -155,7 +155,7 @@ async def set_image_model(request: Request, model: str):
 
 async def get_image_model(request):
     image_config = await get_image_config()
-    return image_config.IMAGE_GENERATION_MODEL if image_config.IMAGE_GENERATION_MODEL else 'dall-e-2'
+    return image_config.IMAGE_GENERATION_MODEL if image_config.IMAGE_GENERATION_MODEL else 'gpt-image-2'
 
 
 class ImagesConfig(BaseModel):
@@ -223,10 +223,9 @@ async def update_config(request: Request, form_data: ImagesConfig, user=Depends(
 @router.get('/models')
 async def get_models(request: Request, user=Depends(get_verified_user)):
     return [
-        {'id': 'dall-e-2', 'name': 'DALL·E 2'},
-        {'id': 'dall-e-3', 'name': 'DALL·E 3'},
         {'id': 'gpt-image-1', 'name': 'GPT-IMAGE 1'},
         {'id': 'gpt-image-1.5', 'name': 'GPT-IMAGE 1.5'},
+        {'id': 'gpt-image-2', 'name': 'GPT-IMAGE 2'},
     ]
 
 
