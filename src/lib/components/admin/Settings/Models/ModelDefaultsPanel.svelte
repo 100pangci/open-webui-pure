@@ -60,7 +60,9 @@
 
 		const savedMeta = config?.DEFAULT_MODEL_METADATA;
 		if (savedMeta && Object.keys(savedMeta).length > 0) {
-			defaultCapabilities = savedMeta.capabilities ?? { ...DEFAULT_CAPABILITIES };
+			// Merge with the hardcoded defaults so a partially saved capabilities
+			// object shows the same state as the model editor does.
+			defaultCapabilities = { ...DEFAULT_CAPABILITIES, ...(savedMeta.capabilities ?? {}) };
 			defaultFeatureIds = savedMeta.defaultFeatureIds ?? [];
 		} else {
 			defaultCapabilities = { ...DEFAULT_CAPABILITIES };

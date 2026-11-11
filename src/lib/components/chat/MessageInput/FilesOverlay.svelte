@@ -8,7 +8,7 @@
 	<div
 		class="absolute inset-0 w-full h-full flex z-[9999] touch-none pointer-events-none"
 		id="dropzone"
-		role="region"
+		role="status"
 		aria-label="Drag and Drop Container"
 	>
 		<div
