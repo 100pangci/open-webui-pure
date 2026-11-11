@@ -32,6 +32,8 @@
 	let show = false;
 	let tab = '';
 
+	$: hasInternalList = ['files', 'chats'].includes(tab);
+
 	let fileUploadEnabled = true;
 	$: fileUploadEnabled =
 		fileUploadCapableModels.length === selectedModels.length &&
@@ -83,6 +85,8 @@
 <Dropdown
 	bind:show
 	visualViewportAware
+	maxHeight="18rem"
+	contentClass="flex flex-col overflow-hidden!"
 	on:change={(e) => {
 		if (e.detail === false) {
 			onClose();
@@ -93,8 +97,12 @@
 		<slot />
 	</Tooltip>
 
-	<div slot="content">
-		<DropdownMenu className="w-70 max-h-72 overflow-hidden transition">
+	<div slot="content" class="flex min-h-0 flex-col">
+		<DropdownMenu
+			className="w-70 min-h-0 transition {hasInternalList
+				? 'flex flex-col overflow-hidden'
+				: 'max-h-72 overflow-hidden'}"
+		>
 			{#if tab === ''}
 				<div
 					class="max-h-72 overflow-y-auto overflow-x-hidden scrollbar-thin"
@@ -222,7 +230,7 @@
 					</Tooltip>
 				</div>
 			{:else if tab === 'files'}
-				<div class="flex max-h-72 flex-col overflow-hidden" in:fly={{ x: 20, duration: 150 }}>
+				<div class="flex min-h-0 flex-col overflow-hidden" in:fly={{ x: 20, duration: 150 }}>
 					<button
 						class="flex w-full shrink-0 justify-between gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal select-none cursor-pointer rounded-xl hover:bg-gray-50/40 dark:hover:bg-gray-800/40"
 						on:click={() => {
@@ -241,7 +249,7 @@
 					<Files {onSelect} />
 				</div>
 			{:else if tab === 'chats'}
-				<div class="flex max-h-72 flex-col overflow-hidden" in:fly={{ x: 20, duration: 150 }}>
+				<div class="flex min-h-0 flex-col overflow-hidden" in:fly={{ x: 20, duration: 150 }}>
 					<button
 						class="flex w-full shrink-0 justify-between gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal select-none cursor-pointer rounded-xl hover:bg-gray-50/40 dark:hover:bg-gray-800/40"
 						on:click={() => {
