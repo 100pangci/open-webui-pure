@@ -373,9 +373,6 @@ async def _generate_summary(
     if not isinstance(task_model_params, dict):
         task_model_params = {}
     task_model_params = {key: value for key, value in task_model_params.items() if value is not None and value != ''}
-    task_model_params = task_model_params or {
-        'max_tokens': models[task_model_id].get('info', {}).get('params', {}).get('max_tokens', 1000)
-    }
 
     payload = {
         'model': task_model_id,
