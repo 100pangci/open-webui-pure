@@ -1650,6 +1650,10 @@
 		}
 
 		const targetChatId = $chatId;
+		const currentHistory = history;
+		const currentMessageId = currentHistory.currentId;
+		const itemIndex = queue.findIndex((m) => m.id === id);
+		let shouldProcessQueue = true;
 		processingQueueChats.add(targetChatId);
 		try {
 			chatRequestQueues.update((q) => ({
@@ -1659,10 +1663,27 @@
 			await stopResponse(false);
 			await tick();
 			await submitPrompt(item.prompt, item.files);
+		} catch (error) {
+			if (currentHistory.currentId === currentMessageId) {
+				shouldProcessQueue = false;
+				chatRequestQueues.update((q) => {
+					const remainingQueue = (q[targetChatId] ?? []).filter((m) => m.id !== id);
+					const insertIndex = Math.min(itemIndex, remainingQueue.length);
+					return {
+						...q,
+						[targetChatId]: [
+							...remainingQueue.slice(0, insertIndex),
+							item,
+							...remainingQueue.slice(insertIndex)
+						]
+					};
+				});
+			}
+			throw error;
 		} finally {
 			processingQueueChats.delete(targetChatId);
 			// Completion can arrive before submitPrompt returns, while the queue is locked.
-			if ($chatId === targetChatId) {
+			if (shouldProcessQueue && $chatId === targetChatId) {
 				await processNextInQueue(targetChatId);
 			}
 		}
@@ -1981,6 +2002,7 @@
 	//////////////////////////
 
 	const submitPrompt = async (inputContent, inputFiles) => {
+		if (selectedModels.includes('')) throw new Error($i18n.t('Model not selected'));
 		const _files = structuredClone(inputFiles);
 
 		chatFiles.push(
@@ -2833,6 +2855,10 @@
 	};
 
 	const submitMessage = async (parentId, prompt) => {
+		if (selectedModels.includes('')) {
+			toast.error($i18n.t('Model not selected'));
+			return;
+		}
 		let userPrompt = prompt;
 		let userMessageId = uuidv4();
 
