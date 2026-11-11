@@ -410,7 +410,7 @@ async def image_generations(
                 {}
                 if re.match(
                     IMAGE_URL_RESPONSE_MODELS_REGEX_PATTERN,
-                    image_config.IMAGE_GENERATION_MODEL,
+                    model,
                 )
                 else {'response_format': 'b64_json'}
             ),
@@ -604,7 +604,7 @@ async def image_edits(
                 {}
                 if re.match(
                     IMAGE_URL_RESPONSE_MODELS_REGEX_PATTERN,
-                    image_config.IMAGE_EDIT_MODEL,
+                    model,
                 )
                 else {'response_format': 'b64_json'}
             ),
