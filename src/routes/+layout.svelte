@@ -436,7 +436,7 @@
 		}
 	};
 
-	const clearExpiredSession = () => {
+	const clearExpiredSession = async () => {
 		if (isAuthRedirectInProgress) {
 			return;
 		}
@@ -446,13 +446,13 @@
 			clearInterval(tokenTimer);
 			tokenTimer = null;
 		}
+		await userSignOut().catch((error) => {
+			console.error('Error signing out expired session:', error);
+		});
 		user.set(null);
 		localStorage.removeItem('token');
 		// Clear the OAuth token cookie so /auth doesn't auto-login and redirect-loop
 		document.cookie = 'token=; Max-Age=0; path=/';
-		userSignOut().catch((error) => {
-			console.error('Error signing out expired session:', error);
-		});
 		toast.error($i18n.t('Session expired. Please sign in again.'));
 		isAuthRedirectInProgress = false;
 	};
@@ -480,7 +480,7 @@
 		}
 
 		if (now >= exp - TOKEN_EXPIRY_BUFFER) {
-			clearExpiredSession();
+			await clearExpiredSession();
 		}
 	};
 
@@ -727,7 +727,7 @@
 				isAuthenticatedBackendFetch(input, init) &&
 				(await isCurrentSessionUnauthorized(originalFetch))
 			) {
-				clearExpiredSession();
+				await clearExpiredSession();
 			}
 
 			return response;
