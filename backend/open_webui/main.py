@@ -1117,6 +1117,8 @@ async def chat_completion(
                             {
                                 'parentId': metadata.get('user_message_id', None),
                                 'error': {'content': error_detail},
+                                'done': True,
+                                'meta': {'response_ended_at': time.time()},
                             },
                         )
 

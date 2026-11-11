@@ -1954,6 +1954,7 @@
 
 		if (done) {
 			message.done = true;
+			message.meta = { ...message.meta, response_ended_at: Date.now() / 1000 };
 			const visibleContent =
 				getOutputText(message?.output) || removeAllDetails(message?.content ?? '');
 

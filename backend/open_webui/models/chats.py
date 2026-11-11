@@ -1025,6 +1025,12 @@ class ChatTable:
         messages = history.setdefault('messages', {})
 
         if message_id in messages:
+            # Completion timing must not be lost to a later partial update, and
+            # a partial update must not drop meta already attached to the turn.
+            existing_meta = messages[message_id].get('meta')
+            incoming_meta = message.get('meta')
+            if isinstance(incoming_meta, dict) and isinstance(existing_meta, dict):
+                message = {**message, 'meta': {**existing_meta, **incoming_meta}}
             messages[message_id] = {
                 **messages[message_id],
                 **message,

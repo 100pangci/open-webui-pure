@@ -1359,6 +1359,7 @@ async def non_streaming_chat_response_handler(response, ctx):
                             {
                                 'done': True,
                                 'role': 'assistant',
+                                'meta': {'response_ended_at': time.time()},
                                 'output': response_output,
                                 **({'usage': usage} if usage else {}),
                             },
@@ -2537,6 +2538,7 @@ async def streaming_chat_response_handler(response, ctx):
                         metadata['message_id'],
                         {
                             'done': True,
+                            'meta': {'response_ended_at': time.time()},
                             'output': current_output,
                             **({'usage': usage} if usage else {}),
                         },
@@ -2581,6 +2583,7 @@ async def streaming_chat_response_handler(response, ctx):
                             metadata['message_id'],
                             {
                                 'done': True,
+                                'meta': {'response_ended_at': time.time()},
                                 'output': full_output(),
                             },
                         )

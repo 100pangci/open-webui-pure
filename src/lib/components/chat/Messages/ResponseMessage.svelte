@@ -88,6 +88,7 @@
 			usage?: unknown;
 		};
 		annotation?: { type: string; rating: number };
+		meta?: { response_ended_at?: number };
 	}
 
 	export let chatId = '';
@@ -152,6 +153,7 @@
 
 	let model = null;
 	$: model = $models.find((m) => m.id === message.model);
+	$: responseTimestamp = message?.meta?.response_ended_at ?? message?.timestamp;
 
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
 	$: hasVisibleStatus =
@@ -605,18 +607,18 @@
 					</div>
 				</div>
 
-				{#if compactPreview && message.timestamp}
+				{#if compactPreview && responseTimestamp}
 					<div class="mt-0.5 flex justify-start whitespace-nowrap text-gray-600 dark:text-gray-500">
 						<Tooltip
 							className="flex self-center"
-							content={formatMessageTimestampFull(message.timestamp * 1000)}
+							content={formatMessageTimestampFull(responseTimestamp * 1000)}
 							placement="bottom"
 						>
 							<time
-								datetime={new Date(message.timestamp * 1000).toISOString()}
+								datetime={new Date(responseTimestamp * 1000).toISOString()}
 								class="ml-1 shrink-0 whitespace-nowrap text-[0.6875rem] tabular-nums text-gray-400 dark:text-gray-600 select-none"
 							>
-								{formatMessageTimestamp(message.timestamp * 1000)}
+								{formatMessageTimestamp(responseTimestamp * 1000)}
 							</time>
 						</Tooltip>
 					</div>
@@ -1019,17 +1021,17 @@
 										{/if}
 									{/if}
 
-									{#if message.timestamp}
+									{#if responseTimestamp}
 										<Tooltip
 											className="flex self-center"
-											content={formatMessageTimestampFull(message.timestamp * 1000)}
+											content={formatMessageTimestampFull(responseTimestamp * 1000)}
 											placement="bottom"
 										>
 											<time
-												datetime={new Date(message.timestamp * 1000).toISOString()}
+												datetime={new Date(responseTimestamp * 1000).toISOString()}
 												class="hover-reveal ml-1 shrink-0 whitespace-nowrap text-[0.6875rem] tabular-nums text-gray-400 dark:text-gray-600 select-none"
 											>
-												{formatMessageTimestamp(message.timestamp * 1000)}
+												{formatMessageTimestamp(responseTimestamp * 1000)}
 											</time>
 										</Tooltip>
 									{/if}
