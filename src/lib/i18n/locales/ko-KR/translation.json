@@ -310,7 +310,7 @@
 	"Confirm Your Password": "비밀번호를 확인해주세요",
 	"Connect to an AI provider to start chatting": "AI 제공자에 연결하여 채팅을 시작하세요",
 	"Connect to your own OpenAI compatible API endpoints.": "OpenAI 호환 API 엔드포인트에 연결합니다.",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "연결이 끊겼습니다. 다시 시도하세요.",
 	"Connection lost. Reconnecting...": "연결이 끊겼습니다. 재연결 중...",
 	"Connection Type": "연결 방식",
 	"Connections": "연결",

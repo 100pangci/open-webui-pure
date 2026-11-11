@@ -313,7 +313,7 @@
 	"Confirm Your Password": "Подтвердите свой пароль",
 	"Connect to an AI provider to start chatting": "Подключите AI-провайдера, чтобы начать общение",
 	"Connect to your own OpenAI compatible API endpoints.": "Подключитесь к своим собственным энд-поинтам API, совместимым с OpenAI.",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "Соединение потеряно. Пожалуйста, попробуйте снова.",
 	"Connection lost. Reconnecting...": "Соединение потеряно. Повторное подключение...",
 	"Connection Type": "Тип подключения",
 	"Connections": "Подключения",

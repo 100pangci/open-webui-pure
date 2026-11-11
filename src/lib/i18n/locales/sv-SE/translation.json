@@ -311,7 +311,7 @@
 	"Confirm Your Password": "Bekräfta ditt lösenord",
 	"Connect to an AI provider to start chatting": "Anslut till en AI-leverantör för att börja chatta",
 	"Connect to your own OpenAI compatible API endpoints.": "Anslut till dina egna OpenAI-kompatibla API-endpoints.",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "Anslutningen bröts. Försök igen.",
 	"Connection lost. Reconnecting...": "Anslutningen bröts. Ansluter igen...",
 	"Connection Type": "Anslutningstyp",
 	"Connections": "Anslutningar",

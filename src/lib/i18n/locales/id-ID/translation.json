@@ -311,7 +311,7 @@
 	"Confirm Your Password": "",
 	"Connect to an AI provider to start chatting": "",
 	"Connect to your own OpenAI compatible API endpoints.": "",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "Koneksi terputus. Silakan coba lagi.",
 	"Connection lost. Reconnecting...": "",
 	"Connection Type": "",
 	"Connections": "Koneksi",

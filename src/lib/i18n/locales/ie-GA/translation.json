@@ -311,7 +311,7 @@
 	"Confirm Your Password": "Deimhnigh Do Phasfhocal",
 	"Connect to an AI provider to start chatting": "Ceangail le soláthraí AI chun comhrá a thosú",
 	"Connect to your own OpenAI compatible API endpoints.": "Ceangail le do chríochphointí API atá comhoiriúnach le OpenAI.",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "Nasc caillte. Bain triail eile as.",
 	"Connection lost. Reconnecting...": "Ceangal caillte. Ag athcheangal...",
 	"Connection Type": "Cineál Ceangail",
 	"Connections": "Naisc",

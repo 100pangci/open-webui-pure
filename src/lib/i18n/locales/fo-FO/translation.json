@@ -311,7 +311,7 @@
 	"Confirm Your Password": "Vátta loyniorðið",
 	"Connect to an AI provider to start chatting": "Sambind við ein vitlíkisveitara fyri at byrja at kjatta",
 	"Connect to your own OpenAI compatible API endpoints.": "Sambind við tíni egnu OpenAI-sambæriligu API-endapunkt.",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "Sambandið slitnaði. Royn aftur.",
 	"Connection lost. Reconnecting...": "Sambandið slitnaði. Sambindir av nýggjum...",
 	"Connection Type": "Sambandsslag",
 	"Connections": "Sambond",

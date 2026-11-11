@@ -310,7 +310,7 @@
 	"Confirm Your Password": "ยืนยันรหัสผ่านของคุณ",
 	"Connect to an AI provider to start chatting": "",
 	"Connect to your own OpenAI compatible API endpoints.": "เชื่อมต่อกับ API Endpoint ที่เข้ากันได้กับ OpenAI ของคุณเอง",
-	"Connection lost. Please retry.": "",
+	"Connection lost. Please retry.": "การเชื่อมต่อขาดหาย โปรดลองอีกครั้ง",
 	"Connection lost. Reconnecting...": "",
 	"Connection Type": "ประเภทการเชื่อมต่อ",
 	"Connections": "การเชื่อมต่อ",
