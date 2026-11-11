@@ -2295,11 +2295,11 @@ async def streaming_chat_response_handler(response, ctx):
                                                 reasoning_item.setdefault('reasoning_details', []),
                                                 reasoning_detail_items,
                                             )
+                                            # Flush any pending text delta, but do not
+                                            # rebroadcast the whole accumulated output:
+                                            # with many reasoning chunks that is O(n^2)
+                                            # traffic. The final save below persists it.
                                             await flush_pending_delta_data()
-                                            await event_emitter(
-                                                {'type': 'chat:completion', 'data': {'output': full_output()}}
-                                            )
-                                            await save_current_response_stream()
                                             data = None
 
                                     if value:
