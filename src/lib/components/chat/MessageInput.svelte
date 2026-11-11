@@ -32,6 +32,7 @@
 		convertHeicToJpeg,
 		normalizeImageFile,
 		compressImage,
+		copyToClipboard,
 		createMessagesList,
 		extractCurlyBraceWords,
 		extractInputVariables,
@@ -180,15 +181,20 @@
 
 	const textVariableHandler = async (text: string) => {
 		if (text.includes('{{CLIPBOARD}}')) {
-			const clipboardText = await navigator.clipboard.readText().catch((err) => {
+			let clipboardText: string;
+			try {
+				clipboardText = await navigator.clipboard.readText();
+			} catch (error) {
 				toast.error($i18n.t('Failed to read clipboard contents'));
-				return '{{CLIPBOARD}}';
-			});
+				clipboardText = '{{CLIPBOARD}}';
+			}
 
-			const clipboardItems = await navigator.clipboard.read().catch((err) => {
-				console.error('Failed to read clipboard items:', err);
-				return [];
-			});
+			let clipboardItems: ClipboardItem[] = [];
+			try {
+				clipboardItems = await navigator.clipboard.read();
+			} catch (error) {
+				console.error('Failed to read clipboard items:', error);
+			}
 
 			for (const item of clipboardItems) {
 				for (const type of item.types) {
@@ -401,7 +407,7 @@
 
 	const copyStatusChatId = async () => {
 		if (!chatId) return;
-		await navigator.clipboard.writeText(chatId);
+		if (!(await copyToClipboard(chatId))) return;
 		copiedStatusChatId = true;
 		setTimeout(() => {
 			copiedStatusChatId = false;
