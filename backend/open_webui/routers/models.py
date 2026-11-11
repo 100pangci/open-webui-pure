@@ -43,7 +43,7 @@ from open_webui.models.models import (
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
 from open_webui.utils.access_control.files import has_access_to_file
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.chat_variables import get_chat_variables_schema
+from open_webui.utils.chat_variables import get_chat_variables_schema, is_nested_too_deep
 from open_webui.utils.models import get_all_models
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,6 +94,14 @@ def _safe_static_redirect_path(url: str) -> str | None:
 
 def is_valid_model_id(model_id: str) -> bool:
     return model_id and len(model_id) <= 256 and not any(char.isspace() for char in model_id)
+
+
+def _validate_model_settings_depth(form_data: ModelForm) -> None:
+    if is_nested_too_deep(form_data.meta.model_dump()) or is_nested_too_deep(form_data.params.model_dump()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ERROR_MESSAGES.DEFAULT('Model meta and params are nested too deeply'),
+        )
 
 
 async def _verify_knowledge_file_access(
@@ -317,6 +325,8 @@ async def create_new_model(
         form_data.access_grants,
         'sharing.public_models',
     )
+
+    _validate_model_settings_depth(form_data)
 
     model = await Models.insert_new_model(form_data, user.id, db=db)
     if not model:
@@ -859,6 +869,8 @@ async def update_model_by_id(
             new_access_grants,
             'sharing.public_models',
         )
+
+    _validate_model_settings_depth(form_data)
 
     model = await Models.update_model_by_id(form_data.id, ModelForm(**form_data.model_dump()), db=db)
     if model:
