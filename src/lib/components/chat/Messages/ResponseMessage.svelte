@@ -162,6 +162,7 @@
 	$: hasResponseContent = Boolean((message.content ?? '').trim() || message.output?.length);
 
 	let edit = false;
+	let editButtonElement: HTMLButtonElement;
 	let editedContent = '';
 	let editedOutput: any[] | null = null;
 	let editTextAreaElement: HTMLTextAreaElement;
@@ -269,6 +270,7 @@
 		editedContent = '';
 		editedOutput = null;
 		await tick();
+		editButtonElement?.focus();
 	};
 
 	const deleteMessageHandler = async () => {
@@ -624,7 +626,7 @@
 								<div class="flex self-center min-w-fit" dir="ltr">
 									<button
 										aria-label={$i18n.t('Previous message')}
-										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition"
+										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition previous-message-button"
 										on:click={() => {
 											showPreviousMessage(message);
 										}}
@@ -692,7 +694,7 @@
 									{/if}
 
 									<button
-										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition"
+										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition next-message-button"
 										on:click={() => {
 											showNextMessage(message);
 										}}
@@ -723,6 +725,7 @@
 										<Tooltip content={$i18n.t('Edit')} placement="bottom">
 											<button
 												aria-label={$i18n.t('Edit')}
+												bind:this={editButtonElement}
 												class="{isLastMessage || ($settings?.highContrastMode ?? false)
 													? 'visible'
 													: 'hover-reveal'} p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
