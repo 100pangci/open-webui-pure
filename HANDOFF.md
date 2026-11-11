@@ -6,7 +6,7 @@ logs live in git history, not here.
 ## Product boundary
 
 Open WebUI Pure is an unofficial, aggressively subtractive fork of upstream
-Open WebUI (baseline **v0.11.3**, synced through **v0.13.0**). The goal is not to reimplement Open WebUI:
+Open WebUI (baseline **v0.11.3**, synced through **v0.13.3**). The goal is not to reimplement Open WebUI:
 it is to keep the mature chat core and the original branding while physically
 removing the features, dependencies and background costs that personal / home
 / small multi-user deployments do not need.

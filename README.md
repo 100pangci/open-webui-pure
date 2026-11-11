@@ -20,7 +20,7 @@ Open WebUI.
 - **~300 MB image**, **~100 MB fresh idle cgroup**, **~1.6 s startup** on a
   fresh data volume (see [Footprint](#footprint)).
 - **Upstream-derived, aggressively subtractive** — based on Open WebUI
-  v0.11.3 and synced through v0.13.0, with every removal recorded in
+  v0.11.3 and synced through v0.13.3, with every removal recorded in
   [`HANDOFF.md`](./HANDOFF.md).
 
 ## Footprint
@@ -202,7 +202,7 @@ the retained-import checks (`.github/workflows/pure-sync-check.yaml`).
 ## Upstream sync
 
 Pure is based on upstream Open WebUI v0.11.3 and currently includes the
-retained fixes through v0.13.0. Security fixes and bug fixes from upstream
+retained fixes through v0.13.3. Security fixes and bug fixes from upstream
 are welcome, but every sync must keep the subtraction intact:
 do not import a module, dependency or configuration entry whose feature is
 listed under [Removed](#removed). See [`HANDOFF.md`](./HANDOFF.md) for the
