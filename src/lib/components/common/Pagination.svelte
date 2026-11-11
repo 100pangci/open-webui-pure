@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Pagination } from 'bits-ui';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 
 	import ChevronLeft from '../icons/ChevronLeft.svelte';
 	import ChevronRight from '../icons/ChevronRight.svelte';
@@ -8,11 +8,25 @@
 	export let page = 0;
 	export let count = 0;
 	export let perPage = 20;
+
+	let paginationElement: HTMLDivElement;
+
+	const pageChangeHandler = async () => {
+		const refocus = paginationElement?.contains(document.activeElement);
+
+		await tick();
+		if (
+			refocus &&
+			(document.activeElement === document.body || document.activeElement?.matches(':disabled'))
+		) {
+			paginationElement.querySelector<HTMLElement>('[aria-current="page"]')?.focus();
+		}
+	};
 </script>
 
-<div class="flex justify-center">
-	<Pagination.Root bind:page {count} {perPage}>
-		{#snippet children({ pages })}
+<div class="flex justify-center" bind:this={paginationElement}>
+	<Pagination.Root bind:page {count} {perPage} onPageChange={pageChangeHandler}>
+		{#snippet children({ pages, currentPage })}
 			<div class="my-2 flex items-center">
 				<Pagination.PrevButton
 					class="mr-[1.5625rem] inline-flex size-8 items-center justify-center rounded-[0.5625rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-850 active:scale-98 disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-700 hover:disabled:bg-transparent dark:hover:disabled:bg-transparent"
@@ -26,6 +40,7 @@
 						{:else}
 							<Pagination.Page
 								{page}
+								aria-current={page.value === currentPage ? 'page' : undefined}
 								class="inline-flex size-8 items-center justify-center rounded-[0.5625rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-850 text-sm font-normal hover:bg-dark-10 active:scale-98 disabled:cursor-not-allowed disabled:opacity-50 hover:disabled:bg-transparent data-selected:bg-gray-50 data-selected:text-gray-700 data-selected:hover:bg-gray-100 dark:data-selected:bg-gray-850 dark:data-selected:text-gray-50 dark:data-selected:hover:bg-gray-800 transition"
 							>
 								{page.value}
