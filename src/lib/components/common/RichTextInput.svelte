@@ -323,6 +323,7 @@
 
 	let floatingMenuElement: Element | null = null;
 	let bubbleMenuElement: Element | null = null;
+	let formattingDismissed = false;
 	let element: Element | null = null;
 
 	let pendingUpdate = null;
@@ -1253,7 +1254,10 @@
 					editor.storage.files = files;
 				}
 			},
-			onSelectionUpdate: onSelectionUpdate,
+			onSelectionUpdate: (event) => {
+				formattingDismissed = false;
+				onSelectionUpdate(event);
+			},
 			onBlur: () => {
 				// Force-hide floating menus when editor loses focus.
 				// shouldShow alone isn't enough because it only runs on transactions.
@@ -1338,9 +1342,18 @@
 	};
 </script>
 
+<svelte:window
+	on:scroll|capture={(event) => {
+		const target = event.target;
+		if (element && target instanceof Node && (target.contains(element) || element.contains(target)))
+			formattingDismissed = true;
+	}}
+/>
+
 {#if richText && showFormattingToolbar}
 	<div
 		bind:this={bubbleMenuElement}
+		hidden={formattingDismissed}
 		id="bubble-menu"
 		class="p-0"
 		style="visibility: hidden; opacity: 0; position: absolute; z-index: 9999;"
@@ -1350,6 +1363,7 @@
 
 	<div
 		bind:this={floatingMenuElement}
+		hidden={formattingDismissed}
 		id="floating-menu"
 		class="p-0"
 		style="visibility: hidden; opacity: 0; position: absolute; z-index: 9999;"
