@@ -1799,30 +1799,40 @@ class ChatTable:
         if chat:
             return chat
 
-        chat = await self.get_chat_by_id(id, db=db)
-        if not chat:
+        # Access checks need only these columns; skip loading the full chat
+        # (its JSON payload can be large) until access has been granted.
+        async with get_async_db_context(db) as session:
+            result = await session.execute(select(Chat.user_id, Chat.meta, Chat.folder_id).filter_by(id=id))
+            access = result.first()
+
+        if not access:
             return None
 
-        if user.role == 'admin' and (ENABLE_ADMIN_CHAT_ACCESS or is_internal_chat(chat.meta)):
-            return chat
+        allowed = (
+            access.user_id == user.id
+            or user.role == 'admin'
+            and (ENABLE_ADMIN_CHAT_ACCESS or is_internal_chat(access.meta))
+        )
 
-        if await AccessGrants.has_access(
-            user_id=user.id,
-            resource_type='shared_chat',
-            resource_id=id,
-            permission='read',
-            db=db,
-        ):
-            return chat
+        if not allowed:
+            allowed = await AccessGrants.has_access(
+                user_id=user.id,
+                resource_type='shared_chat',
+                resource_id=id,
+                permission='read',
+                db=db,
+            )
 
-        if chat.folder_id:
+        if not allowed and access.folder_id:
             from open_webui.utils.access_control.folders import has_folder_access
 
-            folder = await Folders.get_folder_by_id(chat.folder_id, db=db)
-            if folder and await has_folder_access(user.id, folder, 'read', db):
-                return chat
+            folder = await Folders.get_folder_by_id(access.folder_id, db=db)
+            allowed = bool(folder and await has_folder_access(user.id, folder, 'read', db))
 
-        return None
+        if not allowed:
+            return None
+
+        return await self.get_chat_by_id(id, db=db)
 
     async def is_chat_owner(self, id: str, user_id: str, db: AsyncSession | None = None) -> bool:
         """
