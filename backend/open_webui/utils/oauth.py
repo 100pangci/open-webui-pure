@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import fnmatch
 import logging
@@ -451,6 +452,9 @@ class OAuthManager:
                 log.error(f'Failed to refresh token for session {session.id}')
                 return None
 
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            # Transient provider failure: keep the session so a later call can retry.
+            raise
         except Exception as e:
             log.error(f'Error refreshing token for session {session.id}: {e}')
             return None
@@ -488,6 +492,8 @@ class OAuthManager:
                         token_endpoint = openid_data.get('token_endpoint')
                     else:
                         log.error(f'Failed to fetch OpenID configuration for provider {provider}')
+                        if r.status == 429 or r.status >= 500:
+                            r.raise_for_status()
             if not token_endpoint:
                 log.error(f'No token endpoint found for provider {provider}')
                 return None
@@ -532,8 +538,12 @@ class OAuthManager:
                     else:
                         error_text = await r.text()
                         log.error(f'Token refresh failed for provider {provider}: {r.status} - {error_text}')
+                        if r.status == 429 or r.status >= 500:
+                            r.raise_for_status()
                         return None
 
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            raise
         except Exception as e:
             log.error(f'Exception during token refresh for provider {provider}: {e}')
             return None
