@@ -139,7 +139,7 @@ WEBUI_ENABLE_POSTGRES=true WEBUI_ENABLE_REDIS=true ./podman.sh update
 #### Prebuilt images
 
 Multi-arch images (amd64/arm64) are published to Docker Hub on version tags:
-`docker.io/ywpc05/open-webui-pure` (`latest`, `0.13.0`, `0.13`, `v0.13.0`,
+`docker.io/ywpc05/open-webui-pure` (`latest`, `0.13.3`, `0.13`, `v0.13.3`,
 `main`, `git-<sha>`). Use the published image instead of building:
 
 ```bash
