@@ -1,3 +1,5 @@
+import pytest
+
 from open_webui.socket.utils import RedisDict
 
 
@@ -45,6 +47,16 @@ class FakeRedis:
         for key in keys:
             self.signatures.pop(key, None)
             self.hashes.pop(key, None)
+
+
+@pytest.fixture(autouse=True)
+def fake_connection(monkeypatch):
+    """Skip the real Redis client: ``redis`` is an optional dependency.
+
+    ``RedisDict.__init__`` would otherwise import the ``redis`` package,
+    which the default install does not ship.
+    """
+    monkeypatch.setattr('open_webui.socket.utils.get_redis_connection', lambda *args, **kwargs: FakeRedis())
 
 
 def make_dict(cache_set_signature):
