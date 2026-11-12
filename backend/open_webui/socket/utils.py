@@ -68,6 +68,8 @@ class RedisDict:
         cache_set_signature=False,
     ):
         self.name = name
+        self._cached_signature = None
+        self._cached_values = None
         self._signature_name = f'{name}:signature' if cache_set_signature else None
         self.redis = get_redis_connection(
             redis_url,
@@ -105,7 +107,15 @@ class RedisDict:
         return self.redis.hkeys(self.name)
 
     def values(self):
-        return [JSONCodec.loads(v) for v in self.redis.hvals(self.name)]
+        if not self._signature_name:
+            return [JSONCodec.loads(v) for v in self.redis.hvals(self.name)]
+
+        # Decode once per stored signature; callers share these dicts read-only.
+        stored_signature = self.redis.get(self._signature_name)
+        if self._cached_values is None or stored_signature is None or stored_signature != self._cached_signature:
+            self._cached_values = [JSONCodec.loads(v) for v in self.redis.hvals(self.name)]
+            self._cached_signature = stored_signature
+        return list(self._cached_values)
 
     def items(self):
         return [(k, JSONCodec.loads(v)) for k, v in self.redis.hgetall(self.name).items()]
@@ -124,7 +134,10 @@ class RedisDict:
         """Delete fields in one HDEL; no keys is a no-op (HDEL rejects an empty field list)."""
         if keys:
             self.redis.hdel(self.name, *keys)
-            self._last_signature = None
+            if self._signature_name:
+                # Invalidate the fingerprint so the values() cache and the
+                # next set() both see the deleted fields.
+                self.redis.delete(self._signature_name)
 
     def set(self, mapping: dict):
         if not mapping:
