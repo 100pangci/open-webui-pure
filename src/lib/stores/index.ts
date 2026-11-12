@@ -222,6 +222,11 @@ type TitleSettings = {
 };
 
 type Config = {
+	file?: {
+		max_size?: number | null;
+		max_count?: number | null;
+		image_compression?: { width?: number | null; height?: number | null };
+	};
 	license_metadata: any;
 	status: boolean;
 	name: string;
