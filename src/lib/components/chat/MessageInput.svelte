@@ -1706,8 +1706,12 @@
 										onClose={async () => {
 											await tick();
 
-											const chatInput = document.getElementById('chat-input');
-											chatInput?.focus();
+											// On a phone, putting the cursor back in the message
+											// box pops the on-screen keyboard when the menu closes.
+											if (!$mobile) {
+												const chatInput = document.getElementById('chat-input');
+												chatInput?.focus();
+											}
 										}}
 									>
 										<button
