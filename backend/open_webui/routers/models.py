@@ -487,6 +487,11 @@ async def import_models(
                         model_data['params'] = model_data.get('params', {})
 
                         updated_model = ModelForm(**{**existing_model.model_dump(), **model_data})
+
+                        # The import payload is user supplied, so it needs the same
+                        # depth check as an ordinary update.
+                        _validate_model_settings_depth(updated_model)
+
                         # Only filter access_grants when explicitly provided
                         # in the payload to avoid altering existing ACLs on
                         # metadata-only imports.
@@ -504,6 +509,8 @@ async def import_models(
                         model_data['meta'] = model_data.get('meta', {})
                         model_data['params'] = model_data.get('params', {})
                         new_model = ModelForm(**model_data)
+
+                        _validate_model_settings_depth(new_model)
 
                         if user.role != 'admin':
                             if not new_model.base_model_id:
@@ -553,6 +560,8 @@ async def import_models(
             return True
         else:
             raise HTTPException(status_code=400, detail='Invalid JSON format')
+    except HTTPException:
+        raise
     except Exception as e:
         log.exception(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -574,6 +583,9 @@ async def sync_models(
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
 ):
+    for model in form_data.models:
+        _validate_model_settings_depth(model)
+
     models = await Models.sync_models(user.id, form_data.models, db=db)
     await publish_event(
         request,
