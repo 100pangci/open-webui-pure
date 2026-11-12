@@ -186,8 +186,9 @@ npm run dev        # Vite dev server, proxies /api and /openai to :8080
 ## Tests
 
 ```bash
-# backend (166 tests: SSRF, compression, rate limiting, image types, changelog,
-# temporary-chat ownership, Responses API conversion, database revision guard)
+# backend (170 tests: SSRF, compression, rate limiting, image types, changelog,
+# temporary-chat ownership, Responses API conversion, database revision guard,
+# Redis model cache)
 PYTHONPATH=backend pytest backend/open_webui/test -q
 
 # frontend

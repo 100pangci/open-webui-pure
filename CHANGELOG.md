@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- 🔄 **Upstream sync to Open WebUI v0.13.3.** Audited all 314 upstream commits between v0.13.0 and v0.13.3 and ported only the fixes that affect retained features: 7 P1 security/correctness fixes, 13 P2 and 26 P3 fixes. No removed feature, dependency or migration was imported; the Alembic head is still `d4c1a8e37b62`. The per-commit decisions and the local-to-upstream commit map are recorded in [`docs/upstream-audit/2026-11-10-summary.md`](./docs/upstream-audit/2026-11-10-summary.md).
+- 🔄 **Upstream sync to Open WebUI v0.13.3.** Audited all 314 upstream commits between v0.13.0 and v0.13.3 and ported only the fixes that affect retained features: 7 P1 security/correctness fixes, 13 P2 and 26 P3 fixes. No removed feature was imported, no dependency was added beyond the existing `turndown` bump below, and no migration was imported; the Alembic head is still `d4c1a8e37b62`. The per-commit decisions and the local-to-upstream commit map are recorded in [`docs/upstream-audit/2026-11-10-summary.md`](./docs/upstream-audit/2026-11-10-summary.md).
 - ⬆️ **`turndown` 7.2.5.** Typing in the chat input no longer freezes after pasting a large document.
 
 ### Fixed
@@ -19,8 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✂️ **Clipboard works over plain HTTP on a LAN address.** Copy actions, the long-message prompt and Auto-Copy Response fall back to `execCommand` when `navigator.clipboard` is unavailable.
 - ↔️ **Lists cancel stale requests.** User, chat and archive lists abort the previous request when the search term changes, so an older response can no longer overwrite a newer one.
 - 🕐 **Replies record when they finished.** A saved reply shows the completion time (with the prompt time as fallback for older replies), and usage tooltips group large token counts.
-- 🛡️ **Hardening.** Prompt-cache markers survive on tool results, OAuth token refresh no longer logs out on a transient network error, expired sessions finish signing out before redirecting, and model settings nested beyond the JSON depth limit are rejected.
+- 🛡️ **Hardening.** Prompt-cache markers survive on tool results, OAuth token refresh no longer logs out on a transient network error, expired sessions finish signing out before redirecting, and model settings nested beyond the JSON depth limit are rejected on every write path, including import and sync.
 - ⚡ **Chat actions no longer load whole conversations.** Marking a chat read or unread, removing a tag, and checking shared-chat access now read only the columns they need, and chat search is capped at twelve distinct terms.
+- 📱 **The add menu leaves the keyboard closed on a phone.** Closing the message input's menu no longer puts the cursor back in the message box and pops the on-screen keyboard; the desktop still returns focus to the input.
+- 🏷️ **A deleted chat no longer receives a new title.** A title event is only sent after the title was actually saved.
+- 🗂️ **The Redis model cache decodes once.** With Redis enabled, workspace model creation and import reuse the decoded model list until it changes.
 
 ## [0.13.0] - 2026-11-07
 
