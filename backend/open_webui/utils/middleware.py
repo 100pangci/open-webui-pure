@@ -1176,26 +1176,29 @@ async def background_tasks_handler(ctx):
                             if not title:
                                 title = messages[0].get('content', user_message)
 
-                            await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+                            updated = await Chats.update_chat_title_by_id(metadata['chat_id'], title)
 
+                            # The chat may have been deleted while the title was generated.
+                            if updated:
+                                await event_emitter(
+                                    {
+                                        'type': 'chat:title',
+                                        'data': title,
+                                    }
+                                )
+
+                    if title == None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
+                        title = messages[0].get('content', user_message)
+
+                        updated = await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+
+                        if updated:
                             await event_emitter(
                                 {
                                     'type': 'chat:title',
                                     'data': title,
                                 }
                             )
-
-                    if title == None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
-                        title = messages[0].get('content', user_message)
-
-                        await Chats.update_chat_title_by_id(metadata['chat_id'], title)
-
-                        await event_emitter(
-                            {
-                                'type': 'chat:title',
-                                'data': title,
-                            }
-                        )
 
                 if TASKS.TAGS_GENERATION in tasks and tasks[TASKS.TAGS_GENERATION]:
                     res = await generate_chat_tags(
