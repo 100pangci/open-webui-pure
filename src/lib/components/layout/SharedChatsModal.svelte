@@ -87,16 +87,18 @@
 		}
 
 		chatListLoading = true;
-		page += 1;
+		const nextPage = page + 1;
 
 		try {
 			const newChatList = await getSharedChatList(
 				localStorage.token,
-				page,
+				nextPage,
 				filter,
 				controller.signal
 			);
 			if (controller.signal.aborted || searchController !== controller) return;
+			// Advance only once the page arrived, so a failed load can be retried.
+			page = nextPage;
 
 			const results = newChatList ?? [];
 			allChatsLoaded = results.length === 0;

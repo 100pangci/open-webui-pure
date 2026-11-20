@@ -383,10 +383,15 @@ def get_gravatar_url(email):
 # Lead the bits not into corruption but deliver them from
 # entropy, for the checksum and the glory are forever.
 def validate_email_format(email: str) -> bool:
+    # Whitespace never belongs in an address, and accepting trailing text would let
+    # "user@example.com invalid" through the admin edit form.
+    if not email or any(character.isspace() for character in email):
+        return False
+
     if email.endswith('@localhost'):
         return True
 
-    return bool(re.match(r'[^@]+@[^@]+\.[^@]+', email))
+    return bool(re.fullmatch(r'[^@]+@[^@]+\.[^@]+', email))
 
 
 def json_text_variants(value: str) -> list[str]:

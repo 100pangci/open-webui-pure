@@ -446,10 +446,20 @@
 			clearInterval(tokenTimer);
 			tokenTimer = null;
 		}
-		// Finish signing out before another OAuth login can establish a new session.
-		await userSignOut().catch((error) => {
+		// Finish signing out before another OAuth login can establish a new session, but
+		// bound the wait so an unresponsive auth endpoint cannot keep the expired session
+		// alive and leave the user stuck on a signed-in page.
+		let signOutTimeout: ReturnType<typeof setTimeout> | undefined;
+		// Handle the sign-out rejection here, so losing the race cannot leave it unhandled.
+		const signOut = userSignOut().catch((error) => {
 			console.error('Error signing out expired session:', error);
 		});
+		await Promise.race([
+			signOut,
+			new Promise((resolve) => {
+				signOutTimeout = setTimeout(resolve, 5000);
+			})
+		]).finally(() => clearTimeout(signOutTimeout));
 		user.set(null);
 		localStorage.removeItem('token');
 		// Clear the OAuth token cookie so /auth doesn't auto-login and redirect-loop

@@ -26,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mark a folder's chats as read from its menu, keep the new-chat toggle from stealing focus on phones, and stop a right-aligned menu from shifting while it opens.
 - Clear a folder chat's unread dot in place when another view marks it read, and refresh only the open folder's list after "Mark all as read" instead of leaving it stale.
 - Keep a queued message in the queue when sending it is rejected, for example after the last model becomes unavailable, instead of dropping it without a notice.
-- Reject an invalid email format when an administrator edits a user, matching sign-up and Add User now that the field no longer relies on the browser's email check.
+- Reject an invalid email format when an administrator changes a user's address, matching sign-up and Add User now that the field no longer relies on the browser's email check; an unchanged address, which an identity provider may have issued, is left alone so editing the name or role still works.
+- Retry a failed page instead of skipping it in chat search and the shared-chats list, and cap the sign-out wait during session expiry so an unresponsive auth endpoint cannot leave the user on an expired session.
 - Pass Redis locks through the Sentinel proxy unchanged so an OAuth token refresh under Sentinel uses a lock object instead of an un-awaited coroutine.
 
 ## [0.13.0] - 2026-11-07

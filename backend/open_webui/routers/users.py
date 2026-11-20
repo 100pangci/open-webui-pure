@@ -935,21 +935,22 @@ async def update_user_by_id(
     user = await Users.get_user_by_id(user_id, db=db)
 
     if user:
-        if form_data.email is not None:
-            # The email field no longer asks the browser to validate its format, so the
-            # profile update must reject a value that sign-up and Add User already reject.
+        if form_data.email is not None and form_data.email.lower() != user.email:
+            # The email field no longer asks the browser to validate its format, so a
+            # changed address must pass the check that sign-up and Add User already apply.
+            # An unchanged address is left alone: it may come from an identity provider
+            # and rejecting it would block an administrator from editing anything else.
             if not validate_email_format(form_data.email.lower()):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=ERROR_MESSAGES.INVALID_EMAIL_FORMAT,
                 )
-            if form_data.email.lower() != user.email:
-                email_user = await Users.get_user_by_email(form_data.email.lower(), db=db)
-                if email_user:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=ERROR_MESSAGES.EMAIL_TAKEN,
-                    )
+            email_user = await Users.get_user_by_email(form_data.email.lower(), db=db)
+            if email_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ERROR_MESSAGES.EMAIL_TAKEN,
+                )
 
         if form_data.password:
             try:
