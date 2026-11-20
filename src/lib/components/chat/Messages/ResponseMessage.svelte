@@ -40,11 +40,13 @@
 	interface MessageType {
 		id: string;
 		model: string;
+		modelName?: string;
 		content: string;
 		output?: OutputItem[];
 		files?: { type: string; url: string }[];
 		timestamp: number;
 		role: string;
+		user_id?: string | null;
 		statusHistory?: {
 			done: boolean;
 			action: string;
@@ -151,6 +153,8 @@
 
 	let model = null;
 	$: model = $models.find((m) => m.id === message.model);
+	// A model removed from the list should still show the name saved with the message.
+	$: localizedModelName = model?.name || message.modelName || message.model;
 
 	$: statusEntries = message?.statusHistory ?? [...(message?.status ? [message?.status] : [])];
 	$: hasVisibleStatus =
@@ -162,6 +166,7 @@
 	$: hasResponseContent = Boolean((message.content ?? '').trim() || message.output?.length);
 
 	let edit = false;
+	let editButtonElement: HTMLButtonElement;
 	let editedContent = '';
 	let editedOutput: any[] | null = null;
 	let editTextAreaElement: HTMLTextAreaElement;
@@ -269,6 +274,7 @@
 		editedContent = '';
 		editedOutput = null;
 		await tick();
+		editButtonElement?.focus();
 	};
 
 	const deleteMessageHandler = async () => {
@@ -374,9 +380,9 @@
 		<div class="flex-auto w-0 pl-1 relative">
 			{#if !compactPreview}
 				<Name>
-					<Tooltip content={model?.name ?? message.model} placement="top-start">
+					<Tooltip content={localizedModelName} placement="top-start">
 						<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
-							{model?.name ?? message.model}
+							{localizedModelName}
 						</span>
 					</Tooltip>
 				</Name>
@@ -462,14 +468,18 @@
 										}}
 										on:keydown={(e) => {
 											if (e.key === 'Escape') {
-												document.getElementById('close-edit-message-button')?.click();
+												cancelEditMessage();
 											}
 
 											const isCmdOrCtrlPressed = e.metaKey || e.ctrlKey;
 											const isEnterPressed = e.key === 'Enter';
 
-											if (isCmdOrCtrlPressed && isEnterPressed) {
-												document.getElementById('confirm-edit-message-button')?.click();
+											if (
+												isCmdOrCtrlPressed &&
+												isEnterPressed &&
+												(!message.user_id || message.user_id === $user?.id)
+											) {
+												editMessageConfirmHandler();
 											}
 										}}
 									></textarea>
@@ -624,7 +634,7 @@
 								<div class="flex self-center min-w-fit" dir="ltr">
 									<button
 										aria-label={$i18n.t('Previous message')}
-										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition"
+										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition previous-message-button"
 										on:click={() => {
 											showPreviousMessage(message);
 										}}
@@ -692,7 +702,7 @@
 									{/if}
 
 									<button
-										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition"
+										class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition next-message-button"
 										on:click={() => {
 											showNextMessage(message);
 										}}
@@ -723,6 +733,7 @@
 										<Tooltip content={$i18n.t('Edit')} placement="bottom">
 											<button
 												aria-label={$i18n.t('Edit')}
+												bind:this={editButtonElement}
 												class="{isLastMessage || ($settings?.highContrastMode ?? false)
 													? 'visible'
 													: 'hover-reveal'} p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
 	import { toast } from 'svelte-sonner';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import { unshareAllChats, deleteSharedChatById, getSharedChatList } from '$lib/apis/chats';
 
 	import ChatsModal from './ChatsModal.svelte';
@@ -23,7 +23,8 @@
 
 	let allChatsLoaded = false;
 	let chatListLoading = false;
-	let searchDebounceTimeout: any;
+	let searchDebounceTimeout: ReturnType<typeof setTimeout>;
+	let searchController: AbortController | null = null;
 
 	let showUnshareAllConfirmDialog = false;
 
@@ -34,53 +35,83 @@
 		...(direction ? { direction } : {})
 	};
 
-	$: if (filter !== null) {
-		searchHandler();
-	}
+	const cancelSearch = () => {
+		searchController?.abort();
+		searchController = null;
+		clearTimeout(searchDebounceTimeout);
+	};
 
 	const searchHandler = async () => {
-		if (!show) {
-			return;
-		}
+		cancelSearch();
+		if (!show) return;
 
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
-
+		const controller = new AbortController();
+		searchController = controller;
+		const { signal } = controller;
 		page = 1;
 		chatList = null;
+		chatListLoading = false;
+
+		const loadChats = async () => {
+			try {
+				const res = await getSharedChatList(localStorage.token, page, filter, signal);
+				if (signal.aborted || searchController !== controller) return;
+				chatList = res ?? [];
+				allChatsLoaded = (res ?? []).length === 0;
+			} catch (error) {
+				if (!signal.aborted && searchController === controller) {
+					toast.error(`${error}`);
+					chatList = [];
+					allChatsLoaded = true;
+				}
+			}
+		};
 
 		if (query === '') {
-			chatList = await getSharedChatList(localStorage.token, page, filter);
-			allChatsLoaded = (chatList ?? []).length === 0;
+			await loadChats();
 		} else {
-			searchDebounceTimeout = setTimeout(async () => {
-				chatList = await getSharedChatList(localStorage.token, page, filter);
-				allChatsLoaded = (chatList ?? []).length === 0;
-			}, 500);
+			searchDebounceTimeout = setTimeout(loadChats, 500);
 		}
 	};
 
 	const loadMoreChats = async () => {
+		const controller = searchController;
+		if (
+			chatListLoading ||
+			!chatList ||
+			allChatsLoaded ||
+			!controller ||
+			controller.signal.aborted
+		) {
+			return;
+		}
+
 		chatListLoading = true;
 		page += 1;
 
-		let newChatList = [];
+		try {
+			const newChatList = await getSharedChatList(
+				localStorage.token,
+				page,
+				filter,
+				controller.signal
+			);
+			if (controller.signal.aborted || searchController !== controller) return;
 
-		if (query) {
-			newChatList = await getSharedChatList(localStorage.token, page, filter);
-		} else {
-			newChatList = await getSharedChatList(localStorage.token, page, filter);
+			const results = newChatList ?? [];
+			allChatsLoaded = results.length === 0;
+			if (results.length > 0) {
+				chatList = [...chatList, ...results];
+			}
+		} catch (error) {
+			if (!controller.signal.aborted && searchController === controller) {
+				toast.error(`${error}`);
+			}
+		} finally {
+			if (searchController === controller) {
+				chatListLoading = false;
+			}
 		}
-
-		// once the bottom of the list has been reached (no results) there is no need to continue querying
-		allChatsLoaded = newChatList.length === 0;
-
-		if (newChatList.length > 0) {
-			chatList = [...(chatList || []), ...newChatList];
-		}
-
-		chatListLoading = false;
 	};
 
 	const unshareHandler = async (chatId: string) => {
@@ -92,7 +123,7 @@
 		if (res === true) {
 			toast.success($i18n.t('Chat unshared successfully.'));
 			onUpdate();
-			init();
+			searchHandler();
 		} else if (res === false) {
 			toast.error($i18n.t('Failed to unshare chat.'));
 		}
@@ -104,7 +135,7 @@
 			await unshareAllChats(localStorage.token);
 			toast.success($i18n.t('All shared chats have been unshared.'));
 			onUpdate();
-			await init();
+			await searchHandler();
 		} catch (error) {
 			toast.error(`${error}`);
 		} finally {
@@ -112,13 +143,13 @@
 		}
 	};
 
-	const init = async () => {
-		chatList = await getSharedChatList(localStorage.token);
-	};
-
-	$: if (show) {
-		init();
+	$: if (show && filter) {
+		searchHandler();
+	} else {
+		cancelSearch();
 	}
+
+	onDestroy(cancelSearch);
 </script>
 
 <UnshareAllConfirmDialog
@@ -145,7 +176,7 @@
 	{chatListLoading}
 	onUpdate={() => {
 		onUpdate();
-		init();
+		searchHandler();
 	}}
 	loadHandler={loadMoreChats}
 	{unshareHandler}

@@ -516,6 +516,25 @@ export const formatMessageTimestampFull = (inputDate) =>
 		minute: '2-digit'
 	}) ?? '';
 
+const copyWithExecCommand = (text: string, html: string | null = null) => {
+	const setClipboardData = (event: ClipboardEvent) => {
+		event.preventDefault();
+		event.clipboardData?.clearData();
+		event.clipboardData?.setData('text/plain', text);
+		if (html) event.clipboardData?.setData('text/html', html);
+	};
+
+	document.addEventListener('copy', setClipboardData);
+	try {
+		return document.execCommand('copy');
+	} catch (error) {
+		console.error('Fallback: Oops, unable to copy', error);
+		return false;
+	} finally {
+		document.removeEventListener('copy', setClipboardData);
+	}
+};
+
 export const copyToClipboard = async (text, html = null, formatted = false) => {
 	if (formatted) {
 		let styledHtml = '';
@@ -587,6 +606,8 @@ export const copyToClipboard = async (text, html = null, formatted = false) => {
 			styledHtml = html;
 		}
 
+		if (!navigator.clipboard) return copyWithExecCommand(text, styledHtml);
+
 		// Create a blob with HTML content
 		const blob = new Blob([styledHtml], { type: 'text/html' });
 
@@ -606,36 +627,8 @@ export const copyToClipboard = async (text, html = null, formatted = false) => {
 			return await copyToClipboard(text);
 		}
 	} else {
+		if (!navigator.clipboard) return copyWithExecCommand(text);
 		let result = false;
-		if (!navigator.clipboard) {
-			const span = document.createElement('span');
-			span.textContent = text;
-			span.style.whiteSpace = 'pre';
-			span.style.position = 'fixed';
-			span.style.top = '0';
-			span.style.left = '0';
-			span.style.opacity = '0';
-			document.body.appendChild(span);
-
-			const range = document.createRange();
-			range.selectNodeContents(span);
-			const selection = window.getSelection();
-			selection?.removeAllRanges();
-			selection?.addRange(range);
-
-			try {
-				const successful = document.execCommand('copy');
-				const msg = successful ? 'successful' : 'unsuccessful';
-				console.log('Fallback: Copying text command was ' + msg);
-				result = successful;
-			} catch (err) {
-				console.error('Fallback: Oops, unable to copy', err);
-			}
-
-			selection?.removeAllRanges();
-			document.body.removeChild(span);
-			return result;
-		}
 
 		result = await navigator.clipboard
 			.writeText(text)
@@ -787,13 +780,19 @@ export const getImportOrigin = (_chats) => {
 };
 
 export const getUserPosition = async (raw = false) => {
-	// Get the user's location using the Geolocation API
-	const position = await new Promise((resolve, reject) => {
-		navigator.geolocation.getCurrentPosition(resolve, reject);
-	}).catch((error) => {
-		console.error('Error getting user location:', error);
-		throw error;
-	});
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+		timer = setTimeout(() => reject(new Error('Location request timed out.')), 10_000);
+		navigator.geolocation.getCurrentPosition(resolve, reject, {
+			timeout: 10_000,
+			maximumAge: 5 * 60_000
+		});
+	})
+		.finally(() => clearTimeout(timer))
+		.catch((error) => {
+			console.error('Error getting user location:', error);
+			throw error;
+		});
 
 	if (!position) {
 		return 'Location not available';

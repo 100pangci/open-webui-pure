@@ -54,7 +54,16 @@
 		}
 	}
 
-	$: if (selectedModels.length > 1 && !compareModels) {
+	$: canCompare =
+		$user?.role === 'admin' || ($user?.permissions?.chat?.multiple_models ?? true);
+	$: if (!canCompare && (compareModels || selectedModels.length > 1)) {
+		compareModels = false;
+		// Drop extra models so a revoked multi-model permission cannot keep a comparison open.
+		if (selectedModels.length > 1) {
+			selectedModels = [selectedModels[0]];
+		}
+	}
+	$: if (canCompare && selectedModels.length > 1 && !compareModels) {
 		compareModels = true;
 	}
 </script>
@@ -79,8 +88,7 @@
 					{align}
 					{showSetDefault}
 					onSetDefault={saveDefaultModel}
-					multipleEnabled={$user?.role === 'admin' ||
-						($user?.permissions?.chat?.multiple_models ?? true)}
+					multipleEnabled={canCompare}
 					{disabled}
 					bind:compareEnabled={compareModels}
 					bind:values={selectedModels}

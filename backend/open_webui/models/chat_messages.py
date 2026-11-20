@@ -855,6 +855,7 @@ class ChatMessageTable:
             stmt = (
                 select(
                     ChatMessage.model_id,
+                    func.max(ChatMessage.meta['model_name'].as_string()).label('model_name'),
                     func.count(ChatMessage.id).label('messages'),
                     func.coalesce(func.sum(input_tokens), 0).label('input_tokens'),
                     func.coalesce(func.sum(output_tokens), 0).label('output_tokens'),
@@ -874,6 +875,7 @@ class ChatMessageTable:
             return [
                 {
                     'model_id': row.model_id,
+                    'name': row.model_name if isinstance(row.model_name, str) and row.model_name.strip() else None,
                     'messages': row.messages,
                     'input_tokens': int(row.input_tokens or 0),
                     'output_tokens': int(row.output_tokens or 0),

@@ -644,6 +644,7 @@ class UsersTable:
             return UserModel.model_validate(user)
 
     async def delete_user_by_id(self, id: str, db: AsyncSession | None = None) -> bool:
+        from open_webui.models.access_grants import AccessGrant
         from open_webui.models.chats import Chats
         from open_webui.models.groups import Groups
 
@@ -655,6 +656,7 @@ class UsersTable:
             deleted_chats = await Chats.delete_chats_by_user_id(id, db=session)
             if not deleted_chats:
                 return False  # chats deletion failed
+            await session.execute(delete(AccessGrant).filter_by(principal_type='user', principal_id=id))
             await session.execute(delete(User).where(User.id == id))
             await session.commit()
             return True

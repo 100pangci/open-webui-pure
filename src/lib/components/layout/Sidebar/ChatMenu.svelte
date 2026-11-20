@@ -434,7 +434,7 @@
 				</button>
 			{/if}
 
-			{#if chatId && $folders.length > 0}
+			{#if chatId && $folders.length > 0 && ($user?.role === 'admin' || ($user?.permissions?.features?.folders ?? true))}
 				<DropdownSub contentClass="select-none z-50 max-h-52 overflow-y-auto scrollbar-hidden">
 					<button
 						slot="trigger"

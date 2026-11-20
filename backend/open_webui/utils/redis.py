@@ -29,7 +29,7 @@ from open_webui.env import (
 log = logging.getLogger(__name__)
 
 _ACCEPTED_SCHEMES = frozenset({'redis', 'rediss'})
-_FACTORY_METHODS = frozenset({'pipeline', 'pubsub', 'monitor', 'client', 'transaction'})
+_FACTORY_METHODS = frozenset({'pipeline', 'pubsub', 'monitor', 'client', 'transaction', 'lock'})
 _CONNECTION_POOL: dict[tuple, Any] = {}
 
 

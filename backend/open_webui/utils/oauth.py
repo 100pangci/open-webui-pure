@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import fnmatch
 import logging
@@ -7,6 +8,7 @@ import re
 import sys
 import urllib.parse
 import uuid
+import weakref
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
@@ -56,6 +58,7 @@ from open_webui.env import (
     ENABLE_OAUTH_ID_TOKEN_COOKIE,
     GLOBAL_LOG_LEVEL,
     OAUTH_MAX_SESSIONS_PER_USER,
+    REDIS_KEY_PREFIX,
     WEBUI_AUTH_COOKIE_SAME_SITE,
     WEBUI_AUTH_COOKIE_SECURE,
 )
@@ -185,6 +188,9 @@ async def get_oauth_runtime_config() -> SimpleNamespace:
 # Conservative default when the provider omits both expires_in and expires_at.
 # Matches the value recommended by Authlib's compliance_fix documentation.
 DEFAULT_TOKEN_EXPIRY_SECONDS = 3600
+
+# Some OAuth servers send single headers larger than aiohttp's default 8190-byte limit.
+OAUTH_MAX_FIELD_SIZE = 64 * 1024
 NON_EXPIRING_TOKEN_EXPIRES_AT = 253402300799  # 9999-12-31 23:59:59 UTC
 
 
@@ -319,6 +325,10 @@ def is_in_blocked_groups(group_name: str, groups: list) -> bool:
     return False
 
 
+OAUTH_REFRESH_LOCK_TIMEOUT = 60
+OAUTH_REFRESH_LOCKS: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
+
+
 class OAuthManager:
     def __init__(self, app):
         self.oauth = OAuth()
@@ -401,29 +411,40 @@ class OAuthManager:
 
     async def _refresh_token(self, session) -> dict:
         """
-        Refresh an OAuth token if needed, with concurrency protection.
+        Refresh an OAuth token with concurrency protection.
 
-        Args:
-            session: The OAuth session object
-
-        Returns:
-            dict: Refreshed token data, or None if refresh failed
+        Reuse the token from another request if it refreshed the session while
+        this request waited for the lock. A transient provider failure keeps the
+        existing OAuth session so a later request can retry.
         """
+        redis = getattr(self.app.state, 'redis', None)
+        if redis:
+            refresh_lock = redis.lock(
+                f'{REDIS_KEY_PREFIX}:oauth:refresh_lock:{session.id}',
+                timeout=OAUTH_REFRESH_LOCK_TIMEOUT,
+                blocking_timeout=OAUTH_REFRESH_LOCK_TIMEOUT,
+            )
+        else:
+            refresh_lock = OAUTH_REFRESH_LOCKS.setdefault(session.id, asyncio.Lock())
+
         try:
-            # Perform the actual refresh
-            refreshed_token = await self._perform_token_refresh(session)
+            async with refresh_lock, asyncio.timeout(OAUTH_REFRESH_LOCK_TIMEOUT / 2):
+                current_session = await OAuthSessions.get_session_by_id(session.id)
+                if current_session and current_session.token != session.token:
+                    return current_session.token
 
-            if refreshed_token:
-                # Update the session with new token data
-                session = await OAuthSessions.update_session_by_id(session.id, refreshed_token)
-                log.info('Successfully refreshed token for session %s', session.id)
-                return session.token
-            else:
-                log.error(f'Failed to refresh token for session {session.id}')
+                refreshed_token = await self._perform_token_refresh(session)
+                if refreshed_token:
+                    updated_session = await OAuthSessions.update_session_by_id(session.id, refreshed_token)
+                    log.info('Successfully refreshed token for session %s', session.id)
+                    return updated_session.token
+
+                log.error('Failed to refresh token for session %s', session.id)
                 return None
-
+        except (TimeoutError, aiohttp.ClientError):
+            raise
         except Exception as e:
-            log.error(f'Error refreshing token for session {session.id}: {e}')
+            log.error('Error refreshing token for session %s: %s', session.id, e)
             return None
 
     async def _perform_token_refresh(self, session) -> dict:
@@ -452,13 +473,15 @@ class OAuthManager:
 
             server_metadata_url = self.get_server_metadata_url(provider)
             token_endpoint = None
-            async with aiohttp.ClientSession(trust_env=True) as session_http:
+            async with aiohttp.ClientSession(trust_env=True, max_field_size=OAUTH_MAX_FIELD_SIZE) as session_http:
                 async with session_http.get(server_metadata_url) as r:
                     if r.status == 200:
                         openid_data = await r.json()
                         token_endpoint = openid_data.get('token_endpoint')
                     else:
                         log.error(f'Failed to fetch OpenID configuration for provider {provider}')
+                        if r.status == 429 or r.status >= 500:
+                            r.raise_for_status()
             if not token_endpoint:
                 log.error(f'No token endpoint found for provider {provider}')
                 return None
@@ -469,9 +492,16 @@ class OAuthManager:
                 'refresh_token': token_data['refresh_token'],
                 'client_id': client.client_id,
             }
-            # Add client_secret if available (some providers require it)
+            refresh_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             if hasattr(client, 'client_secret') and client.client_secret:
-                refresh_data['client_secret'] = client.client_secret
+                if client.client_kwargs.get('token_endpoint_auth_method') == 'client_secret_basic':
+                    refresh_headers['Authorization'] = aiohttp.encode_basic_auth(
+                        client.client_id, client.client_secret, encoding='latin1'
+                    )
+                    if not OAUTH_ACCESS_TOKEN_REQUEST_INCLUDE_CLIENT_ID:
+                        del refresh_data['client_id']
+                else:
+                    refresh_data['client_secret'] = client.client_secret
 
             # Add scope if available in client kwargs (some providers require it on refresh)
             if (
@@ -482,11 +512,11 @@ class OAuthManager:
                 refresh_data['scope'] = client.client_kwargs['scope']
 
             # Make refresh request
-            async with aiohttp.ClientSession(trust_env=True) as session_http:
+            async with aiohttp.ClientSession(trust_env=True, max_field_size=OAUTH_MAX_FIELD_SIZE) as session_http:
                 async with session_http.post(
                     token_endpoint,
                     data=refresh_data,
-                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers=refresh_headers,
                     ssl=AIOHTTP_CLIENT_SESSION_SSL,
                 ) as r:
                     if r.status == 200:
@@ -503,8 +533,12 @@ class OAuthManager:
                     else:
                         error_text = await r.text()
                         log.error(f'Token refresh failed for provider {provider}: {r.status} - {error_text}')
+                        if r.status == 429 or r.status >= 500:
+                            r.raise_for_status()
                         return None
 
+        except (TimeoutError, aiohttp.ClientError):
+            raise
         except Exception as e:
             log.error(f'Exception during token refresh for provider {provider}: {e}')
             return None
@@ -1202,12 +1236,18 @@ class OAuthManager:
             sessions = await OAuthSessions.get_sessions_by_user_id(user.id, db=db)
             provider_sessions = sorted(
                 [session for session in sessions if session.provider == provider],
-                key=lambda session: session.created_at,
+                key=lambda session: session.updated_at,
                 reverse=True,
             )
             # Keep the newest sessions up to the limit, prune the rest
             if len(provider_sessions) >= OAUTH_MAX_SESSIONS_PER_USER:
                 for old_session in provider_sessions[OAUTH_MAX_SESSIONS_PER_USER - 1 :]:
+                    log.warning(
+                        'Session limit reached for user %s, provider %s, deleting session %s',
+                        user.id,
+                        provider,
+                        old_session.id,
+                    )
                     await OAuthSessions.delete_session_by_id(old_session.id, db=db)
 
             session = await OAuthSessions.create_session(
@@ -1403,6 +1443,12 @@ class OAuthManager:
         for user in users_to_logout:
             sessions = await OAuthSessions.get_sessions_by_user_id(user.id, db=db)
             for oauth_session in sessions:
+                log.warning(
+                    'Back-channel logout: user %s, provider %s, deleting session %s',
+                    user.id,
+                    oauth_session.provider,
+                    oauth_session.id,
+                )
                 await OAuthSessions.delete_session_by_id(oauth_session.id, db=db)
 
             if redis:

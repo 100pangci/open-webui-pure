@@ -6,6 +6,7 @@
 	import ChatList from './ChatList.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { getSharedFolderChats } from '$lib/apis/folders';
+	import { registerFolderRefreshHandler } from '$lib/stores/chatList';
 
 	type FolderPlaceholderFolder = {
 		id?: string;
@@ -75,6 +76,22 @@
 		return found;
 	};
 
+	const updateChatLastReadAt = (chatId: string, lastReadAt: number) => {
+		if (!chats) {
+			return false;
+		}
+
+		let found = false;
+		chats = chats.map((chat) => {
+			if (chat.id !== chatId) {
+				return chat;
+			}
+			found = true;
+			return { ...chat, last_read_at: lastReadAt };
+		});
+		return found;
+	};
+
 	const refreshChatListSoon = (resetPage = false) => {
 		if (refreshQueued) {
 			if (resetPage) {
@@ -128,7 +145,7 @@
 
 	const chatEventHandler = (event: {
 		chat_id?: string;
-		data?: { type?: string; data?: { active?: boolean } };
+		data?: { type?: string; data?: { active?: boolean; last_read_at?: number } };
 	}) => {
 		if (event.data?.type === 'chat:active' && event.chat_id) {
 			const active = event.data.data?.active ?? false;
@@ -136,16 +153,32 @@
 				refreshChatListSoon(true);
 			}
 		} else if (event.data?.type === 'chat:list') {
+			const lastReadAt = event.data.data?.last_read_at;
+			if (
+				event.chat_id &&
+				typeof lastReadAt === 'number' &&
+				updateChatLastReadAt(event.chat_id, lastReadAt)
+			) {
+				// The read marker clears the unread dot; reloading would reset the page.
+				return;
+			}
 			refreshChatListSoon(true);
 		}
 	};
 
 	onMount(() => {
+		// undefined refreshes every folder chat list; a folder id refreshes only that one.
+		const unregister = registerFolderRefreshHandler((folderId) => {
+			if (folderId === undefined || folderId === folder?.id) {
+				return setChatList();
+			}
+		});
 		const socketInstance = $socket;
 		socketInstance?.on('events', chatEventHandler);
 		socketInstance?.on('connect', refreshChatListSoon);
 
 		return () => {
+			unregister();
 			socketInstance?.off('events', chatEventHandler);
 			socketInstance?.off('connect', refreshChatListSoon);
 		};

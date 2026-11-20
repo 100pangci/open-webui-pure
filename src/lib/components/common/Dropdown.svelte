@@ -139,7 +139,7 @@
 		if (align === 'end') {
 			let right = window.innerWidth - rect.right;
 			// Shift if overflowing left edge
-			const contentWidth = contentEl.offsetWidth || 0;
+			const contentWidth = Math.max(contentEl.scrollWidth || 0, contentEl.offsetWidth || 0);
 			if (right + contentWidth > window.innerWidth) {
 				right = window.innerWidth - contentWidth - 16;
 			}
@@ -148,7 +148,7 @@
 		} else {
 			let left = rect.left;
 			// Shift if overflowing right edge
-			const contentWidth = contentEl.offsetWidth || 0;
+			const contentWidth = Math.max(contentEl.scrollWidth || 0, contentEl.offsetWidth || 0);
 			if (left + contentWidth + 16 > window.innerWidth) {
 				left = window.innerWidth - contentWidth - 16;
 			}
@@ -187,7 +187,7 @@
 		const preferredTop = openAbove
 			? rect.top - constrainedHeight - sideOffset
 			: rect.bottom + sideOffset;
-		const contentWidth = contentEl.offsetWidth || 0;
+		const contentWidth = Math.max(contentEl.scrollWidth || 0, contentEl.offsetWidth || 0);
 		const preferredLeft = align === 'end' && contentWidth ? rect.right - contentWidth : rect.left;
 		const maxLeft = contentWidth ? viewportRight - contentWidth - pad : preferredLeft;
 
@@ -286,6 +286,12 @@
 		if (!(event.target instanceof Node)) return;
 		if (triggerEl?.contains(event.target)) return;
 		if (contentEl?.contains(event.target)) return;
+		// Submenus, listboxes and dialogs can be portaled outside the dropdown content.
+		const portaled =
+			event.target instanceof Element
+				? event.target.closest('[role="menu"], [role="listbox"], [aria-modal="true"]')
+				: null;
+		if (portaled && !portaled.contains(triggerEl)) return;
 		closeDropdown(false);
 	}
 

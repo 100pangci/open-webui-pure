@@ -205,7 +205,14 @@
 		}
 	};
 
-	let tags = [];
+	$: tags = Array.from(
+		new Set(
+			(items ?? [])
+				.filter((item) => includeHidden || !(item.model?.info?.meta?.hidden ?? false))
+				.flatMap((item) => item.model?.tags ?? [])
+				.map((tag) => tag.name.toLowerCase())
+		)
+	).sort((a, b) => a.localeCompare(b));
 
 	let selectedModel = '';
 	$: selectedValues = values ?? (value ? [value] : []);
@@ -339,6 +346,16 @@
 			? `tag:${selectedTag}`
 			: '';
 
+	$: if (selectedTag && !modelFilterItems.some((item) => item.value === `tag:${selectedTag}`)) {
+		selectedTag = '';
+	}
+	$: if (
+		selectedConnectionType &&
+		!modelFilterItems.some((item) => item.value === `connection:${selectedConnectionType}`)
+	) {
+		selectedConnectionType = '';
+	}
+
 	const setModelFilter = (filterValue: string) => {
 		if (!filterValue) {
 			selectedConnectionType = '';
@@ -423,15 +440,6 @@
 	};
 
 	onMount(() => {
-		if (items) {
-			tags = items
-				.filter((item) => includeHidden || !(item.model?.info?.meta?.hidden ?? false))
-				.flatMap((item) => item.model?.tags ?? [])
-				.map((tag) => tag.name.toLowerCase());
-			// Remove duplicates and sort
-			tags = Array.from(new Set(tags)).sort((a, b) => a.localeCompare(b));
-		}
-
 		window.addEventListener('scroll', handleScroll, true);
 		window.visualViewport?.addEventListener('resize', scheduleSettledPositionUpdates);
 		window.visualViewport?.addEventListener('scroll', schedulePositionUpdate);

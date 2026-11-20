@@ -66,11 +66,11 @@
 	let importFiles = null;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController: AbortController | null = null;
 
 	let prompts = null;
 	let tags = [];
 	let total = null;
-	let loading = false;
 
 	let showDeleteConfirm = false;
 	let showCreateModal = false;
@@ -118,7 +118,7 @@
 	}
 
 	const handleSearchInput = () => {
-		loading = true;
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			if (page !== 1) {
@@ -161,7 +161,11 @@
 	const getPromptList = async () => {
 		if (!loaded) return;
 
-		loading = true;
+		searchController?.abort();
+		const controller = new AbortController();
+		searchController = controller;
+		const { signal } = controller;
+
 		try {
 			const res = await getPromptItems(
 				localStorage.token,
@@ -170,27 +174,30 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
+				page,
+				signal
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (!signal.aborted) toast.error(`${error}`);
 				return null;
 			});
+
+			if (signal.aborted || searchController !== controller) return;
 
 			if (res) {
 				prompts = res.items;
 				total = res.total;
 				workspaceCounts.update((counts) => ({ ...counts, prompts: total }));
 
-				// get tags
-				tags = await getPromptTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
+				const nextTags = await getPromptTags(localStorage.token).catch((error) => {
+					if (!signal.aborted) toast.error(`${error}`);
 					return [];
 				});
+
+				if (signal.aborted || searchController !== controller) return;
+				tags = nextTags;
 			}
 		} catch (err) {
 			console.error(err);
-		} finally {
-			loading = false;
 		}
 	};
 
@@ -326,8 +333,16 @@
 			openCreateModal();
 		}
 
+		let keyboardFocusedElement: Element | null = null;
+		const onFocusIn = (event: FocusEvent) => {
+			const target = event.target as Element;
+			keyboardFocusedElement = target.matches(':focus-visible:not(input, textarea)')
+				? target
+				: null;
+		};
+
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Shift') {
+			if (event.key === 'Shift' && document.activeElement !== keyboardFocusedElement) {
 				shiftKey = true;
 			}
 		};
@@ -342,6 +357,7 @@
 			shiftKey = false;
 		};
 
+		window.addEventListener('focusin', onFocusIn);
 		window.addEventListener('keydown', onKeyDown);
 		window.addEventListener('keyup', onKeyUp);
 		window.addEventListener('blur', onBlur);
@@ -349,6 +365,7 @@
 		return () => {
 			clearTimeout(searchDebounceTimer);
 			window.removeEventListener('message', onMessage);
+			window.removeEventListener('focusin', onFocusIn);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);
@@ -356,6 +373,7 @@
 	});
 
 	onDestroy(() => {
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
@@ -508,7 +526,7 @@
 			</div>
 		</div>
 
-		{#if prompts === null || loading}
+		{#if prompts === null}
 			<div class="w-full h-full flex justify-center items-center my-16 mb-24">
 				<Spinner className="size-5" />
 			</div>

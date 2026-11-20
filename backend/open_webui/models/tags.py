@@ -128,10 +128,17 @@ class TagTable:
             result = await db.execute(select(Tag.id).filter(Tag.id.in_(ids), Tag.user_id == user_id))
             existing = {row[0] for row in result.all()}
             new_tags = [
-                Tag(id=tag_id, name=name, user_id=user_id) for tag_id, name in zip(ids, names) if tag_id not in existing
+                dict(id=tag_id, name=name, user_id=user_id)
+                for tag_id, name in zip(ids, names)
+                if tag_id not in existing
             ]
             if new_tags:
-                db.add_all(new_tags)
+                from sqlalchemy.dialects.postgresql import insert as pg_insert
+                from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+                insert = sqlite_insert if db.bind.dialect.name == 'sqlite' else pg_insert
+                # Another request can create the same tag after the read above.
+                await db.execute(insert(Tag).on_conflict_do_nothing(index_elements=['id', 'user_id']), new_tags)
                 await db.commit()
 
 

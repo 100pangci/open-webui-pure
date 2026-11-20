@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Pagination } from 'bits-ui';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 
 	import ChevronLeft from '../icons/ChevronLeft.svelte';
 	import ChevronRight from '../icons/ChevronRight.svelte';
@@ -8,10 +8,24 @@
 	export let page = 0;
 	export let count = 0;
 	export let perPage = 20;
+
+	let paginationElement: HTMLDivElement;
+
+	const pageChangeHandler = async () => {
+		const refocus = paginationElement?.contains(document.activeElement);
+
+		await tick();
+		if (
+			refocus &&
+			(document.activeElement === document.body || document.activeElement?.matches(':disabled'))
+		) {
+			paginationElement.querySelector<HTMLElement>('[aria-current="page"]')?.focus();
+		}
+	};
 </script>
 
-<div class="flex justify-center">
-	<Pagination.Root bind:page {count} {perPage}>
+<div class="flex justify-center" bind:this={paginationElement}>
+	<Pagination.Root bind:page {count} {perPage} onPageChange={pageChangeHandler}>
 		{#snippet children({ pages })}
 			<div class="my-2 flex items-center">
 				<Pagination.PrevButton

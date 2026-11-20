@@ -190,7 +190,7 @@ function buildReverseLookup(bindings: KeybindingsMap): Map<string, ConfigurableS
 
 export function matchKeybinding(event: KeyboardEvent): ConfigurableShortcut | null {
 	const chord = eventToChord(event);
-	if (!chord) return null;
+	if (!chord || event.isComposing) return null;
 	return buildReverseLookup(get(keybindings)).get(chord) ?? null;
 }
 

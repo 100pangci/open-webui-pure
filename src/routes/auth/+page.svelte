@@ -222,6 +222,7 @@
 />
 
 <div class="w-full h-screen max-h-[100dvh] text-white relative" id="auth-page">
+	<div id="main-content" tabindex="-1" class="sr-only left-0 top-0"></div>
 	<div class="w-full h-full absolute top-0 left-0 bg-white dark:bg-black"></div>
 
 	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region" />
@@ -335,7 +336,8 @@
 												>
 												<input
 													bind:value={email}
-													type="email"
+													type="text"
+													inputmode="email"
 													id="email"
 													class="my-0.5 w-full text-sm outline-hidden bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-600"
 													autocomplete="email"

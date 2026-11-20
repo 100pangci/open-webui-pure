@@ -771,6 +771,8 @@
 							hasPendingAssistantLeaf(event?.message_id ?? null)
 						) {
 							await loadChat();
+							// The loaded copy of the message is stale after the reload.
+							message = (history.messages as { [key: string]: any })[event.message_id];
 						}
 						if ($chatId && !$temporaryChatEnabled) {
 							updateLastReadAt($chatId);
@@ -1178,7 +1180,11 @@
 			updateLastReadAt($chatId);
 		}
 
-		if ($user?.role !== 'admin' && $user?.permissions?.chat?.temporary_enforced) {
+		if (
+			$user?.role !== 'admin' &&
+			($user?.permissions?.chat?.temporary ?? true) &&
+			$user?.permissions?.chat?.temporary_enforced
+		) {
 			await temporaryChatEnabled.set(true);
 		}
 
@@ -1490,7 +1496,6 @@
 				// If the response is already done, remaining tasks are just background
 				// work (follow-ups, title gen) that shouldn't block the input.
 				const activeTaskIds = taskIds;
-				const currentMessage = history.currentId ? history.messages[history.currentId] : null;
 				const pendingTaskIds = await getTaskIdsByChatId(localStorage.token, $chatId)
 					.then((res) => res?.task_ids ?? [])
 					.catch((error) => {
@@ -1501,6 +1506,8 @@
 						});
 						return [];
 					});
+				// Read the message after the await so a reload during it cannot leave a stale copy.
+				const currentMessage = history.currentId ? history.messages[history.currentId] : null;
 				noteChatDebug('task reconciliation completed', {
 					pendingTaskCount: pendingTaskIds.length,
 					hasCurrentMessage: !!currentMessage
@@ -1652,6 +1659,13 @@
 			await stopResponse(false);
 			await tick();
 			await submitPrompt(item.prompt, item.files);
+		} catch (error) {
+			// Put the message back so a rejected send (such as no model selected) cannot drop it.
+			toast.error(`${error}`);
+			chatRequestQueues.update((q) => ({
+				...q,
+				[targetChatId]: [item, ...(q[targetChatId] ?? [])]
+			}));
 		} finally {
 			processingQueueChats.delete(targetChatId);
 			// Completion can arrive before submitPrompt returns, while the queue is locked.
@@ -1974,6 +1988,7 @@
 	//////////////////////////
 
 	const submitPrompt = async (inputContent, inputFiles) => {
+		if (selectedModels.includes('')) throw new Error($i18n.t('Model not selected'));
 		const _files = structuredClone(inputFiles);
 
 		chatFiles.push(
@@ -2826,6 +2841,10 @@
 	};
 
 	const submitMessage = async (parentId, prompt) => {
+		if (selectedModels.includes('')) {
+			toast.error($i18n.t('Model not selected'));
+			return;
+		}
 		let userPrompt = prompt;
 		let userMessageId = uuidv4();
 

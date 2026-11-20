@@ -436,7 +436,7 @@
 		}
 	};
 
-	const clearExpiredSession = () => {
+	const clearExpiredSession = async () => {
 		if (isAuthRedirectInProgress) {
 			return;
 		}
@@ -446,13 +446,14 @@
 			clearInterval(tokenTimer);
 			tokenTimer = null;
 		}
+		// Finish signing out before another OAuth login can establish a new session.
+		await userSignOut().catch((error) => {
+			console.error('Error signing out expired session:', error);
+		});
 		user.set(null);
 		localStorage.removeItem('token');
 		// Clear the OAuth token cookie so /auth doesn't auto-login and redirect-loop
 		document.cookie = 'token=; Max-Age=0; path=/';
-		userSignOut().catch((error) => {
-			console.error('Error signing out expired session:', error);
-		});
 		toast.error($i18n.t('Session expired. Please sign in again.'));
 		isAuthRedirectInProgress = false;
 	};
@@ -570,6 +571,12 @@
 
 	const initialize = async () => {
 		let backendConfig = null;
+		const sessionUserPromise = localStorage.token
+			? getSessionUser(localStorage.token).catch((error) => {
+					toast.error(`${error}`);
+					return null;
+				})
+			: Promise.resolve(null);
 		try {
 			backendConfig = await getBackendConfig();
 			console.log('Backend config:', backendConfig);
@@ -620,10 +627,7 @@
 
 		if (localStorage.token) {
 			// Get Session User Info
-			const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
+			const sessionUser = await sessionUserPromise;
 
 			if (sessionUser) {
 				await user.set(sessionUser);

@@ -155,7 +155,7 @@ async def set_image_model(request: Request, model: str):
 
 async def get_image_model(request):
     image_config = await get_image_config()
-    return image_config.IMAGE_GENERATION_MODEL if image_config.IMAGE_GENERATION_MODEL else 'dall-e-2'
+    return image_config.IMAGE_GENERATION_MODEL if image_config.IMAGE_GENERATION_MODEL else 'gpt-image-2'
 
 
 class ImagesConfig(BaseModel):
@@ -186,9 +186,8 @@ async def get_config(request: Request, user=Depends(get_admin_user)):
 
 @router.post('/config/update')
 async def update_config(request: Request, form_data: ImagesConfig, user=Depends(get_admin_user)):
-    if form_data.IMAGE_SIZE == 'auto' and not re.match(
-        IMAGE_AUTO_SIZE_MODELS_REGEX_PATTERN, form_data.IMAGE_GENERATION_MODEL
-    ):
+    image_model = form_data.IMAGE_GENERATION_MODEL or 'gpt-image-2'
+    if form_data.IMAGE_SIZE == 'auto' and not re.match(IMAGE_AUTO_SIZE_MODELS_REGEX_PATTERN, image_model):
         raise HTTPException(
             status_code=400,
             detail=ERROR_MESSAGES.INCORRECT_FORMAT(
@@ -223,10 +222,9 @@ async def update_config(request: Request, form_data: ImagesConfig, user=Depends(
 @router.get('/models')
 async def get_models(request: Request, user=Depends(get_verified_user)):
     return [
-        {'id': 'dall-e-2', 'name': 'DALL·E 2'},
-        {'id': 'dall-e-3', 'name': 'DALL·E 3'},
         {'id': 'gpt-image-1', 'name': 'GPT-IMAGE 1'},
         {'id': 'gpt-image-1.5', 'name': 'GPT-IMAGE 1.5'},
+        {'id': 'gpt-image-2', 'name': 'GPT-IMAGE 2'},
     ]
 
 
@@ -327,6 +325,42 @@ async def upload_image(request, image_data, content_type, metadata, user, db=Non
     }
 
 
+async def raise_for_provider_status(response: aiohttp.ClientResponse) -> None:
+    """Raise with the provider's error body when it includes a useful message."""
+    if response.ok:
+        return
+
+    detail = ''
+    try:
+        text = await response.text()
+        try:
+            body = JSONCodec.loads(text)
+        except Exception:
+            body = None
+        error = body.get('error') if isinstance(body, dict) else None
+        if isinstance(error, dict):
+            detail = error.get('message') or ''
+        elif isinstance(error, str):
+            detail = error
+        elif isinstance(body, dict) and isinstance(body.get('message'), str):
+            detail = body['message']
+        else:
+            detail = text.strip()
+    except Exception:
+        pass
+
+    message = f'{response.status} {response.reason}'
+    if detail:
+        message = f'{message}: {detail[:500]}'
+    raise aiohttp.ClientResponseError(
+        response.request_info,
+        response.history,
+        status=response.status,
+        message=message,
+        headers=response.headers,
+    )
+
+
 @router.post('/generations')
 async def generate_images(request: Request, form_data: CreateImageForm, user=Depends(get_verified_user)):
     image_config = await get_image_config()
@@ -395,6 +429,10 @@ async def image_generations(
             headers = include_user_info_headers(headers, user)
 
         url = f'{image_config.IMAGES_OPENAI_API_BASE_URL}/images/generations'
+        openai_size = form_data.size or image_config.IMAGE_SIZE
+        # GPT Image rejects the legacy DALL-E default; let it choose a supported size unless requested.
+        if not form_data.size and openai_size == '512x512' and re.match(IMAGE_AUTO_SIZE_MODELS_REGEX_PATTERN, model):
+            openai_size = 'auto'
         if image_config.IMAGES_OPENAI_API_VERSION:
             url = f'{url}?api-version={image_config.IMAGES_OPENAI_API_VERSION}'
 
@@ -402,16 +440,12 @@ async def image_generations(
             'model': model,
             'prompt': form_data.prompt,
             'n': form_data.n,
-            **(
-                {'size': form_data.size or image_config.IMAGE_SIZE}
-                if (form_data.size or image_config.IMAGE_SIZE)
-                else {}
-            ),
+            **({'size': openai_size} if openai_size else {}),
             **(
                 {}
                 if re.match(
                     IMAGE_URL_RESPONSE_MODELS_REGEX_PATTERN,
-                    image_config.IMAGE_GENERATION_MODEL,
+                    model,
                 )
                 else {'response_format': 'b64_json'}
             ),
@@ -425,7 +459,7 @@ async def image_generations(
             headers=headers,
             ssl=AIOHTTP_CLIENT_SESSION_SSL,
         ) as r:
-            r.raise_for_status()
+            await raise_for_provider_status(r)
             res = await r.json(content_type=None)
 
         images = []
@@ -649,7 +683,7 @@ async def image_edits(
             data=form,
             ssl=AIOHTTP_CLIENT_SESSION_SSL,
         ) as r:
-            r.raise_for_status()
+            await raise_for_provider_status(r)
             res = await r.json(content_type=None)
 
         images = []

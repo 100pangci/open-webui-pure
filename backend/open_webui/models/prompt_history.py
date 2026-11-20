@@ -5,11 +5,14 @@ import time
 import uuid
 from typing import Optional
 
+from fastapi import HTTPException
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.users import UserResponse, Users
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import JSON, BigInteger, Column, Index, Text, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+MAX_DIFF_LINES = 5000
 
 ####################
 # PromptHistory DB Schema
@@ -174,10 +177,17 @@ class PromptHistoryTable:
             from_content = from_snapshot.get('content', '')
             to_content = to_snapshot.get('content', '')
 
+            old_lines = from_content.splitlines(keepends=True)
+            new_lines = to_content.splitlines(keepends=True)
+            if max(len(old_lines), len(new_lines)) > MAX_DIFF_LINES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f'Diff is limited to {MAX_DIFF_LINES} lines per version',
+                )
             diff_lines = list(
                 difflib.unified_diff(
-                    from_content.splitlines(keepends=True),
-                    to_content.splitlines(keepends=True),
+                    old_lines,
+                    new_lines,
                     fromfile=f'v{from_id[:8]}',
                     tofile=f'v{to_id[:8]}',
                     lineterm='',

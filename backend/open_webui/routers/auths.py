@@ -9,7 +9,7 @@ import urllib
 import uuid
 from ssl import CERT_NONE, CERT_REQUIRED, PROTOCOL_TLS
 
-from aiohttp import BasicAuth, ClientSession
+from aiohttp import ClientSession, encode_basic_auth
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
 from open_webui.config import (
@@ -1551,7 +1551,9 @@ async def get_token_client_id(client, token: str) -> str | None:
             async with session.post(
                 introspection_endpoint,
                 data={'token': token, 'token_type_hint': 'access_token'},
-                auth=BasicAuth(client.client_id, client.client_secret or ''),
+                headers={
+                    'Authorization': encode_basic_auth(client.client_id, client.client_secret or '', encoding='latin1')
+                },
                 ssl=AIOHTTP_CLIENT_SESSION_SSL,
             ) as r:
                 if r.status != 200:

@@ -93,7 +93,7 @@ async def get_all_models(request, refresh: bool = False, user: UserModel = None)
             if model:
                 if custom_model.is_active:
                     model['name'] = custom_model.name
-                    model['info'] = custom_model.model_dump()
+                    model['info'] = custom_model.model_dump(exclude={'meta': {'profile_image_url'}})
                     schema = get_chat_variables_schema(custom_model.params.model_dump().get('system'))
                     if schema:
                         model['info'].setdefault('meta', {})['chat_variables_schema'] = schema
@@ -128,7 +128,7 @@ async def get_all_models(request, refresh: bool = False, user: UserModel = None)
                 **({'loaded': base_model.get('loaded')} if base_model and base_model.get('loaded') is not None else {}),
             }
 
-            info = custom_model.model_dump()
+            info = custom_model.model_dump(exclude={'meta': {'profile_image_url'}})
             schema = get_chat_variables_schema(custom_model.params.model_dump().get('system'))
             if schema:
                 info.setdefault('meta', {})['chat_variables_schema'] = schema

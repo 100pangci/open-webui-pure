@@ -6,7 +6,7 @@ logs live in git history, not here.
 ## Product boundary
 
 Open WebUI Pure is an unofficial, aggressively subtractive fork of upstream
-Open WebUI (baseline **v0.11.3**, synced through **v0.13.0**). The goal is not to reimplement Open WebUI:
+Open WebUI (baseline **v0.11.3**, synced through **v0.13.4**). The goal is not to reimplement Open WebUI:
 it is to keep the mature chat core and the original branding while physically
 removing the features, dependencies and background costs that personal / home
 / small multi-user deployments do not need.
@@ -95,7 +95,7 @@ image. `backend/requirements-optional.txt` aggregates the rest.
 ## Tests and verification
 
 ```bash
-# backend: 166 tests (SSRF hardening, compression q-value negotiation,
+# backend (SSRF hardening, compression q-value negotiation,
 # rate limiting, generated image types, changelog parsing, temporary-chat
 # ownership, Responses API conversion, database revision guard)
 PYTHONPATH=backend pytest backend/open_webui/test -q
@@ -190,7 +190,7 @@ After a dependency or Dockerfile change, run `pip check` inside the image
   `ENABLE_*` build args, build-time `pip check`, runtime bytecode off.
 - `podman.sh` + `docker-compose.yml` — the single supported container entry
   point; generic proxy pass-through, persistent volume, recreate-on-change.
-- `backend/open_webui/` — application; `test/` holds the 166 tests;
+- `backend/open_webui/` — application; `test/` holds the backend regression tests;
   `migrations/` is append-only history.
 - `src/` — SvelteKit frontend; `static/` — SPA assets (branding notices in
   `static/BRANDING.md`).

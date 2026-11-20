@@ -773,12 +773,33 @@ class ChatTable:
                 if 'history' in chat:
                     # The caller built its history from an earlier read; merge so messages saved since then survive.
                     updated['history'] = self.merge_history(stored.get('history'), chat['history'])
+                    # Keep the chat on the latest saved turn when a stale window writes an older currentId.
+                    self._repair_chat_current_id(updated)
 
                 updated = self._clean_null_bytes(updated)
+                title = updated.get('title', 'New Chat')
+                updates_current_message = any(
+                    key in chat for key in ('history', 'messages', 'currentId', 'branchPointMessageId')
+                )
+                current_message_id = (
+                    self.get_current_message_id(updated) if updates_current_message else chat_item.current_message_id
+                )
+
+                # Some callers save the full chat after a request even when no fields changed.
+                # Avoid marking the large JSON value dirty in that case.
+                if (
+                    not touch
+                    and updated == stored
+                    and title == chat_item.title
+                    and current_message_id == chat_item.current_message_id
+                ):
+                    await session.commit()
+                    return ChatModel.model_validate(chat_item)
+
                 chat_item.chat = updated
-                chat_item.title = updated.get('title', 'New Chat')
-                if any(key in chat for key in ('history', 'messages', 'currentId', 'branchPointMessageId')):
-                    chat_item.current_message_id = self.get_current_message_id(updated)
+                chat_item.title = title
+                if updates_current_message:
+                    chat_item.current_message_id = current_message_id
 
                 if touch:
                     chat_item.updated_at = int(time.time())
@@ -803,7 +824,12 @@ class ChatTable:
                 if chat_item is None:
                     return None
 
-                chat_item.variables = variables if isinstance(variables, dict) else {}
+                variables = variables if isinstance(variables, dict) else {}
+                if not touch and chat_item.variables == variables:
+                    await session.commit()
+                    return ChatModel.model_validate(chat_item)
+
+                chat_item.variables = variables
                 if touch:
                     chat_item.updated_at = int(time.time())
 
@@ -817,14 +843,17 @@ class ChatTable:
     ) -> tuple[int, bool] | None:
         try:
             async with get_async_db_context(db) as session:
-                chat = await session.get(Chat, id)
-                if chat and chat.user_id == user_id:
-                    last_read_at = int(time.time())
-                    was_unread = chat.last_read_at is None or chat.updated_at > chat.last_read_at
-                    chat.last_read_at = last_read_at
-                    await session.commit()
-                    return last_read_at, was_unread
-                return None
+                row = (
+                    await session.execute(select(Chat.updated_at, Chat.last_read_at).filter_by(id=id, user_id=user_id))
+                ).one_or_none()
+                if row is None:
+                    return None
+
+                last_read_at = int(time.time())
+                was_unread = row.last_read_at is None or row.updated_at > row.last_read_at
+                await session.execute(update(Chat).filter_by(id=id, user_id=user_id).values(last_read_at=last_read_at))
+                await session.commit()
+                return last_read_at, was_unread
         except Exception:
             return None
 
@@ -833,18 +862,23 @@ class ChatTable:
     ) -> ChatTitleIdResponse | None:
         try:
             async with get_async_db_context(db) as session:
-                chat = await session.get(Chat, id)
-                if chat and chat.user_id == user_id:
-                    chat.last_read_at = 0
-                    await session.commit()
-                    return ChatTitleIdResponse(
-                        id=chat.id,
-                        title=chat.title,
-                        updated_at=chat.updated_at,
-                        created_at=chat.created_at,
-                        last_read_at=chat.last_read_at,
+                row = (
+                    await session.execute(
+                        select(Chat.title, Chat.updated_at, Chat.created_at).filter_by(id=id, user_id=user_id)
                     )
-                return None
+                ).one_or_none()
+                if row is None:
+                    return None
+
+                await session.execute(update(Chat).filter_by(id=id, user_id=user_id).values(last_read_at=0))
+                await session.commit()
+                return ChatTitleIdResponse(
+                    id=id,
+                    title=row.title,
+                    updated_at=row.updated_at,
+                    created_at=row.created_at,
+                    last_read_at=0,
+                )
         except Exception:
             return None
 
@@ -1418,8 +1452,6 @@ class ChatTable:
             async with get_async_db_context(db) as session:
                 chat = await session.get(Chat, id)
                 chat.pinned = not chat.pinned
-                chat.updated_at = int(time.time())
-                chat.last_read_at = int(time.time())
                 await session.commit()
                 return ChatModel.model_validate(chat)
         except Exception:
@@ -1431,8 +1463,6 @@ class ChatTable:
                 chat = await session.get(Chat, id)
                 chat.archived = not chat.archived
                 chat.folder_id = None
-                chat.updated_at = int(time.time())
-                chat.last_read_at = int(time.time())
                 await session.commit()
                 return ChatModel.model_validate(chat)
         except Exception:
@@ -1823,6 +1853,45 @@ class ChatTable:
                 return chat
 
         return None
+
+    async def has_chat_access(
+        self,
+        id: str,
+        user,
+        db: AsyncSession | None = None,
+        *,
+        permission: Literal['read', 'write'] = 'read',
+        chat: Chat | ChatModel | None = None,
+    ) -> bool:
+        """Check chat access using only ownership, metadata, and folder columns when needed."""
+        if user.role not in {'user', 'admin'}:
+            return False
+        if chat is None:
+            async with get_async_db_context(db) as session:
+                result = await session.execute(select(Chat.user_id, Chat.meta, Chat.folder_id).filter_by(id=id))
+                chat = result.first()
+        if not chat:
+            return False
+
+        if chat.user_id == user.id:
+            return True
+        if user.role == 'admin' and permission == 'read' and (ENABLE_ADMIN_CHAT_ACCESS or is_internal_chat(chat.meta)):
+            return True
+        if await AccessGrants.has_access(
+            user_id=user.id,
+            resource_type='shared_chat',
+            resource_id=id,
+            permission=permission,
+            db=db,
+        ):
+            return True
+        if chat.folder_id:
+            from open_webui.utils.access_control.folders import has_folder_access
+
+            folder = await Folders.get_folder_by_id(chat.folder_id, db=db)
+            if folder and await has_folder_access(user.id, folder, permission, db):
+                return True
+        return False
 
     async def is_chat_owner(self, id: str, user_id: str, db: AsyncSession | None = None) -> bool:
         """
@@ -2311,7 +2380,6 @@ class ChatTable:
                 chat = await session.get(Chat, id)
                 chat.folder_id = folder_id
                 if chat.user_id == user_id:
-                    chat.last_read_at = int(time.time())
                     chat.pinned = False
                 if folder_id is not None:
                     # Folder listings only show unarchived chats, so moving an archived

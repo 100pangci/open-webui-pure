@@ -305,6 +305,7 @@
 	let allChatsLoaded = false;
 
 	let searchDebounceTimeout;
+	let searchController: AbortController | null = null;
 
 	let selectedIdx = null;
 	let selectedChat = null;
@@ -423,70 +424,99 @@
 		}
 	};
 
+	const cancelSearch = () => {
+		searchController?.abort();
+		searchController = null;
+		clearTimeout(searchDebounceTimeout);
+	};
+
 	const searchHandler = async () => {
-		if (!show) {
-			return;
-		}
+		cancelSearch();
+		if (!show) return;
 
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
-
+		const controller = new AbortController();
+		searchController = controller;
+		const { signal } = controller;
 		page = 1;
 		chatList = null;
-		if (query === '') {
-			chatList = await getChatList(localStorage.token, page);
-		} else {
-			searchDebounceTimeout = setTimeout(async () => {
-				chatList = await getChatListBySearchText(localStorage.token, query, page);
+		chatListLoading = false;
+		allChatsLoaded = false;
 
-				if ((chatList ?? []).length === 0) {
+		const loadChats = async () => {
+			try {
+				const results = query
+					? await getChatListBySearchText(localStorage.token, query, page, signal)
+					: await getChatList(localStorage.token, page, false, false, signal);
+
+				if (signal.aborted || searchController !== controller) return;
+				chatList = results ?? [];
+				allChatsLoaded = chatList.length === 0;
+			} catch (error) {
+				if (!signal.aborted && searchController === controller) {
+					toast.error(`${error}`);
+					chatList = [];
 					allChatsLoaded = true;
-				} else {
-					allChatsLoaded = false;
 				}
-			}, 500);
+			}
+		};
+
+		if (query === '') {
+			await loadChats();
+		} else {
+			searchDebounceTimeout = setTimeout(() => void loadChats(), 500);
 		}
 
 		selectedChat = null;
 		messages = null;
 		history = null;
 		selectedModels = [''];
-
-		if ((chatList ?? []).length === 0) {
-			allChatsLoaded = true;
-		} else {
-			allChatsLoaded = false;
-		}
 	};
 
 	const loadMoreChats = async () => {
+		const controller = searchController;
+		if (
+			!show ||
+			chatListLoading ||
+			!chatList ||
+			allChatsLoaded ||
+			!controller ||
+			controller.signal.aborted
+		) {
+			return;
+		}
+
 		chatListLoading = true;
 		page += 1;
 
-		let newChatList = [];
+		try {
+			const newChatList = query
+				? await getChatListBySearchText(localStorage.token, query, page, controller.signal)
+				: await getChatList(localStorage.token, page, false, false, controller.signal);
 
-		if (query) {
-			newChatList = await getChatListBySearchText(localStorage.token, query, page);
-		} else {
-			newChatList = await getChatList(localStorage.token, page);
+			if (controller.signal.aborted || searchController !== controller) return;
+			const results = newChatList ?? [];
+			allChatsLoaded = results.length === 0;
+
+			if (results.length > 0) {
+				const existingIds = new Set(chatList.map((chat: { id: string }) => chat.id));
+				const uniqueNewChats = results.filter((chat: { id: string }) => !existingIds.has(chat.id));
+				chatList = [...chatList, ...uniqueNewChats];
+			}
+		} catch (error) {
+			if (!controller.signal.aborted && searchController === controller) {
+				toast.error(`${error}`);
+			}
+		} finally {
+			if (searchController === controller) {
+				chatListLoading = false;
+			}
 		}
-
-		// once the bottom of the list has been reached (no results) there is no need to continue querying
-		allChatsLoaded = newChatList.length === 0;
-
-		if (newChatList.length > 0) {
-			const existingIds = new Set(chatList.map((c) => c.id));
-			const uniqueNewChats = newChatList.filter((c) => !existingIds.has(c.id));
-			chatList = [...chatList, ...uniqueNewChats];
-		}
-
-		chatListLoading = false;
 	};
 
 	$: if (show) {
 		searchHandler();
 	} else {
+		cancelSearch();
 		editingChatId = null;
 		editingChatTitle = '';
 		generating = false;
@@ -579,9 +609,7 @@
 	});
 
 	onDestroy(() => {
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
+		cancelSearch();
 		document.removeEventListener('keydown', onKeyDown);
 		document.removeEventListener('keydown', onShiftKeyDown);
 		document.removeEventListener('keyup', onShiftKeyUp);

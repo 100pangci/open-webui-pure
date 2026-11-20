@@ -8,6 +8,7 @@ from open_webui.internal.db import Base, JSONField, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants
 from open_webui.models.groups import Groups
 from open_webui.models.users import User, UserModel, UserResponse, Users
+from open_webui.utils.chat_variables import MAX_JSON_VALUE_DEPTH
 from open_webui.utils.misc import json_text_variants
 from open_webui.utils.validate import validate_profile_image_url
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -15,6 +16,18 @@ from sqlalchemy import BigInteger, Boolean, Column, String, Text, cast, delete, 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
+
+
+def _is_nested_settings_too_deep(value: Any) -> bool:
+    stack = [(value, 1)]
+    while stack:
+        item, depth = stack.pop()
+        if isinstance(item, (list, dict)):
+            if depth > MAX_JSON_VALUE_DEPTH:
+                return True
+            children = item.values() if isinstance(item, dict) else item
+            stack.extend((child, depth + 1) for child in children)
+    return False
 
 
 def normalize_model_tags(tags: Any) -> list[dict[str, str]]:
@@ -133,6 +146,14 @@ class ModelForm(BaseModel):
     params: ModelParams
     access_grants: list[dict] | None = None
     is_active: bool = True
+
+    @model_validator(mode='after')
+    def validate_settings_depth(self) -> ModelForm:
+        if _is_nested_settings_too_deep(self.meta.model_dump()) or _is_nested_settings_too_deep(
+            self.params.model_dump()
+        ):
+            raise ValueError('Model meta and params are nested too deeply')
+        return self
 
 
 class ModelsTable:
