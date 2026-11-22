@@ -122,6 +122,52 @@ extract_ssl_mode_from_url = extract_ssl_params_from_url
 reattach_ssl_mode_to_url = reattach_ssl_params_to_url
 
 
+_SURROGATES = re.compile(r'[\ud800-\udfff]')
+
+
+def strip_unstorable_json(value):
+    """Remove PostgreSQL-incompatible NULs and lone surrogates from JSON strings and keys."""
+    if isinstance(value, str):
+        cleaned = []
+        index = 0
+        while index < len(value):
+            codepoint = ord(value[index])
+            if codepoint == 0:
+                index += 1
+            elif 0xD800 <= codepoint <= 0xDBFF:
+                if index + 1 < len(value) and 0xDC00 <= ord(value[index + 1]) <= 0xDFFF:
+                    low = ord(value[index + 1])
+                    cleaned.append(chr(0x10000 + ((codepoint - 0xD800) << 10) + low - 0xDC00))
+                    index += 2
+                else:
+                    index += 1
+            elif 0xDC00 <= codepoint <= 0xDFFF:
+                index += 1
+            else:
+                cleaned.append(value[index])
+                index += 1
+        return ''.join(cleaned)
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, item in value.items():
+            cleaned_key = strip_unstorable_json(key)
+            if cleaned_key in cleaned:
+                raise ValueError('JSON object keys collide after removing PostgreSQL-incompatible characters')
+            cleaned[cleaned_key] = strip_unstorable_json(item)
+        return cleaned
+    if isinstance(value, (list, tuple)):
+        return [strip_unstorable_json(item) for item in value]
+    return value
+
+
+def dumps_json_for_db(value) -> str:
+    """Serialize JSON safely for PostgreSQL's native JSON columns and JSON operators."""
+    serialized = JSONCodec.dumps(value, ensure_ascii=False)
+    if '\\u0000' in serialized or _SURROGATES.search(serialized):
+        serialized = JSONCodec.dumps(strip_unstorable_json(value), ensure_ascii=False)
+    return serialized
+
+
 class JSONField(types.TypeDecorator):  # TEXT-backed JSON storage
     """Store arbitrary Python objects as JSON-encoded TEXT.
 
@@ -134,7 +180,9 @@ class JSONField(types.TypeDecorator):  # TEXT-backed JSON storage
     cache_ok = True
 
     def process_bind_param(self, value: _T | None, dialect: Dialect) -> Any:
-        return JSONCodec.dumps(value, ensure_ascii=False) if value is not None else None
+        if value is None:
+            return None
+        return JSONCodec.dumps(value, ensure_ascii=False)
 
     def process_result_value(self, value: _T | None, dialect: Dialect) -> Any:
         return JSONCodec.loads(value) if value is not None else None
@@ -283,25 +331,29 @@ def _make_async_url(url: str) -> str:
     return url
 
 
-def _json_codec_kwargs(kwargs: dict) -> dict:
-    """Default an engine to JSONCodec for native ``JSON`` columns.
-
-    Unlike ``JSONField``, those serialize through the engine, which otherwise uses
-    stdlib ``json``. With ``ENABLE_ORJSON`` off JSONCodec is stdlib ``json`` anyway.
-    """
-    kwargs.setdefault('json_serializer', lambda value: JSONCodec.dumps(value, ensure_ascii=False))
+def _json_codec_kwargs(kwargs: dict, *, sanitize_json: bool = False) -> dict:
+    """Default an engine to JSONCodec for native ``JSON`` columns."""
+    if sanitize_json:
+        kwargs.setdefault('json_serializer', dumps_json_for_db)
+    else:
+        kwargs.setdefault('json_serializer', lambda value: JSONCodec.dumps(value, ensure_ascii=False))
     kwargs.setdefault('json_deserializer', JSONCodec.loads)
     return kwargs
 
 
+def _uses_postgres_json(*args, **kwargs) -> bool:
+    url = kwargs.get('url') or (args[0] if args else None)
+    return _is_postgres_url(str(url)) if url is not None else False
+
+
 def _create_engine(*args, **kwargs):
     """``create_engine`` with the app JSON codec wired in."""
-    return create_engine(*args, **_json_codec_kwargs(kwargs))
+    return create_engine(*args, **_json_codec_kwargs(kwargs, sanitize_json=_uses_postgres_json(*args, **kwargs)))
 
 
 def _create_async_engine(*args, **kwargs):
     """``create_async_engine`` with the app JSON codec wired in."""
-    return create_async_engine(*args, **_json_codec_kwargs(kwargs))
+    return create_async_engine(*args, **_json_codec_kwargs(kwargs, sanitize_json=_uses_postgres_json(*args, **kwargs)))
 
 
 # ============================================================

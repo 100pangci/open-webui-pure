@@ -46,6 +46,7 @@
 		files?: { type: string; url: string }[];
 		timestamp: number;
 		role: string;
+		user_id?: string | null;
 		statusHistory?: {
 			done: boolean;
 			action: string;
@@ -154,6 +155,9 @@
 	let model = null;
 	$: model = $models.find((m) => m.id === message.model);
 	$: responseTimestamp = message?.meta?.response_ended_at ?? message?.timestamp;
+
+	// A model removed from the list should still show the name saved with the message.
+	$: localizedModelName = model?.name || message.modelName || message.model;
 
 	// DEFAULT_LOCALE may not be a valid BCP 47 tag (for example "en_US"),
 	// which makes toLocaleString throw while the message renders.
@@ -389,12 +393,9 @@
 		<div class="flex-auto w-0 pl-1 relative">
 			{#if !compactPreview}
 				<Name>
-					<Tooltip
-						content={model?.name ?? message.modelName ?? message.model}
-						placement="top-start"
-					>
+					<Tooltip content={localizedModelName} placement="top-start">
 						<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
-							{model?.name ?? message.modelName ?? message.model}
+							{localizedModelName}
 						</span>
 					</Tooltip>
 				</Name>
@@ -480,14 +481,18 @@
 										}}
 										on:keydown={(e) => {
 											if (e.key === 'Escape') {
-												document.getElementById('close-edit-message-button')?.click();
+												cancelEditMessage();
 											}
 
 											const isCmdOrCtrlPressed = e.metaKey || e.ctrlKey;
 											const isEnterPressed = e.key === 'Enter';
 
-											if (isCmdOrCtrlPressed && isEnterPressed) {
-												document.getElementById('confirm-edit-message-button')?.click();
+											if (
+												isCmdOrCtrlPressed &&
+												isEnterPressed &&
+												(!message.user_id || message.user_id === $user?.id)
+											) {
+												editMessageConfirmHandler();
 											}
 										}}
 									></textarea>

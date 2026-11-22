@@ -66,6 +66,7 @@
 	let importFiles = null;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController: AbortController | null = null;
 
 	let prompts = null;
 	let tags = [];
@@ -117,6 +118,7 @@
 	}
 
 	const handleSearchInput = () => {
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			if (page !== 1) {
@@ -159,6 +161,11 @@
 	const getPromptList = async () => {
 		if (!loaded) return;
 
+		searchController?.abort();
+		const controller = new AbortController();
+		searchController = controller;
+		const { signal } = controller;
+
 		try {
 			const res = await getPromptItems(
 				localStorage.token,
@@ -167,22 +174,27 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
+				page,
+				signal
 			).catch((error) => {
-				toast.error(`${error}`);
+				if (!signal.aborted) toast.error(`${error}`);
 				return null;
 			});
+
+			if (signal.aborted || searchController !== controller) return;
 
 			if (res) {
 				prompts = res.items;
 				total = res.total;
 				workspaceCounts.update((counts) => ({ ...counts, prompts: total }));
 
-				// get tags
-				tags = await getPromptTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
+				const nextTags = await getPromptTags(localStorage.token).catch((error) => {
+					if (!signal.aborted) toast.error(`${error}`);
 					return [];
 				});
+
+				if (signal.aborted || searchController !== controller) return;
+				tags = nextTags;
 			}
 		} catch (err) {
 			console.error(err);
@@ -363,6 +375,7 @@
 	});
 
 	onDestroy(() => {
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>

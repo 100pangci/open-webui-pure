@@ -387,10 +387,15 @@ def get_gravatar_url(email):
 # Lead the bits not into corruption but deliver them from
 # entropy, for the checksum and the glory are forever.
 def validate_email_format(email: str) -> bool:
+    # Whitespace never belongs in an address, and accepting trailing text would let
+    # "user@example.com invalid" through the admin edit form.
+    if not email or any(character.isspace() for character in email):
+        return False
+
     if email.endswith('@localhost'):
         return True
 
-    return bool(re.match(r'[^@]+@[^@]+\.[^@]+', email))
+    return bool(re.fullmatch(r'[^@]+@[^@]+\.[^@]+', email))
 
 
 def json_text_variants(value: str) -> list[str]:
@@ -426,6 +431,11 @@ def _strip_null_bytes_deep(obj):
     elif isinstance(obj, list):
         return [_strip_null_bytes_deep(v) for v in obj]
     return obj
+
+
+def is_empty_reply(message: dict) -> bool:
+    """An assistant reply with nothing in it, such as a failed one. Requests leave these out."""
+    return message.get('role') == 'assistant' and not message.get('content') and not message.get('output')
 
 
 def _has_null_bytes_or_surrogates(obj) -> bool:

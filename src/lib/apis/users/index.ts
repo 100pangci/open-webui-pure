@@ -189,6 +189,8 @@ export const getUsers = async (
 			return null;
 		});
 
+	if (signal?.aborted) return null;
+
 	if (error) {
 		throw error;
 	}

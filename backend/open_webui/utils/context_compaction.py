@@ -8,7 +8,7 @@ from open_webui.models.chats import Chats
 from open_webui.models.config import Config
 from open_webui.utils.chat_id import is_saved_chat_id
 from open_webui.utils.json_codec import JSONCodec
-from open_webui.utils.misc import get_content_from_message, get_last_user_message, get_message_list
+from open_webui.utils.misc import get_content_from_message, get_last_user_message, get_message_list, is_empty_reply
 from open_webui.utils.payload import apply_params_to_form_data
 from open_webui.utils.task import (
     prompt_template,
@@ -170,10 +170,16 @@ async def compact_chat_branch(request, user, chat: Any, model_id: str, models: d
     if not messages_map:
         messages_map = history.get('messages') or {}
 
-    messages, previous_summary = _apply_latest_summary_checkpoint(get_message_list(messages_map, current_id))
-    compacted_messages = messages[:-1]
-    recent_messages = messages[-1:]
-    if not compacted_messages or not recent_messages:
+    # A summary saved on an empty reply would be excluded with that reply on the next request.
+    while current_id and is_empty_reply(messages_map.get(current_id) or {}):
+        current_id = messages_map[current_id].get('parentId')
+    if not current_id:
+        return {'ok': True, 'compacted': False, 'reason': 'empty'}
+
+    history, previous_summary = _apply_latest_summary_checkpoint(get_message_list(messages_map, current_id))
+    compacted_messages = history[:-1]
+    recent_messages = history[-1:]
+    if not compacted_messages:
         return {'ok': True, 'compacted': False, 'reason': 'too_short'}
 
     summary = await _generate_summary(

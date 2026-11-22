@@ -51,6 +51,7 @@
 			textareaElement.style.height = '';
 
 			let height = textareaElement.scrollHeight;
+			if (height === 0) return;
 			if (maxSize && height > maxSize) {
 				height = maxSize;
 			}

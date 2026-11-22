@@ -46,13 +46,15 @@
 	// Safari's content-visibility implementation has paint bugs that leave
 	// on-screen messages blank (#26712), so skip virtualization there
 	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+	// Firefox scroll anchoring ignores content-visibility height changes, so scrolling up jumps
+	const isFirefox = /firefox/i.test(navigator.userAgent);
 </script>
 
 <div
 	role="listitem"
 	class="flex flex-col justify-between px-3.5 mb-3 w-full {($settings?.widescreenMode ?? null)
 		? 'max-w-full'
-		: 'max-w-[58rem]'} mx-auto rounded-lg group {isSafari ? '' : 'message-listitem'}"
+		: 'max-w-[58rem]'} mx-auto rounded-lg group {isSafari || isFirefox ? '' : 'message-listitem'}"
 >
 	{#if history.messages[messageId]}
 		{#if history.messages[messageId].role === 'user'}

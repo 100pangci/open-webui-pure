@@ -523,10 +523,16 @@ const copyWithExecCommand = (text: string, html: string | null = null) => {
 		event.clipboardData?.setData('text/plain', text);
 		if (html) event.clipboardData?.setData('text/html', html);
 	};
+
 	document.addEventListener('copy', setClipboardData);
-	const copied = document.execCommand('copy');
-	document.removeEventListener('copy', setClipboardData);
-	return copied;
+	try {
+		return document.execCommand('copy');
+	} catch (error) {
+		console.error('Fallback: Oops, unable to copy', error);
+		return false;
+	} finally {
+		document.removeEventListener('copy', setClipboardData);
+	}
 };
 
 export const copyToClipboard = async (text, html = null, formatted = false) => {

@@ -7,7 +7,7 @@ from open_webui.env import DEFAULT_GROUP_SHARE_PERMISSION
 from open_webui.internal.db import Base, JSONField, get_async_db_context
 from open_webui.models.access_grants import AccessGrant
 from open_webui.models.files import FileMetadataResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -119,6 +119,14 @@ class GroupForm(BaseModel):
     description: str
     permissions: Optional[dict] = None
     data: Optional[dict] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, name: str) -> str:
+        name = name.strip()
+        if not name:
+            raise ValueError('Group name cannot be empty.')
+        return name
 
 
 class UserIdsForm(BaseModel):

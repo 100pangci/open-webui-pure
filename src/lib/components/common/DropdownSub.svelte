@@ -119,7 +119,12 @@
 		await openSub();
 	}
 
+	const isTextField = (target: EventTarget | null) =>
+		target instanceof HTMLElement &&
+		target.closest('input, textarea, [contenteditable="true"]') !== null;
+
 	function handleContentKeydown(event: KeyboardEvent) {
+		if (['ArrowLeft', 'Home', 'End'].includes(event.key) && isTextField(event.target)) return;
 		if (event.key !== 'Escape') return;
 
 		event.stopPropagation();
@@ -133,6 +138,7 @@
 		// Don't close if moving to the sub-content (including its bridge padding)
 		if (relatedTarget && contentEl?.contains(relatedTarget)) return;
 		if (relatedTarget && triggerEl?.contains(relatedTarget)) return;
+		if (contentEl?.contains(document.activeElement) && isTextField(document.activeElement)) return;
 		open = false;
 	}
 
@@ -141,6 +147,7 @@
 
 		if (relatedTarget && triggerEl?.contains(relatedTarget)) return;
 		if (relatedTarget && contentEl?.contains(relatedTarget)) return;
+		if (contentEl?.contains(document.activeElement) && isTextField(document.activeElement)) return;
 		open = false;
 	}
 

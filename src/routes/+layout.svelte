@@ -594,6 +594,12 @@
 
 	const initialize = async () => {
 		let backendConfig = null;
+		const sessionUserPromise = localStorage.token
+			? getSessionUser(localStorage.token).catch((error) => {
+					toast.error(`${error}`);
+					return null;
+				})
+			: Promise.resolve(null);
 		try {
 			backendConfig = await getBackendConfig();
 			console.log('Backend config:', backendConfig);
@@ -644,10 +650,7 @@
 
 		if (localStorage.token) {
 			// Get Session User Info
-			const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
+			const sessionUser = await sessionUserPromise;
 
 			if (sessionUser) {
 				await user.set(sessionUser);

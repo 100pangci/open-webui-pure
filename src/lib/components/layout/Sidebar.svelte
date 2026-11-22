@@ -229,7 +229,14 @@
 	$: initSelectedFolderChats($selectedFolder as SelectedSidebarFolder);
 
 	const initFolders = async () => {
-		if ($config?.features?.enable_folders === false) {
+		if (
+			$config?.features?.enable_folders === false ||
+			($user?.role !== 'admin' && !($user?.permissions?.features?.folders ?? true))
+		) {
+			// Drop stale folder state so a revoked Folders permission also hides Move.
+			_folders.set([]);
+			folders = {};
+			sharedFolders = [];
 			return;
 		}
 
@@ -890,7 +897,11 @@
 		selectedFolder.set(null);
 		closeMobileSidebar();
 
-		if ($user?.role !== 'admin' && $user?.permissions?.chat?.temporary_enforced) {
+		if (
+			$user?.role !== 'admin' &&
+			($user?.permissions?.chat?.temporary ?? true) &&
+			$user?.permissions?.chat?.temporary_enforced
+		) {
 			await temporaryChatEnabled.set(true);
 		} else {
 			await temporaryChatEnabled.set(false);

@@ -48,6 +48,7 @@ from open_webui.tasks import clear_response_stream, save_response_stream
 from open_webui.utils.access_control import has_permission
 from open_webui.utils.auth import get_verified_user_by_id
 from open_webui.utils.access_control.folders import has_folder_access
+from open_webui.utils.auth import get_verified_user_by_id
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.chat_id import is_saved_chat_id, is_temporary_chat_id
 from open_webui.utils.context_compaction import compact_messages_for_request
@@ -67,6 +68,7 @@ from open_webui.utils.misc import (
     get_last_user_message_item,
     get_message_list,
     get_output_text,
+    is_empty_reply,
     get_response_error_detail,
     get_reasoning_details,
     get_system_message,
@@ -865,13 +867,7 @@ async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[
     if not db_messages:
         return None
 
-    # A stopped or failed reply can leave an empty assistant placeholder in the
-    # branch. Sending it back to the provider breaks the next turn.
-    db_messages = [
-        msg
-        for msg in db_messages
-        if not (msg.get('role') == 'assistant' and not msg.get('content') and not msg.get('output'))
-    ]
+    db_messages = [msg for msg in db_messages if not is_empty_reply(msg)]
 
     return [{k: v for k, v in msg.items() if k in MESSAGE_REPLAY_KEYS} for msg in db_messages]
 
@@ -1759,7 +1755,27 @@ async def streaming_chat_response_handler(response, ctx):
             usage = None
             last_response_id = None
 
+            def is_message_continuation() -> bool:
+                return bool(
+                    prior_output
+                    and output
+                    and prior_output[-1].get('type') == output[0].get('type') == 'message'
+                    and prior_output[-1].get('role', 'assistant') == 'assistant'
+                    and output[0].get('role', 'assistant') == 'assistant'
+                )
+
             def full_output():
+                if is_message_continuation():
+                    return [
+                        *prior_output[:-1],
+                        {
+                            **prior_output[-1],
+                            **output[0],
+                            'id': prior_output[-1].get('id'),
+                            'content': [*prior_output[-1].get('content', []), *output[0].get('content', [])],
+                        },
+                        *output[1:],
+                    ]
                 return prior_output + output if prior_output else output
 
             def get_message_error_content(error):
@@ -1797,6 +1813,10 @@ async def streaming_chat_response_handler(response, ctx):
                     reasoning_tags = DEFAULT_REASONING_TAGS
 
             try:
+                # Continuation deltas assume the client already has the previous output.
+                if prior_output:
+                    await event_emitter({'type': 'chat:completion', 'data': {'output': full_output()}})
+
                 for event in events:
                     await event_emitter(
                         {
@@ -1869,6 +1889,14 @@ async def streaming_chat_response_handler(response, ctx):
 
                     def get_response_data_with_full_output_index(response_data: dict):
                         if prior_output and isinstance(response_data.get('output_index'), int):
+                            if is_message_continuation():
+                                output_index = response_data['output_index']
+                                content_offset = len(prior_output[-1].get('content', [])) if output_index == 0 else 0
+                                return {
+                                    **response_data,
+                                    'output_index': output_index + len(prior_output) - 1,
+                                    'content_index': response_data.get('content_index', 0) + content_offset,
+                                }
                             return {
                                 **response_data,
                                 'output_index': response_data['output_index'] + len(prior_output),

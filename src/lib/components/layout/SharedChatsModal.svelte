@@ -24,7 +24,7 @@
 	let allChatsLoaded = false;
 	let chatListLoading = false;
 	let searchDebounceTimeout: ReturnType<typeof setTimeout>;
-	let searchController: AbortController;
+	let searchController: AbortController | null = null;
 
 	let showUnshareAllConfirmDialog = false;
 
@@ -35,12 +35,9 @@
 		...(direction ? { direction } : {})
 	};
 
-	$: if (filter !== null) {
-		searchHandler();
-	}
-
 	const cancelSearch = () => {
 		searchController?.abort();
+		searchController = null;
 		clearTimeout(searchDebounceTimeout);
 	};
 
@@ -48,17 +45,26 @@
 		cancelSearch();
 		if (!show) return;
 
-		searchController = new AbortController();
-		const { signal } = searchController;
+		const controller = new AbortController();
+		searchController = controller;
+		const { signal } = controller;
 		page = 1;
 		chatList = null;
 		chatListLoading = false;
 
 		const loadChats = async () => {
-			const res = await getSharedChatList(localStorage.token, page, filter, signal);
-			if (signal.aborted) return;
-			chatList = res;
-			allChatsLoaded = (chatList ?? []).length === 0;
+			try {
+				const res = await getSharedChatList(localStorage.token, page, filter, signal);
+				if (signal.aborted || searchController !== controller) return;
+				chatList = res ?? [];
+				allChatsLoaded = (res ?? []).length === 0;
+			} catch (error) {
+				if (!signal.aborted && searchController === controller) {
+					toast.error(`${error}`);
+					chatList = [];
+					allChatsLoaded = true;
+				}
+			}
 		};
 
 		if (query === '') {
@@ -69,20 +75,45 @@
 	};
 
 	const loadMoreChats = async () => {
-		if (chatListLoading || !chatList || allChatsLoaded || searchController.signal.aborted) return;
-		const { signal } = searchController;
-		chatListLoading = true;
-		page += 1;
-
-		const newChatList = await getSharedChatList(localStorage.token, page, filter, signal);
-		if (signal.aborted) return;
-		allChatsLoaded = newChatList.length === 0;
-
-		if (newChatList.length > 0) {
-			chatList = [...(chatList || []), ...newChatList];
+		const controller = searchController;
+		if (
+			chatListLoading ||
+			!chatList ||
+			allChatsLoaded ||
+			!controller ||
+			controller.signal.aborted
+		) {
+			return;
 		}
 
-		chatListLoading = false;
+		chatListLoading = true;
+		const nextPage = page + 1;
+
+		try {
+			const newChatList = await getSharedChatList(
+				localStorage.token,
+				nextPage,
+				filter,
+				controller.signal
+			);
+			if (controller.signal.aborted || searchController !== controller) return;
+			// Advance only once the page arrived, so a failed load can be retried.
+			page = nextPage;
+
+			const results = newChatList ?? [];
+			allChatsLoaded = results.length === 0;
+			if (results.length > 0) {
+				chatList = [...chatList, ...results];
+			}
+		} catch (error) {
+			if (!controller.signal.aborted && searchController === controller) {
+				toast.error(`${error}`);
+			}
+		} finally {
+			if (searchController === controller) {
+				chatListLoading = false;
+			}
+		}
 	};
 
 	const unshareHandler = async (chatId: string) => {
@@ -114,7 +145,7 @@
 		}
 	};
 
-	$: if (show) {
+	$: if (show && filter) {
 		searchHandler();
 	} else {
 		cancelSearch();

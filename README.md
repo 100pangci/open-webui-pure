@@ -20,7 +20,7 @@ Open WebUI.
 - **~300 MB image**, **~100 MB fresh idle cgroup**, **~1.6 s startup** on a
   fresh data volume (see [Footprint](#footprint)).
 - **Upstream-derived, aggressively subtractive** — based on Open WebUI
-  v0.11.3 and synced through v0.13.3, with every removal recorded in
+  v0.11.3 and synced through v0.13.4, with every removal recorded in
   [`HANDOFF.md`](./HANDOFF.md).
 
 ## Footprint
@@ -186,9 +186,9 @@ npm run dev        # Vite dev server, proxies /api and /openai to :8080
 ## Tests
 
 ```bash
-# backend (170 tests: SSRF, compression, rate limiting, image types, changelog,
+# backend (SSRF, compression, rate limiting, image types, changelog,
 # temporary-chat ownership, Responses API conversion, database revision guard,
-# Redis model cache)
+# Redis model cache, upstream port regressions)
 PYTHONPATH=backend pytest backend/open_webui/test -q
 
 # frontend
@@ -203,7 +203,7 @@ the retained-import checks (`.github/workflows/pure-sync-check.yaml`).
 ## Upstream sync
 
 Pure is based on upstream Open WebUI v0.11.3 and currently includes the
-retained fixes through v0.13.3. Security fixes and bug fixes from upstream
+retained fixes through v0.13.4. Security fixes and bug fixes from upstream
 are welcome, but every sync must keep the subtraction intact:
 do not import a module, dependency or configuration entry whose feature is
 listed under [Removed](#removed). See [`HANDOFF.md`](./HANDOFF.md) for the

@@ -249,7 +249,11 @@
 				} else if (shortcut === Shortcut.NEW_TEMPORARY_CHAT) {
 					console.log('Shortcut triggered: NEW_TEMPORARY_CHAT');
 					event.preventDefault();
-					if ($user?.role !== 'admin' && $user?.permissions?.chat?.temporary_enforced) {
+					if (
+						$user?.role !== 'admin' &&
+						($user?.permissions?.chat?.temporary ?? true) &&
+						$user?.permissions?.chat?.temporary_enforced
+					) {
 						temporaryChatEnabled.set(true);
 					} else {
 						temporaryChatEnabled.set(!$temporaryChatEnabled);
@@ -283,7 +287,11 @@
 				temporaryChatEnabled.set(true);
 			}
 
-			if ($user?.role !== 'admin' && $user?.permissions?.chat?.temporary_enforced) {
+			if (
+				$user?.role !== 'admin' &&
+				($user?.permissions?.chat?.temporary ?? true) &&
+				$user?.permissions?.chat?.temporary_enforced
+			) {
 				temporaryChatEnabled.set(true);
 			}
 		}
@@ -319,6 +327,20 @@
 	// without it, client-side navigations to `?settings=...` are never handled.
 	$: if (loaded && $page.url) {
 		void openSettingsFromUrl();
+	}
+
+	// A permission refresh can turn on enforced temporary chat while a blank chat is
+	// open; switch it over without a reload. Both flags are required, so a group that
+	// merely enforces the switch without allowing temporary chats stays on saved chats.
+	$: if (
+		loaded &&
+		!$chatId &&
+		!$temporaryChatEnabled &&
+		$user?.role !== 'admin' &&
+		($user?.permissions?.chat?.temporary ?? true) &&
+		$user?.permissions?.chat?.temporary_enforced
+	) {
+		temporaryChatEnabled.set(true);
 	}
 
 	// Wait for the root layout to finish restoring the session before deciding:

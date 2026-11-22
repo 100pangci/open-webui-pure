@@ -15,9 +15,11 @@
 		deleteFolderById,
 		getFolderById,
 		updateFolderById,
-		createNewFolder
+		createNewFolder,
+		markFolderChatsReadById
 	} from '$lib/apis/folders';
 	import { getChatsByFolderId } from '$lib/apis/chats';
+	import { refreshFolderChatLists } from '$lib/stores/chatList';
 
 	import FolderModal from '$lib/components/layout/Sidebar/Folders/FolderModal.svelte';
 	import FolderShareModal from '$lib/components/layout/Sidebar/Folders/FolderShareModal.svelte';
@@ -121,6 +123,20 @@
 			toast.success($i18n.t('Folder deleted successfully'));
 			onDelete(folder);
 		}
+	};
+
+	const markAllReadHandler = async () => {
+		const folderId = (folder as any)?.id;
+		if (!folderId) return;
+
+		const res = await markFolderChatsReadById(localStorage.token, folderId).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
+		if (!res) return;
+
+		// The read endpoint returns no socket event, so refresh the open folder's chat list directly.
+		await Promise.all([onUpdate(folder), refreshFolderChatLists(folderId)]);
 	};
 
 	const exportHandler = async () => {
@@ -261,6 +277,7 @@
 					onExport={() => {
 						exportHandler();
 					}}
+					onMarkAllRead={markAllReadHandler}
 					onCreateSubFolder={() => {
 						showCreateSubFolderModal = true;
 					}}

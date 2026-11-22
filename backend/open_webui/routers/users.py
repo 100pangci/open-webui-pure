@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import io
 import logging
 import time
 from collections import Counter
@@ -9,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, Response
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.env import ENABLE_PROFILE_IMAGE_URL_FORWARDING, PROFILE_IMAGE_ALLOWED_MIME_TYPES, STATIC_DIR
@@ -146,7 +145,25 @@ async def get_all_users(
     user=Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    return await Users.get_users(db=db)
+    result = await Users.get_users(db=db)
+    users = result['users']
+    total = result['total']
+
+    # Look up by group to avoid binding one IN parameter per user.
+    groups = await Groups.get_all_groups(db=db)
+    group_user_ids = await Groups.get_group_user_ids_by_ids([group.id for group in groups], db=db)
+
+    groups_by_user = {}
+    for group in groups:
+        for user_id in group_user_ids[group.id]:
+            groups_by_user.setdefault(user_id, []).append({'id': group.id, 'name': group.name})
+
+    return {
+        'users': [
+            UserInfoResponse(**{**user.model_dump(), 'groups': groups_by_user.get(user.id, [])}) for user in users
+        ],
+        'total': total,
+    }
 
 
 @router.get('/search', response_model=UserInfoListResponse)
@@ -837,14 +854,13 @@ async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_u
                 try:
                     header, base64_data = user.profile_image_url.split(',', 1)
                     image_data = base64.b64decode(base64_data)
-                    image_buffer = io.BytesIO(image_data)
                     media_type = header.split(';')[0].lstrip('data:').lower()
 
                     if media_type not in PROFILE_IMAGE_ALLOWED_MIME_TYPES:
                         return FileResponse(f'{STATIC_DIR}/user.png')
 
-                    return StreamingResponse(
-                        image_buffer,
+                    return Response(
+                        content=image_data,
                         media_type=media_type,
                         headers={
                             'Content-Disposition': 'inline',
@@ -919,13 +935,16 @@ async def update_user_by_id(
     user = await Users.get_user_by_id(user_id, db=db)
 
     if user:
-        if form_data.email is not None and not validate_email_format(form_data.email.lower()):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.INVALID_EMAIL_FORMAT,
-            )
-
         if form_data.email is not None and form_data.email.lower() != user.email:
+            # The email field no longer asks the browser to validate its format, so a
+            # changed address must pass the check that sign-up and Add User already apply.
+            # An unchanged address is left alone: it may come from an identity provider
+            # and rejecting it would block an administrator from editing anything else.
+            if not validate_email_format(form_data.email.lower()):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ERROR_MESSAGES.INVALID_EMAIL_FORMAT,
+                )
             email_user = await Users.get_user_by_email(form_data.email.lower(), db=db)
             if email_user:
                 raise HTTPException(

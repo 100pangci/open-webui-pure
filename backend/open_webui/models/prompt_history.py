@@ -4,12 +4,15 @@ import time
 import uuid
 from typing import Optional
 
+from fastapi import HTTPException
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.users import UserResponse, Users
 from open_webui.utils.misc import unified_text_diff
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import JSON, BigInteger, Column, Index, Text, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+MAX_DIFF_LINES = 5000
 
 ####################
 # PromptHistory DB Schema

@@ -1,5 +1,13 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 
+const parseFolderReadError = async (response: Response) => {
+	const body = await response.json().catch(() => ({}));
+	return Object.assign(new Error(body?.detail ?? response.statusText), {
+		status: response.status,
+		detail: body?.detail
+	});
+};
+
 type FolderForm = {
 	name?: string;
 	data?: Record<string, any>;
@@ -78,14 +86,14 @@ export const getFolderById = async (token: string, id: string) => {
 		}
 	})
 		.then(async (res) => {
-			if (!res.ok) throw await res.json();
+			if (!res.ok) throw await parseFolderReadError(res);
 			return res.json();
 		})
 		.then((json) => {
 			return json;
 		})
 		.catch((err) => {
-			error = err.detail;
+			error = err;
 			console.error(err);
 			return null;
 		});
@@ -353,11 +361,11 @@ export const getSharedFolderChats = async (
 		}
 	)
 		.then(async (res) => {
-			if (!res.ok) throw await res.json();
+			if (!res.ok) throw await parseFolderReadError(res);
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail;
+			error = err;
 			return null;
 		});
 

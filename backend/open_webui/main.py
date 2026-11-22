@@ -730,6 +730,7 @@ async def chat_completion(
         user_message = form_data.pop('user_message', None) or form_data.pop('parent_message', None)
         chat_id = form_data.pop('chat_id', None) or ''
         chat_variables = form_data.pop('chat_variables', None)
+        existing_chat = None
         if chat_variables is None:
             existing_chat = await Chats.get_chat_by_id(chat_id) if is_saved_chat_id(chat_id) else None
             chat_variables = existing_chat.variables if existing_chat else {}
@@ -952,10 +953,14 @@ async def chat_completion(
                         chat_fields['files'] = chat_files
                     if selected_chat_models:
                         chat_fields['models'] = selected_chat_models
-                    if chat_fields:
+                    if chat_fields and (
+                        existing_chat is None
+                        or any((existing_chat.chat or {}).get(key) != value for key, value in chat_fields.items())
+                    ):
                         await Chats.update_chat_by_id(chat_id, chat_fields, touch=False)
 
-                    await Chats.update_chat_variables_by_id(chat_id, chat_variables)
+                    if existing_chat is None or chat_variables != existing_chat.variables:
+                        await Chats.update_chat_variables_by_id(chat_id, chat_variables)
 
                     # Save user message to DB
                     if user_message and user_message.get('id'):
@@ -1462,8 +1467,14 @@ async def get_app_config(request: Request):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Invalid token',
             )
-        if data is not None and 'id' in data and await is_valid_token(data, request.app.state.redis):
-            user = await Users.get_user_by_id(data['id'])
+        if data is not None and 'id' in data:
+            try:
+                if await is_valid_token(data, request.app.state.redis):
+                    user = await Users.get_user_by_id(data['id'])
+            except HTTPException as e:
+                # A deleted or deactivated account gets the public config.
+                if e.status_code != status.HTTP_401_UNAUTHORIZED:
+                    raise
 
     onboarding = False
     if user is None:

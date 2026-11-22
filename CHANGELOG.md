@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.4] - 2026-11-20
+
+### Changed
+
+- Sync retained fixes from Open WebUI v0.13.4. Pure keeps its existing feature boundary, dependency set and migration history; per-commit decisions and validation are recorded in [`docs/upstream-audit/2026-11-19-summary.md`](./docs/upstream-audit/2026-11-19-summary.md).
+- Pin the actions already used by Pure's workflows to verified commits, limit backend CI to read-only repository permissions, and update the existing Turndown and style-mod dependencies to their retained patch releases.
+
+### Fixed
+
+- Keep the latest chat turn after merging a save from an older window, avoid rewriting unchanged chat JSON, and leave activity and read timestamps intact when organizing chats.
+- Handle concurrent creation of the same tag, reuse request database sessions, and include group membership in the administrator's full user list.
+- Preserve valid SSO sessions through temporary provider failures and encode Basic authentication credentials correctly.
+- Select image request parameters from the model actually sent to the provider and preserve useful provider error details.
+- Redact more credential fields in audit logs, bound expensive model metadata and prompt-history inputs, and revalidate users before background chat tasks.
+- Keep keyboard focus where it was: after canceling or switching a message edit, after paging a list to its first or last page, and while Shift-clicking delete buttons in the Workspace.
+- Apply enforced temporary chat to an already open blank chat without a reload, hide the folder Move menu and close the Create Folder dialog when the Folders permission is turned off, and require both Allow and Enforce Temporary Chat before a chat becomes temporary.
+- Fix chat input freezes after pasting large text, long streaming replies with many code blocks, Firefox scroll jumps when older messages load, and a folder chat list resetting to page 1 when a chat is opened in another tab.
+- Open large chats about twice as fast, load the model list quickly with Redis when models have large profile images, and limit the number of search words in chat search.
+- Mark a folder's chats as read from its menu, keep the new-chat toggle from stealing focus on phones, and stop a right-aligned menu from shifting while it opens.
+- Clear a folder chat's unread dot in place when another view marks it read, and refresh only the open folder's list after "Mark all as read" instead of leaving it stale.
+- Keep a queued message in the queue when sending it is rejected, for example after the last model becomes unavailable, instead of dropping it without a notice.
+- Reject an invalid email format when an administrator changes a user's address, matching sign-up and Add User now that the field no longer relies on the browser's email check; an unchanged address, which an identity provider may have issued, is left alone so editing the name or role still works.
+- Retry a failed page instead of skipping it in chat search and the shared-chats list, and cap the sign-out wait during session expiry so an unresponsive auth endpoint cannot leave the user on an expired session.
+- Pass Redis locks through the Sentinel proxy unchanged so an OAuth token refresh under Sentinel uses a lock object instead of an un-awaited coroutine.
+
 ## [0.13.3] - 2026-11-11
 
 ### Changed
