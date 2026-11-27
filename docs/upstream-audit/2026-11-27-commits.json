@@ -5,9 +5,9 @@
 	"target_tag": "v0.13.5",
 	"commit_count": 358,
 	"decision_counts": {
-		"skip-removed": 179,
+		"skip-removed": 178,
 		"skip-engineering": 62,
-		"adapt": 32,
+		"adapt": 33,
 		"adopt": 29,
 		"already-covered": 10,
 		"skip-new-feature": 45,
@@ -946,15 +946,15 @@
 				"src/lib/stores/index.ts"
 			],
 			"merge": false,
-			"decision": "skip-removed",
+			"decision": "adapt",
 			"decisions": {
 				"frontend-chat": {
 					"id": 28,
 					"sha": "06b47d455e95be5e7c25047feb07f45424f21217",
-					"decision": "skip-removed",
-					"reason": "把嵌入草稿接入文件夹/终端标签打开流程（openFeatureTab、bridgeRequest、terminalId/terminalContext）；ChatTabs 与 terminal 已删除。",
-					"paths": [],
-					"implementation_status": "not-needed"
+					"decision": "adapt",
+					"reason": "混合提交：嵌入草稿接入文件夹/终端标签打开流程（openFeatureTab、bridgeRequest、terminalId/terminalContext）依赖已删除的 ChatTabs 与 terminal，不取；但同一提交把回复完成后的侧栏刷新改为不等待（void refreshChatList / void refreshFolderChatLists），与标签页无关，属保留聊天流程的性能修复。",
+					"paths": ["src/lib/components/chat/Chat.svelte"],
+					"implementation_status": "applied"
 				},
 				"frontend-ui": {
 					"id": 28,
@@ -13022,6 +13022,14 @@
 		}
 	],
 	"applied": [
+		{
+			"scope": "frontend-chat",
+			"item": {
+				"id": 28,
+				"sha": "06b47d455e95be5e7c25047feb07f45424f21217",
+				"paths": ["src/lib/components/chat/Chat.svelte"]
+			}
+		},
 		{
 			"scope": "backend-api",
 			"item": {

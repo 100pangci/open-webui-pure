@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Treat rows stored with an empty `done` (questions, imported replies) as complete, and reject an account birth date later than today.
 - Show the migration log at the configured level so a large upgrade no longer looks stuck; the migration head is unchanged.
 - Show hover controls on keyboard focus or an open menu rather than on mouse focus, keep list focus on the nearest row after a delete, and label the model editor's default switch so screen readers can tell it from the availability switch.
-- Load the code highlighter and dayjs locales on demand, animate the running-status shimmer on the GPU, and stop the tool-call animation from relaying out the page every frame.
+- Load the code highlighter and dayjs locales on demand, animate the running-status shimmer on the GPU, stop the tool-call animation from relaying out the page every frame, and stop a finished reply from waiting on the sidebar refresh.
 - Open the Workspace model list and the Admin Settings Models and Interface tabs without waiting on unused or serial requests.
 - Estimate `/status` context correctly when a reply ends on a tool result; copy formulas from a reply as TeX; restore dismissed banners when Remember Dismissal is turned off; keep line breaks in provider error messages; fix RangeError after select-all plus Enter; fix touch buttons over a zoomable preview and pinch-zoom getting stuck; dismiss dropdowns when dragging outside; and collapse the formatting toolbar when focus leaves the editor.
 - Expand code blocks and close the multi-model tab view while exporting a PDF, keep submenus inside the viewport, and require a key only for bearer-authenticated connections.
