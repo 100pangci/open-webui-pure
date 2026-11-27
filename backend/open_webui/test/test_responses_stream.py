@@ -1,6 +1,6 @@
 import json
 
-from open_webui.routers.openai import convert_responses_result
+from open_webui.routers.openai import convert_responses_result, convert_to_responses_payload
 from open_webui.utils.response import (
     convert_responses_stream_to_chat_completions,
     convert_responses_usage_to_chat_completions,
@@ -247,3 +247,108 @@ def test_convert_responses_result_without_usage():
     assert result['choices'][0]['finish_reason'] == 'stop'
     assert result['usage'] is None
     assert 'refusal' not in result['choices'][0]['message']
+
+
+def test_system_message_becomes_a_developer_input_item():
+    payload = convert_to_responses_payload(
+        {
+            'model': 'gpt-5',
+            'messages': [
+                {'role': 'system', 'content': 'Be brief'},
+                {'role': 'user', 'content': 'Hello'},
+            ],
+        }
+    )
+
+    # Newer OpenAI models never prompt-cache top-level instructions, so the
+    # system prompt ships as a developer message instead.
+    assert 'instructions' not in payload
+    assert payload['input'][0] == {
+        'type': 'message',
+        'role': 'developer',
+        'content': [{'type': 'input_text', 'text': 'Be brief'}],
+    }
+    assert payload['input'][1]['role'] == 'user'
+
+
+def test_system_message_with_text_parts_becomes_a_developer_input_item():
+    payload = convert_to_responses_payload(
+        {
+            'model': 'gpt-5',
+            'messages': [
+                {'role': 'system', 'content': [{'type': 'text', 'text': 'Be brief'}]},
+                {'role': 'user', 'content': 'Hello'},
+            ],
+        }
+    )
+
+    assert 'instructions' not in payload
+    assert payload['input'][0]['role'] == 'developer'
+    assert payload['input'][0]['content'] == [{'type': 'input_text', 'text': 'Be brief'}]
+
+
+def test_encrypted_reasoning_is_replayed_as_reasoning_items():
+    from open_webui.utils.misc import convert_output_to_messages
+
+    output = [
+        {
+            'type': 'reasoning',
+            'id': 'rs_1',
+            'summary': [{'type': 'output_text', 'text': 'thinking'}],
+            'encrypted_content': 'gAAAA',
+        },
+        {'type': 'message', 'role': 'assistant', 'content': [{'type': 'output_text', 'text': 'Answer'}]},
+    ]
+
+    messages = convert_output_to_messages(output, raw=True, reasoning_format='reasoning')
+
+    assert messages[0]['content'] == 'Answer'
+    assert messages[0]['reasoning'] == 'thinking'
+    # The encrypted item goes back whole; providers reject a stripped one.
+    assert messages[0]['reasoning_items'] == [output[0]]
+
+
+def test_reasoning_items_are_dropped_when_not_raw():
+    from open_webui.utils.misc import convert_output_to_messages
+
+    output = [{'type': 'reasoning', 'summary': [], 'encrypted_content': 'gAAAA'}]
+
+    assert convert_output_to_messages(output, raw=False, reasoning_format='reasoning') == []
+
+
+def test_reasoning_items_go_back_before_the_assistant_message():
+    payload = convert_to_responses_payload(
+        {
+            'model': 'gpt-5',
+            'messages': [
+                {'role': 'user', 'content': 'Hi'},
+                {
+                    'role': 'assistant',
+                    'content': 'Answer',
+                    'reasoning_items': [
+                        {
+                            'type': 'reasoning',
+                            'id': 'rs_1',
+                            'summary': [],
+                            'encrypted_content': 'gAAAA',
+                            'status': 'completed',
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+
+    assert payload['input'][1] == {'type': 'reasoning', 'id': 'rs_1', 'summary': [], 'encrypted_content': 'gAAAA'}
+    assert payload['input'][2]['role'] == 'assistant'
+
+
+def test_stripped_reasoning_loses_encrypted_content():
+    from open_webui.utils.middleware import strip_reasoning_details
+
+    output = [
+        {'type': 'reasoning', 'id': 'rs_1', 'encrypted_content': 'gAAAA', 'reasoning_details': [{'text': 'x'}]},
+        'not-a-dict',
+    ]
+
+    assert strip_reasoning_details(output) == [{'type': 'reasoning', 'id': 'rs_1'}, 'not-a-dict']

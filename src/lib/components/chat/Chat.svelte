@@ -463,6 +463,13 @@
 		embedded && selectedText?.trim()
 			? `${text}\n\nSelected note text for replace_note_content operations:\n${selectedText.trim()}`
 			: text;
+	// With no active tasks, only finish our own replies that aren't waiting on a tool.
+	const canFinish = (message) =>
+		message?.role === 'assistant' &&
+		(message.user_id ?? chat?.user_id) === $user?.id &&
+		!message.done &&
+		!message.output?.some((item) => item?.type === 'function_call' && item.status === 'pending');
+
 	const noteChatDebug = (message: string, data: Record<string, unknown> = {}) => {
 		if (!embedded) return;
 		console.info('[note-chat]', message, {
@@ -746,6 +753,14 @@
 			if (type === 'chat:list') {
 				return;
 			}
+			// A reply this page has not loaded yet ended.
+			if (
+				type === 'chat:active' &&
+				!event.data.data?.active &&
+				!$temporaryChatEnabled &&
+				!history.messages[event.message_id]
+			)
+				await loadChat();
 			let message = history.messages[event.message_id];
 
 			if (message) {
@@ -1530,8 +1545,13 @@
 				} else {
 					taskIds = null;
 					// No active tasks and message incomplete → generation was interrupted
-					if (currentMessage?.role === 'assistant' && !currentMessage.done) {
-						currentMessage.done = true;
+					if (pendingTaskIds.length === 0) {
+						for (const message of Object.values(history.messages)) {
+							if (canFinish(message)) {
+								message.done = true;
+								history = history;
+							}
+						}
 					}
 				}
 
@@ -2942,6 +2962,7 @@
 		if (history.messages[message.id].done == true) {
 			const responseMessage = history.messages[message.id];
 			responseMessage.done = false;
+			responseMessage.error = null;
 			await tick();
 
 			const model = $models
@@ -3044,13 +3065,9 @@
 
 			await tick();
 
-			if (!embedded) {
-				await refreshChatList(localStorage.token);
-			}
-
-			if (selectedFolderId) {
-				await refreshFolderChatLists(selectedFolderId, chat);
-			}
+			// The sidebar catches up on its own; the reply does not wait for it.
+			if (!embedded) void refreshChatList(localStorage.token);
+			if (selectedFolderId) void refreshFolderChatLists(selectedFolderId, chat);
 
 			selectedFolder.set(null);
 		} else {
@@ -3100,7 +3117,7 @@
 	const getChatInputDraft = () => ({
 		prompt,
 		files: files
-			.filter((file) => file.type !== 'image')
+			.filter((file) => file.type !== 'image' && file.status !== 'uploading')
 			.map((file) => ({
 				...file,
 				user: undefined,

@@ -431,3 +431,96 @@ async def test_noop_chat_update_preserves_shared_session_commit(monkeypatch, met
         persisted = await db.get(Config, config_key)
         assert persisted is not None
         assert persisted.value == {'saved': True}
+
+
+@pytest.mark.asyncio
+async def test_message_update_keeps_fields_the_payload_omits():
+    chat_id = _unique('chat')
+    user_id = _unique('user')
+    await _add_chat(id=chat_id, user_id=user_id)
+
+    await ChatMessages.upsert_message(
+        'assistant-1',
+        chat_id,
+        user_id,
+        {
+            'role': 'assistant',
+            'content': 'Answer',
+            'output': [{'type': 'message', 'content': 'Answer'}],
+            'usage': {'input_tokens': 10, 'output_tokens': 5},
+            'error': None,
+            'done': True,
+        },
+    )
+
+    # A later save without these fields must not wipe them.
+    updated = await ChatMessages.upsert_message('assistant-1', chat_id, user_id, {'content': 'Answer v2'})
+
+    assert updated is not None
+    assert updated.content == 'Answer v2'
+    assert updated.output == [{'type': 'message', 'content': 'Answer'}]
+    assert updated.usage['input_tokens'] == 10
+    assert updated.usage['output_tokens'] == 5
+
+
+@pytest.mark.asyncio
+async def test_message_model_treats_a_missing_done_flag_as_done():
+    chat_id = _unique('chat')
+    user_id = _unique('user')
+    await _add_chat(id=chat_id, user_id=user_id)
+
+    await ChatMessages.upsert_message('user-1', chat_id, user_id, {'role': 'user', 'content': 'Question'})
+    async with get_async_db() as db:
+        row = await db.get(ChatMessage, f'{chat_id}-user-1')
+        row.done = None
+        await db.commit()
+
+    message = await ChatMessages.get_message_by_id(f'{chat_id}-user-1')
+
+    assert message is not None
+    assert message.done is True
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_folder_also_deletes_its_chats_internal_children():
+    user_id = _unique('user')
+    folder_id = _unique('folder')
+    parent = await _add_chat(user_id=user_id, folder_id=folder_id)
+    child = await _add_chat(
+        user_id=user_id,
+        meta={'internal': True, 'parent_chat_id': parent.id, 'type': 'note'},
+    )
+    unrelated = await _add_chat(user_id=user_id)
+
+    assert await Chats.delete_chats_by_user_id_and_folder_id(user_id, folder_id) is True
+
+    async with get_async_db() as db:
+        assert await db.get(Chat, parent.id) is None
+        assert await db.get(Chat, child.id) is None
+        assert await db.get(Chat, unrelated.id) is not None
+
+
+@pytest.mark.asyncio
+async def test_get_message_by_id_and_message_id_reads_one_row(monkeypatch):
+    chat_id = _unique('chat')
+    user_id = _unique('user')
+    await _add_chat(id=chat_id, user_id=user_id)
+
+    async def fail_map(*args, **kwargs):
+        pytest.fail('reading one message must not rebuild the whole map')
+
+    monkeypatch.setattr(ChatMessages, 'get_messages_map_by_chat_id', fail_map)
+
+    await ChatMessages.upsert_message('m1', chat_id, user_id, {'role': 'user', 'content': 'hi'})
+    await ChatMessages.upsert_message('m2', chat_id, user_id, {'role': 'assistant', 'parentId': 'm1', 'content': 'yo'})
+
+    message = await Chats.get_message_by_id_and_message_id(chat_id, 'm2')
+
+    assert message['content'] == 'yo'
+    assert message['parentId'] == 'm1'
+    assert message['childrenIds'] == []
+
+    parent = await Chats.get_message_by_id_and_message_id(chat_id, 'm1')
+
+    # get_message_map fills childrenIds from the parent links; a single-row read must too.
+    assert parent['childrenIds'] == ['m2']

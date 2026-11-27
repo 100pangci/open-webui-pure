@@ -39,7 +39,9 @@
 		{#each availableFeatures as feature}
 			<div class="flex min-h-6 items-center gap-2.5">
 				<Checkbox
-					ariaLabel={$i18n.t(getFeatureLabel(feature).label)}
+					ariaLabel={`${$i18n.t('Start enabled in new chats')}: ${$i18n.t(
+						getFeatureLabel(feature).label
+					)}`}
 					state={featureIds.includes(feature) ? 'checked' : 'unchecked'}
 					on:change={(e) => {
 						setFeature(feature, e.detail === 'checked');
@@ -47,6 +49,9 @@
 				/>
 				<button
 					type="button"
+					aria-label={`${$i18n.t('Start enabled in new chats')}: ${$i18n.t(
+						getFeatureLabel(feature).label
+					)}`}
 					class="min-w-0 cursor-pointer text-left text-xs text-gray-600 dark:text-gray-400"
 					on:click={() => setFeature(feature, !featureIds.includes(feature))}
 				>

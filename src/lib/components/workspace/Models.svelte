@@ -35,8 +35,8 @@
 	} from '$lib/apis/models';
 
 	import { getModels } from '$lib/apis';
-	import { getGroups } from '$lib/apis/groups';
 	import { updateUserSettings } from '$lib/apis/users';
+	import { withListFocus } from '$lib/utils/listFocus';
 
 	import { capitalizeFirstLetter, copyToClipboard } from '$lib/utils';
 
@@ -75,8 +75,7 @@
 	let showModelDeleteConfirm = false;
 
 	let selectedModel = null;
-
-	let groupIds = [];
+	let listElement: HTMLElement;
 
 	let tags = [];
 	let selectedTag = '';
@@ -189,7 +188,7 @@
 			toast.success($i18n.t(`Deleted {{name}}`, { name: model.id }));
 
 			page = 1;
-			getModelList();
+			await getModelList();
 		}
 
 		await _models.set(
@@ -400,9 +399,6 @@
 		viewOption = localStorage.workspaceViewOption ?? '';
 		page = 1;
 
-		let groups = await getGroups(localStorage.token);
-		groupIds = groups.map((group) => group.id);
-
 		await tick();
 		loaded = true;
 
@@ -458,9 +454,7 @@
 {#if loaded}
 	<ModelDeleteConfirmDialog
 		bind:show={showModelDeleteConfirm}
-		on:confirm={() => {
-			deleteModelHandler(selectedModel);
-		}}
+		on:confirm={() => withListFocus(listElement, selectedModel, deleteModelHandler)}
 	/>
 
 	<input
@@ -522,7 +516,7 @@
 		}}
 	/>
 
-	<div class="space-y-1">
+	<div bind:this={listElement} class="space-y-1">
 		<div class="flex h-8 flex-1 items-center w-full gap-2">
 			<div class="flex min-w-0 flex-1 items-center">
 				<div class=" self-center ml-1 mr-3">
@@ -530,6 +524,7 @@
 				</div>
 				<input
 					class=" w-full text-sm py-1 rounded-r-xl outline-hidden bg-transparent"
+					data-focus-fallback
 					bind:value={query}
 					aria-label={$i18n.t('Search Models')}
 					placeholder={$i18n.t('Search Models')}
@@ -725,7 +720,7 @@
 								<div class="mr-1 shrink-0 self-center">
 									<div class="{model.is_active ? '' : 'opacity-50 dark:opacity-50'} bg-transparent">
 										<img
-											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
+											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}&v=${model.updated_at}`}
 											alt=""
 											class="size-7 rounded-lg object-cover"
 											loading="lazy"

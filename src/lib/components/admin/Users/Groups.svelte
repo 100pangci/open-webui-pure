@@ -1,4 +1,5 @@
 <script>
+	import { withListFocus } from '$lib/utils/listFocus';
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -120,7 +121,7 @@
 		/>
 	{/if}
 
-	<div>
+	<div bind:this={listElement}>
 		<div class="sticky top-0 z-10 bg-white dark:bg-gray-900">
 			<div class="flex h-8 flex-1 items-center w-full gap-2">
 				<div class="flex min-w-0 flex-1 items-center">
@@ -129,6 +130,7 @@
 					</div>
 					<input
 						class="w-full text-sm pr-4 py-1 rounded-r-xl outline-hidden bg-transparent"
+						data-focus-fallback
 						bind:value={query}
 						aria-label={$i18n.t('Search Groups')}
 						placeholder={$i18n.t('Search Groups')}
@@ -187,7 +189,13 @@
 		{#if filteredGroups.length !== 0}
 			<div class="mt-1 grid grid-cols-1">
 				{#each filteredGroups as group, idx (group.id)}
-					<GroupItem {group} {setGroups} {updateGroup} {defaultPermissions} />
+					<GroupItem
+						{group}
+						{setGroups}
+						{updateGroup}
+						{defaultPermissions}
+						onDeleted={() => withListFocus(listElement, group.id, setGroups)}
+					/>
 					{#if idx < filteredGroups.length - 1}
 						<hr class="border-gray-50 dark:border-gray-850/40" />
 					{/if}

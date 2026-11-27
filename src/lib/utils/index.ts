@@ -19,7 +19,6 @@ dayjs.extend(localizedFormat);
 import { marked } from 'marked';
 import markedExtension from '$lib/utils/marked/extension';
 import markedKatexExtension from '$lib/utils/marked/katex-extension';
-import hljs from 'highlight.js';
 import { decode } from 'html-entities';
 
 //////////////////////////
@@ -540,11 +539,7 @@ export const copyToClipboard = async (text, html = null, formatted = false) => {
 		let styledHtml = '';
 		if (!html) {
 			const options = {
-				throwOnError: false,
-				highlight: function (code, lang) {
-					const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-					return hljs.highlight(code, { language }).value;
-				}
+				throwOnError: false
 			};
 			marked.use(markedKatexExtension(options));
 			marked.use(markedExtension(options));

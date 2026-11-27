@@ -297,7 +297,7 @@
 						/>
 					{/if}
 
-					{#each $banners.filter((b) => ![...getDismissedBannerIds(), ...closedBannerIds].includes(b.id)) as banner (banner.id)}
+					{#each $banners.filter((b) => !closedBannerIds.includes(b.id) && !(b.dismissible && getDismissedBannerIds().includes(b.id))) as banner (banner.id)}
 						<Banner
 							{banner}
 							on:dismiss={(e) => {

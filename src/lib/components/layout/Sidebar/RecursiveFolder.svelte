@@ -75,8 +75,6 @@
 	let draggedOver = false;
 	let dragged = false;
 
-	let clickTimer = null;
-
 	let name = '';
 
 	const formatUnreadCount = (count) =>
@@ -661,7 +659,8 @@
 			await selectedFolder.set({ ...folders[folderId], ...folder });
 		}
 
-		await goto(`/folders/${folderId}`);
+		// Reached from the keyboard as often as the mouse: keep the row focused.
+		await goto(`/folders/${folderId}`, { keepFocus: true });
 
 		if ($mobile) {
 			showSidebar.set(!$showSidebar);
@@ -803,10 +802,6 @@
 					: ''}"
 				on:dblclick={(e) => {
 					if (!isWritable) return;
-					if (clickTimer) {
-						clearTimeout(clickTimer); // cancel the single-click action
-						clickTimer = null;
-					}
 					renameHandler();
 				}}
 				role="button"
@@ -815,15 +810,8 @@
 				on:click={async (e) => {
 					e.stopPropagation();
 					if (shouldIgnoreRowClick(e.target)) return;
-					if (clickTimer) {
-						clearTimeout(clickTimer);
-						clickTimer = null;
-					}
-
-					clickTimer = setTimeout(async () => {
-						await openFolderHandler();
-						clickTimer = null;
-					}, 100); // 100ms delay (typical double-click threshold)
+					// A double click's second click only renames.
+					if (e.detail < 2) await openFolderHandler();
 				}}
 				on:keydown={(e) => {
 					if (e.currentTarget !== e.target) return;
@@ -869,14 +857,13 @@
 					{/if}
 				</button>
 
-				<div class="translate-y-[0.5px] flex min-w-0 flex-1 items-center gap-1.5 pr-6 text-start">
+				<div class="flex min-w-0 flex-1 items-center gap-1.5 pr-6 text-start">
 					{#if edit}
 						<input
 							id="folder-{folderId}-input"
 							type="text"
 							bind:value={name}
 							on:blur={() => {
-								console.log('Blur');
 								updateHandler({ name });
 								edit = false;
 							}}
@@ -913,7 +900,7 @@
 
 				{#if isWritable}
 					<button
-						class="absolute z-10 right-2 hover-reveal self-center flex items-center dark:text-gray-300"
+						class="absolute z-10 right-2 hover-reveal pointer-coarse:opacity-100! pointer-coarse:pointer-events-auto! self-center flex items-center dark:text-gray-300"
 					>
 						<FolderMenu
 							canShare={$user?.role === 'admin' || !folders[folderId]?.shared}

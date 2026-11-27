@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging.config
 import logging
 import alembic.context
-from open_webui.env import DATABASE_PASSWORD, DATABASE_URL, LOG_FORMAT
+from open_webui.env import DATABASE_PASSWORD, DATABASE_URL, GLOBAL_LOG_LEVEL, LOG_FORMAT
 from open_webui.internal.db import (
     enable_iam_token_auth,
     extract_ssl_params_from_url,
@@ -20,6 +20,8 @@ from sqlalchemy import create_engine, engine_from_config, pool
 alembic_config = alembic.context.config
 if alembic_config.config_file_name:
     logging.config.fileConfig(alembic_config.config_file_name, disable_existing_loggers=False)
+    # alembic.ini sets root=WARN, so upgrade progress would be dropped however GLOBAL_LOG_LEVEL is set.
+    logging.root.setLevel(GLOBAL_LOG_LEVEL)
 if LOG_FORMAT == 'json':
     from open_webui.env import JSONFormatter
 

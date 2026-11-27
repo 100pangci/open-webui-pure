@@ -255,21 +255,25 @@
 	const init = async () => {
 		models = null;
 
-		modelsConfig = await getModelsConfig(localStorage.token);
+		[modelsConfig, tags, allModels] = await Promise.all([
+			getModelsConfig(localStorage.token),
+			getBaseModelTags(localStorage.token),
+			getModels(localStorage.token)
+		]);
+
 		modelOrderList = modelsConfig?.MODEL_ORDER_LIST ?? [];
 		defaultModelIds = (modelsConfig?.DEFAULT_MODELS ?? '').split(',').filter((id) => id);
 		defaultPinnedModelIds = (modelsConfig?.DEFAULT_PINNED_MODELS ?? '')
 			.split(',')
 			.filter((id) => id);
 
-		tags = await getBaseModelTags(localStorage.token);
 		if (selectedTag && !tags.includes(selectedTag)) {
 			selectedTag = '';
 		}
 
 		baseModels = await getBaseModels(localStorage.token, selectedTag);
-		allModels = await getModels(localStorage.token);
 
+		// run after /api/models to reuse its cached provider response
 		const providerModels = await getModels(localStorage.token, null, true);
 		const allModelIds = new Set<string>(allModels.map((model: ModelListItem) => model.id));
 		allModels = [
@@ -965,7 +969,7 @@
 													: 'opacity-50 dark:opacity-50'} bg-transparent rounded-xl"
 											>
 												<img
-													src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
+													src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}&v=${model.updated_at}`}
 													alt="modelfile profile"
 													class=" rounded-xl size-7 object-cover"
 													loading="lazy"

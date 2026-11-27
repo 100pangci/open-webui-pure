@@ -1095,11 +1095,10 @@ def convert_to_responses_payload(payload: dict) -> dict:
     Convert Chat Completions payload to Responses API format.
 
     Chat Completions: { messages: [{role, content}], ... }
-    Responses API: { input: [{type: "message", role, content: [...]}], instructions: "system" }
+    Responses API: { input: [{type: "message", role, content: [...]}] }
     """
     messages = payload.pop('messages', [])
 
-    system_content = ''
     input_items = []
 
     for msg in messages:
@@ -1112,12 +1111,13 @@ def convert_to_responses_payload(payload: dict) -> dict:
             input_items.extend(_normalize_stored_item(item) for item in stored_output)
             continue
 
+        # Reasoning items go back in front of the message or tool calls they led to.
+        if role == 'assistant':
+            input_items.extend(_normalize_stored_item(item) for item in msg.get('reasoning_items') or [])
+
+        # Newer OpenAI models never prompt-cache top-level instructions.
         if role == 'system':
-            if isinstance(content, str):
-                system_content = content
-            elif isinstance(content, list):
-                system_content = '\n'.join(p.get('text', '') for p in content if p.get('type') == 'text')
-            continue
+            role = 'developer'
 
         # Convert content format
         text_type = 'output_text' if role == 'assistant' else 'input_text'
@@ -1158,9 +1158,6 @@ def convert_to_responses_payload(payload: dict) -> dict:
     previous_response_id = responses_payload.pop('previous_response_id', None)
     if previous_response_id:
         responses_payload['previous_response_id'] = previous_response_id
-
-    if system_content:
-        responses_payload['instructions'] = system_content
 
     if 'max_tokens' in responses_payload:
         responses_payload['max_output_tokens'] = responses_payload.pop('max_tokens')
@@ -1376,6 +1373,8 @@ async def generate_chat_completion(
     # (Chat Completions doesn't support images in tool content).
     if not is_responses and 'messages' in payload:
         for message in payload['messages']:
+            # Responses reasoning items mean nothing to a Chat Completions provider.
+            message.pop('reasoning_items', None)
             if message.get('role') == 'tool' and isinstance(message.get('content'), list):
                 parts = message['content']
                 text = ''.join(part.get('text', '') for part in parts if part.get('type') in ('input_text', 'text'))

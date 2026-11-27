@@ -171,6 +171,8 @@ def convert_output_to_messages(
             - 'think_tags': wrap in ``<think>`` tags inside content.
             - 'reasoning_content': set as ``reasoning_content`` top-level field
               (for llama.cpp, which routes it via the chat template).
+            - 'reasoning': set as ``reasoning`` top-level field
+              (for vLLM and OpenRouter).
     """
     if not output or not isinstance(output, list):
         return []
@@ -179,10 +181,16 @@ def convert_output_to_messages(
     pending_content = []
     pending_reasoning = []  # Only populated for top-level structured reasoning fields.
     pending_reasoning_details = []
+    pending_reasoning_items = []
 
     def flush_pending():
-        nonlocal pending_content, pending_reasoning, pending_reasoning_details
-        if not pending_content and not pending_reasoning and not pending_reasoning_details:
+        nonlocal pending_content, pending_reasoning, pending_reasoning_details, pending_reasoning_items
+        if (
+            not pending_content
+            and not pending_reasoning
+            and not pending_reasoning_details
+            and not pending_reasoning_items
+        ):
             return
 
         message = {
@@ -193,16 +201,23 @@ def convert_output_to_messages(
         if pending_reasoning:
             if reasoning_format == 'thinking':
                 message['thinking'] = '\n'.join(pending_reasoning)
+            elif reasoning_format == 'reasoning':
+                message['reasoning'] = '\n'.join(pending_reasoning)
             else:
                 message['reasoning_content'] = '\n'.join(pending_reasoning)
 
         if pending_reasoning_details:
             message['reasoning_details'] = pending_reasoning_details
 
+        # Encrypted reasoning only helps the provider if it gets the item back whole.
+        if pending_reasoning_items:
+            message['reasoning_items'] = pending_reasoning_items
+
         messages.append(message)
         pending_content = []
         pending_reasoning = []
         pending_reasoning_details = []
+        pending_reasoning_items = []
 
     for item in output:
         item_type = item.get('type', '')
@@ -217,6 +232,10 @@ def convert_output_to_messages(
                 pending_content.append(text)
 
         elif item_type == 'reasoning':
+            # Encrypted reasoning only helps the provider if it gets the item back whole.
+            if raw and item.get('encrypted_content'):
+                pending_reasoning_items.append(item)
+
             reasoning_details = item.get('reasoning_details') if raw else None
             if reasoning_details:
                 reasoning_details = reasoning_details if isinstance(reasoning_details, list) else [reasoning_details]
@@ -242,7 +261,7 @@ def convert_output_to_messages(
                     start_tag = item.get('start_tag', '<think>')
                     end_tag = item.get('end_tag', '</think>')
                     pending_content.append(f'{start_tag}{reasoning_text}{end_tag}')
-                elif reasoning_format in {'thinking', 'reasoning_content'}:
+                elif reasoning_format in {'thinking', 'reasoning_content', 'reasoning'}:
                     pending_reasoning.append(reasoning_text)
 
             if reasoning_details:

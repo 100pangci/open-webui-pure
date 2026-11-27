@@ -36,7 +36,6 @@
 	} from '$lib/stores';
 
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
-	import SettingsModal from '$lib/components/chat/SettingsModal.svelte';
 	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import AccountPending from '$lib/components/layout/Overlay/AccountPending.svelte';
 	import UpdateInfoToast from '$lib/components/layout/UpdateInfoToast.svelte';
@@ -46,6 +45,9 @@
 	const i18n = getContext('i18n');
 
 	let loaded = false;
+	// Settings (including the admin panels) load on first open, then stay mounted.
+	let settingsRequested = false;
+	$: if ($showSettings) settingsRequested = true;
 	let DB = null;
 	let localDBChats = [];
 
@@ -359,7 +361,11 @@
 	};
 </script>
 
-<SettingsModal bind:show={$showSettings} />
+{#if settingsRequested}
+	{#await import('$lib/components/chat/SettingsModal.svelte') then { default: SettingsModal }}
+		<SettingsModal bind:show={$showSettings} />
+	{/await}
+{/if}
 <ChangelogModal bind:show={$showChangelog} />
 
 {#if version && compareVersion(version.latest, version.current) && ($settings?.showUpdateToast ?? true)}

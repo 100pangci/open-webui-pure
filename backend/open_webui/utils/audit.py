@@ -224,10 +224,14 @@ class AuditLoggingMiddleware:
         # Paths are fixed for the process lifetime; compile once instead of
         # per request. None means the corresponding mode has nothing to match.
         self._included_pattern = (
-            re.compile(r'^/api(?:/v1)?/(' + '|'.join(self.included_paths) + r')\b') if self.included_paths else None
+            re.compile(r'^(?:/api(?:/v1)?)?/(' + '|'.join(self.included_paths) + r')\b')
+            if self.included_paths
+            else None
         )
         self._excluded_pattern = (
-            re.compile(r'^/api(?:/v1)?/(' + '|'.join(self.excluded_paths) + r')\b') if self.excluded_paths else None
+            re.compile(r'^(?:/api(?:/v1)?)?/(' + '|'.join(self.excluded_paths) + r')\b')
+            if self.excluded_paths
+            else None
         )
 
         if self.included_paths and self.excluded_paths:
@@ -253,7 +257,7 @@ class AuditLoggingMiddleware:
         async with self._audit_context(request) as context:
 
             async def send_wrapper(message: ASGISendEvent) -> None:
-                if self.audit_level == AuditLevel.REQUEST_RESPONSE:
+                if message['type'] == 'http.response.start' or (self.audit_level == AuditLevel.REQUEST_RESPONSE):
                     await self._capture_response(message, context)
 
                 await send(message)

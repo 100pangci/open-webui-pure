@@ -725,6 +725,11 @@ async def delete_all_user_chats(
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
         )
 
+    for chat_id in await Chats.get_chat_ids_by_user_id(user.id, db=db):
+        await stop_item_tasks(request.app.state.redis, chat_id)
+        for child_id in await Chats.get_internal_chat_ids_by_parent_id(chat_id, user.id):
+            await stop_item_tasks(request.app.state.redis, child_id)
+
     tag_ids = [tag.id for tag in await Tags.get_tags_by_user_id(user.id, db=db)]
     result = await Chats.delete_chats_by_user_id(user.id, db=db)
     if result:
@@ -1149,10 +1154,11 @@ async def archive_all_chats(
 async def unarchive_all_chats(
     request: Request, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
 ):
+    # Unarchiving never needs the chat content, only the tags to re-create.
     tag_ids = {
         tag_id
-        for chat in await Chats.get_archived_chats_by_user_id(user.id, db=db)
-        for tag_id in chat.meta.get('tags', [])
+        for meta in await Chats.get_archived_chat_metas_by_user_id(user.id, db=db)
+        for tag_id in (meta or {}).get('tags', [])
     }
     result = await Chats.unarchive_all_chats_by_user_id(user.id, db=db)
     if result:
@@ -1635,15 +1641,16 @@ async def delete_chat_by_id(
     await stop_item_tasks(request.app.state.redis, id)
     await Chats.delete_orphan_tags_for_user(chat.meta.get('tags', []), chat.user_id, threshold=1, db=db)
 
-    # Cascade to internal child chats spawned from this one.
-    for child_id in await Chats.get_internal_chat_ids_by_parent_id(id, chat.user_id):
-        await stop_item_tasks(request.app.state.redis, child_id)
-        await Chats.delete_chat_by_id_and_user_id(child_id, chat.user_id)
-
+    # Delete first so stopped sub-agents have no chat to report back to.
     if user.role == 'admin':
         result = await Chats.delete_chat_by_id(id, db=db)
     else:
         result = await Chats.delete_chat_by_id_and_user_id(id, user.id, db=db)
+
+    # Cascade to internal child chats spawned from this one.
+    for child_id in await Chats.get_internal_chat_ids_by_parent_id(id, chat.user_id):
+        await stop_item_tasks(request.app.state.redis, child_id)
+        await Chats.delete_chat_by_id_and_user_id(child_id, chat.user_id)
 
     if result:
         await publish_event(

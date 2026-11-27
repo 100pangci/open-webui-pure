@@ -56,7 +56,7 @@
 							placement="right"
 						>
 							<img
-								src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+								src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&v=${model?.info?.updated_at}`}
 								class=" size-[2.7rem] rounded-full"
 								alt="logo"
 								draggable="false"

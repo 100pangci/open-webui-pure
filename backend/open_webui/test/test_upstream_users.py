@@ -1,9 +1,11 @@
+import datetime
 from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
-from open_webui.models.users import User, UserUpdateForm
+from open_webui.models.users import UpdateProfileForm, User, UserUpdateForm
 from open_webui.routers.users import update_user_by_id
 from open_webui.utils.misc import validate_email_format
 
@@ -145,3 +147,26 @@ async def test_update_user_by_id_keeps_an_unchanged_unusual_email(monkeypatch):
 def test_user_table_still_accepts_the_same_email_column():
     # Guard the route patch against a schema rename that would silently drop the check.
     assert User.email is not None
+
+
+@pytest.mark.parametrize('delta_days', [1, 3650])
+def test_birth_date_in_the_future_is_rejected(delta_days):
+    future = datetime.datetime.now(datetime.timezone.utc).date() + datetime.timedelta(days=delta_days)
+
+    with pytest.raises(ValidationError) as excinfo:
+        UpdateProfileForm(profile_image_url='', name='Name', date_of_birth=future)
+
+    assert 'Birth date cannot be in the future' in str(excinfo.value)
+
+
+@pytest.mark.parametrize('delta_days', [0, 1, 40 * 365])
+def test_birth_date_today_or_in_the_past_is_accepted(delta_days):
+    birth_date = datetime.datetime.now(datetime.timezone.utc).date() - datetime.timedelta(days=delta_days)
+
+    form = UpdateProfileForm(profile_image_url='', name='Name', date_of_birth=birth_date)
+
+    assert form.date_of_birth == birth_date
+
+
+def test_birth_date_stays_optional():
+    assert UpdateProfileForm(profile_image_url='', name='Name').date_of_birth is None

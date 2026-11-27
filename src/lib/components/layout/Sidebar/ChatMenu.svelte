@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, tick } from 'svelte';
+	import { getContext, setContext, tick } from 'svelte';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -32,6 +32,7 @@
 	import ChatCheckIcon from '$lib/components/icons/ChatCheck.svelte';
 
 	const i18n = getContext('i18n');
+	setContext('exporting', true);
 
 	export let shareHandler: Function;
 	export let moveChatHandler: Function;

@@ -324,8 +324,25 @@
 			const range = selection.getRangeAt(0);
 			const tempDiv = document.createElement('div');
 
+			// Copy formulas as TeX source, rendered KaTeX pastes garbled
+			const katexElements = [...document.querySelectorAll('.katex')].filter((katex) =>
+				selection.containsNode(katex, true)
+			);
+			const texNodes = katexElements.map((katex) => {
+				const tex = katex.querySelector('annotation[encoding="application/x-tex"]').textContent;
+				const texNode = document.createTextNode(
+					katex.closest('.katex-display') ? `$$${tex}$$` : `$${tex}$`
+				);
+				if (katex.contains(range.startContainer)) range.setStartBefore(katex);
+				if (katex.contains(range.endContainer)) range.setEndAfter(katex);
+				katex.before(texNode);
+				katex.style.display = 'none';
+				return texNode;
+			});
+
 			// Remove background, color, and font styles
 			tempDiv.appendChild(range.cloneContents());
+			tempDiv.querySelectorAll('.katex').forEach((katex) => katex.remove());
 
 			tempDiv.querySelectorAll('table').forEach((table) => {
 				table.style.borderCollapse = 'collapse';
@@ -341,6 +358,9 @@
 			// Put cleaned HTML + plain text into clipboard
 			e.clipboardData.setData('text/html', tempDiv.innerHTML);
 			e.clipboardData.setData('text/plain', selection.toString());
+
+			katexElements.forEach((katex) => (katex.style.display = ''));
+			texNodes.forEach((texNode) => texNode.remove());
 		}
 	};
 
@@ -385,7 +405,7 @@
 	>
 		<div class={`shrink-0 ltr:mr-2 rtl:ml-2 hidden @lg:flex mt-0.5 `}>
 			<ProfileImage
-				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&v=${model?.info?.updated_at}`}
 				className={'size-7 assistant-message-profile-image'}
 			/>
 		</div>
