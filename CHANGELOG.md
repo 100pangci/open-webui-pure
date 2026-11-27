@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.6] - 2026-11-28
+
+### Fixed
+
+- Make `Ctrl+Shift+F` actually format a Python code block: the shortcut compared the raw key, which arrives as `F` while Shift is held, so it never fired; it now also only applies to a code block marked `python` or `py` instead of sending every block to the Python formatter. This corrects the v0.13.5 audit, which had recorded the upstream fix (`8fdde92b3c`, `8fb2bf35a`) as already covered; both entries now read `adapt` and are applied.
+
 ## [0.13.5] - 2026-11-28
 
 ### Changed

@@ -6,10 +6,10 @@
 	"commit_count": 358,
 	"decision_counts": {
 		"skip-removed": 178,
-		"skip-engineering": 62,
-		"adapt": 33,
+		"skip-engineering": 61,
+		"adapt": 35,
 		"adopt": 29,
-		"already-covered": 10,
+		"already-covered": 9,
 		"skip-new-feature": 45,
 		"merge": 1
 	},
@@ -703,7 +703,7 @@
 				"src/lib/components/common/InputModal.svelte"
 			],
 			"merge": false,
-			"decision": "skip-engineering",
+			"decision": "adapt",
 			"decisions": {
 				"frontend-chat": {
 					"id": 21,
@@ -717,17 +717,17 @@
 					"id": 21,
 					"sha": "8fb2bf35ad5a9d5f658de285d85d0859b1ee109c",
 					"decision": "skip-engineering",
-					"reason": "只调整 AddConnectionModal / ChangelogModal 的字号与内边距（其余 hunk 是 videos/ComfyUI/apps 等已移除功能）；CodeEditor 的 py 格式化修复由 frontend-ui 范围的 8fdde92b3c 承担，本提交在本范围是纯视觉重构。",
+					"reason": "只调整 AddConnectionModal / ChangelogModal 的字号与内边距（其余 hunk 是 videos/ComfyUI/apps 等已移除功能），本提交在本范围是纯视觉重构。",
 					"paths": [],
 					"implementation_status": "not-needed"
 				},
 				"frontend-ui": {
 					"id": 21,
 					"sha": "8fb2bf35ad5a9d5f658de285d85d0859b1ee109c",
-					"decision": "skip-engineering",
-					"reason": "整站 modal 字号/内边距视觉归一（其余 hunk 为 videos/ComfyUI/terminal/tools 等已删除功能）。CodeEditor 的 py 格式化修复在 frontend-ui 单独判定。",
-					"paths": [],
-					"implementation_status": "not-needed"
+					"decision": "adapt",
+					"reason": "整站 modal 字号/内边距视觉归一（其余 hunk 为 videos/ComfyUI/terminal/tools 等已删除功能），这部分不取；同一提交给 CodeEditor 的 Ctrl+Shift+F 加上 lang === 'python' 门控与 e.key.toLowerCase()，属保留的聊天代码块编辑，取用（后续 8fdde92b3c 再补 py 别名）。",
+					"paths": ["src/lib/components/common/CodeEditor.svelte"],
+					"implementation_status": "applied"
 				}
 			}
 		},
@@ -2832,15 +2832,15 @@
 			"groups": ["frontend-ui"],
 			"local_paths": ["src/lib/components/common/CodeEditor.svelte"],
 			"merge": false,
-			"decision": "already-covered",
+			"decision": "adapt",
 			"decisions": {
 				"frontend-ui": {
 					"id": 53,
 					"sha": "8fdde92b3c7276259dd9c91869bee1cc2f6a7453",
-					"decision": "already-covered",
-					"reason": "Pure 的 CodeEditor 快捷键在 Ctrl+Shift+F 时无条件调用 formatPythonCodeHandler，不存在仅 python 才格式化的 lang 门控，行为等价。",
-					"paths": [],
-					"implementation_status": "not-needed"
+					"decision": "adapt",
+					"reason": "修复保留的聊天代码块编辑：Ctrl+Shift+F 本应格式化 Python 代码。Pure 的 CodeEditor 写的是 e.key === 'f'，按住 Shift 时浏览器给出 'F'，快捷键根本不会触发；也缺少 lang 门控，任何代码块都会送去 Python 格式化。按上游形态改为 e.key.toLowerCase() === 'f'，并以 (lang === python || lang === py) 限定。",
+					"paths": ["src/lib/components/common/CodeEditor.svelte"],
+					"implementation_status": "applied"
 				}
 			}
 		},
@@ -13022,6 +13022,22 @@
 		}
 	],
 	"applied": [
+		{
+			"scope": "frontend-ui",
+			"item": {
+				"id": 21,
+				"sha": "8fb2bf35ad5a9d5f658de285d85d0859b1ee109c",
+				"paths": ["src/lib/components/common/CodeEditor.svelte"]
+			}
+		},
+		{
+			"scope": "frontend-ui",
+			"item": {
+				"id": 53,
+				"sha": "8fdde92b3c7276259dd9c91869bee1cc2f6a7453",
+				"paths": ["src/lib/components/common/CodeEditor.svelte"]
+			}
+		},
 		{
 			"scope": "frontend-chat",
 			"item": {
