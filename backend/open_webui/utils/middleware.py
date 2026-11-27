@@ -880,6 +880,7 @@ def get_reasoning_format(model: dict) -> str | None:
         'thinking': Ollama expects reasoning in the native thinking field.
         'think_tags': wrap reasoning in <think> tags inside content.
         'reasoning_content': llama.cpp supports reasoning_content as a top-level field.
+        'reasoning': vLLM and OpenRouter accept reasoning as a top-level field.
         None: skip reasoning (safe default for strict providers).
     """
     provider = model.get('provider', '')
@@ -887,12 +888,16 @@ def get_reasoning_format(model: dict) -> str | None:
         return 'thinking'
     if provider == 'llama.cpp':
         return 'reasoning_content'
+    if provider in ('vllm', 'openrouter'):
+        return 'reasoning'
     return None
 
 
 def strip_reasoning_details(output: list) -> list:
     return [
-        {key: value for key, value in item.items() if key != 'reasoning_details'} if isinstance(item, dict) else item
+        {key: value for key, value in item.items() if key not in ('reasoning_details', 'encrypted_content')}
+        if isinstance(item, dict)
+        else item
         for item in output
     ]
 
@@ -2618,6 +2623,8 @@ async def streaming_chat_response_handler(response, ctx):
                                 'done': True,
                                 'meta': {'response_ended_at': time.time()},
                                 'output': full_output(),
+                                # The reply stopped early, so its token count is only partial.
+                                **({'usage': {**usage, 'incomplete': True}} if usage else {}),
                             },
                         )
                     await clear_response_stream(request.app.state.redis, response_stream_task_id)

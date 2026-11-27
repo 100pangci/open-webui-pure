@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { withListFocus } from '$lib/utils/listFocus';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { adminUserCount, config, user } from '$lib/stores';
 	import { getContext, onDestroy } from 'svelte';
@@ -36,6 +37,9 @@
 
 	const i18n = getContext('i18n');
 
+	let searchInput: HTMLInputElement;
+	let listElement: HTMLElement;
+
 	let page = 1;
 
 	let users = null;
@@ -68,7 +72,7 @@
 		}
 
 		if (res) {
-			getUserList();
+			await getUserList();
 		}
 	};
 
@@ -140,9 +144,7 @@
 
 <ConfirmDialog
 	bind:show={showDeleteConfirmDialog}
-	on:confirm={() => {
-		deleteUserHandler(selectedUser.id);
-	}}
+	on:confirm={() => withListFocus(listElement, selectedUser.id, deleteUserHandler, searchInput)}
 />
 
 <AddUserModal
@@ -191,6 +193,7 @@
 					<Search className="size-3.5" />
 				</div>
 				<input
+					bind:this={searchInput}
 					class="w-full text-sm pr-4 py-1 rounded-r-xl outline-hidden bg-transparent"
 					bind:value={query}
 					on:input={handleSearchInput}
@@ -369,7 +372,7 @@
 					<th scope="col" class="px-2.5 py-1.5 font-normal text-right"></th>
 				</tr>
 			</thead>
-			<tbody class="">
+			<tbody bind:this={listElement} class="">
 				{#each users as user (user.id)}
 					<tr class="dark:border-gray-850 text-xs">
 						<td class="px-3 py-1 font-normal text-gray-900 dark:text-white max-w-48">
@@ -473,6 +476,7 @@
 									<Tooltip content={$i18n.t('Delete User')}>
 										<button
 											class="self-center w-fit p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"
+											data-focus-row={user.id}
 											aria-label={$i18n.t('Delete User')}
 											on:click={async () => {
 												showDeleteConfirmDialog = true;

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.5] - 2026-11-28
+
+### Changed
+
+- Sync retained fixes from Open WebUI v0.13.5. Pure keeps its existing feature boundary, dependency set and migration history; per-commit decisions and validation are recorded in [`docs/upstream-audit/2026-11-27-summary.md`](./docs/upstream-audit/2026-11-27-summary.md).
+- Update the opt-in Redis client to 8.2.0 and align the hiredis parser at 3.4.2 with the retained upstream pins (`requirements-redis.txt`, `pyproject.toml`, `uv.lock`). No new runtime dependency is added.
+
+### Fixed
+
+- Stop a folder's, or all of a user's, running replies and background tasks before deleting them, and delete a folder's internal child chats with it, so requests and capacity are not leaked; on PostgreSQL, lock the chat row before deleting so a concurrent write cannot make the delete fail silently.
+- Restrict chat writes to their owner: a folder move only accepts folders the caller owns, group share listings stay filtered by membership, and `ENABLE_ADMIN_CHAT_ACCESS` off now also blocks administrators from reading others' internal chats.
+- Sign in through OIDC providers that sign the ID token with the client secret (HS256), and stop firing a user-updated event on every page reload when nothing changed.
+- Record the response status at every audit level so rejected requests are distinguishable, and let audit path filters match routes mounted outside `/api`.
+- Keep the model's reported token usage when generation is stopped, so the next turn does not overestimate context and compact too early; clear the stale error and done state when Continue recovers a reply; give an empty chat the context-compaction threshold.
+- Cache the system prompt on Responses API connections with custom model ids by sending it as a developer message, replay reasoning for vLLM/OpenRouter via the top-level `reasoning` field, and replay encrypted reasoning items in Responses tool turns while stripping `encrypted_content` from de-identified history.
+- Read a message by its own row instead of rebuilding the whole message map, load folder file owners in one query instead of reading every file in full, skip a second full conversation read when context compaction is off, and read only chat metadata for Unarchive All.
+- Treat rows stored with an empty `done` (questions, imported replies) as complete, and reject an account birth date later than today.
+- Show the migration log at the configured level so a large upgrade no longer looks stuck; the migration head is unchanged.
+- Show hover controls on keyboard focus or an open menu rather than on mouse focus, keep list focus on the nearest row after a delete, and label the model editor's default switch so screen readers can tell it from the availability switch.
+- Load the code highlighter and dayjs locales on demand, animate the running-status shimmer on the GPU, stop the tool-call animation from relaying out the page every frame, and stop a finished reply from waiting on the sidebar refresh.
+- Open the Workspace model list and the Admin Settings Models and Interface tabs without waiting on unused or serial requests.
+- Estimate `/status` context correctly when a reply ends on a tool result; copy formulas from a reply as TeX; restore dismissed banners when Remember Dismissal is turned off; keep line breaks in provider error messages; fix RangeError after select-all plus Enter; fix touch buttons over a zoomable preview and pinch-zoom getting stuck; dismiss dropdowns when dragging outside; and collapse the formatting toolbar when focus leaves the editor.
+- Expand code blocks and close the multi-model tab view while exporting a PDF, keep submenus inside the viewport, and require a key only for bearer-authenticated connections.
+- Stop marking a reply as done while it still waits on a pending tool call, reload a Send-now reply that ended before the page loaded, un-grey Compact and Fork as soon as a reply ends, and discard a draft attachment that was still uploading when the page reloaded.
+- Refresh a model's avatar right after it is saved, and rewrite the routing error page with the status code and app chrome.
+
 ## [0.13.4] - 2026-11-20
 
 ### Changed

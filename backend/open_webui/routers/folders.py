@@ -31,7 +31,7 @@ from open_webui.utils.access_control import (
 )
 from open_webui.utils.access_control.files import can_read_all_folder_files, get_accessible_folder_files
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.tasks import has_active_tasks
+from open_webui.tasks import has_active_tasks, stop_item_tasks
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -440,6 +440,12 @@ async def update_folder_parent_id_by_id(
                 detail=ERROR_MESSAGES.DEFAULT('Folder already exists'),
             )
 
+        if form_data.parent_id and not await Folders.get_folder_by_id_and_user_id(form_data.parent_id, user.id, db=db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+            )
+
         if form_data.parent_id and form_data.parent_id in await Folders.get_folder_ids_by_id_and_user_id_in_subtree(
             id, user.id, db=db
         ):
@@ -735,6 +741,12 @@ async def delete_folder_by_id(
 
                 for folder_id in folder_ids:
                     if delete_contents:
+                        for chat_id in await Chats.get_chat_ids_by_user_id_and_folder_id(
+                            folder_owner_id, folder_id, db=db
+                        ):
+                            await stop_item_tasks(request.app.state.redis, chat_id)
+                            for child_id in await Chats.get_internal_chat_ids_by_parent_id(chat_id, folder_owner_id):
+                                await stop_item_tasks(request.app.state.redis, child_id)
                         await Chats.delete_chats_by_user_id_and_folder_id(folder_owner_id, folder_id, db=db)
                     else:
                         await Chats.move_chats_by_user_id_and_folder_id(folder_owner_id, folder_id, None, db=db)

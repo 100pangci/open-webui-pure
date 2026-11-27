@@ -3,6 +3,14 @@ import resourcesToBackend from 'i18next-resources-to-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import type { i18n as i18nType } from 'i18next';
 import { writable } from 'svelte/store';
+import dayjs, { loadDayjsLocale } from '$lib/dayjs';
+
+let dayjsLocale: Promise<void> = Promise.resolve();
+// Resolve language switches only once dates can be localized too.
+const withDayjsLocale = async <T>(value: T) => {
+	await dayjsLocale;
+	return value;
+};
 
 const createI18nStore = (i18n: i18nType) => {
 	const i18nWritable = writable(i18n);
@@ -15,6 +23,12 @@ const createI18nStore = (i18n: i18nType) => {
 	});
 	i18n.on('added', () => i18nWritable.set(i18n));
 	i18n.on('languageChanged', (lang) => {
+		// The locale file loads on demand; update the store again once dates can be localized.
+		dayjsLocale = loadDayjsLocale(lang).then((locale) => {
+			if (i18n.language !== lang) return;
+			dayjs.locale(locale);
+			i18nWritable.set(i18n);
+		});
 		i18nWritable.set(i18n);
 		if (typeof document !== 'undefined') {
 			document.documentElement.setAttribute('lang', lang);
@@ -71,7 +85,8 @@ export const initI18n = (defaultLocale?: string | undefined) => {
 			interpolation: {
 				escapeValue: false // not needed for svelte as it escapes by default
 			}
-		});
+		})
+		.then(withDayjsLocale);
 };
 
 const i18n = createI18nStore(i18next);
@@ -81,9 +96,16 @@ export const getLanguages = async () => {
 	const languages = (await import(`./locales/languages.json`)).default;
 	return languages;
 };
+// Serialize switches so a slower download cannot overwrite a newer selection.
+let languageChange = Promise.resolve();
 export const changeLanguage = (lang: string) => {
 	document.documentElement.setAttribute('lang', lang);
-	i18next.changeLanguage(lang);
+	const change = languageChange.then(() => i18next.changeLanguage(lang)).then(withDayjsLocale);
+	languageChange = change.then(
+		() => {},
+		() => {}
+	);
+	return change;
 };
 
 export default i18n;

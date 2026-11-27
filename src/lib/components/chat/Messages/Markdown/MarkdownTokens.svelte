@@ -2,6 +2,7 @@
 	import { decode } from 'html-entities';
 	import { onMount, getContext } from 'svelte';
 	const i18n = getContext('i18n');
+	const exporting = getContext('exporting');
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -161,7 +162,7 @@
 		{#if token.codeBlockStyle !== 'indented'}
 			<CodeBlock
 				id={`${id}-${tokenIdx}`}
-				collapsed={$settings?.collapseCodeBlocks ?? false}
+				collapsed={exporting ? false : ($settings?.collapseCodeBlocks ?? false)}
 				{token}
 				lang={token?.lang ?? ''}
 				code={token?.text ?? ''}

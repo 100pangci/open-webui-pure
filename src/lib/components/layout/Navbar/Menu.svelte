@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, tick } from 'svelte';
+	import { getContext, setContext, tick } from 'svelte';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
@@ -39,6 +39,7 @@
 	import Download from '$lib/components/icons/Download.svelte';
 
 	const i18n = getContext('i18n');
+	setContext('exporting', true);
 
 	export let shareEnabled: boolean = false;
 	export let readOnly: boolean = false;

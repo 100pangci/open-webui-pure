@@ -240,6 +240,9 @@ class SPAStaticFiles(StaticFiles):
         if full_path.endswith('.html'):
             # Stale cached HTML references chunks from an older build
             response.headers['Cache-Control'] = 'no-cache'
+        elif '/_app/immutable/' in str(full_path).replace(os.sep, '/'):
+            # Content-hashed build output never changes under the same name
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         return response
 
 
@@ -1010,6 +1013,17 @@ async def chat_completion(
                         except Exception as e:
                             log.debug('Error inserting chat files: %s', e)
                             pass
+
+                    # Continuing a reply restarts it: clear the previous error and
+                    # completion state so a reload while it runs still shows progress.
+                    continued_message_id = metadata.get('assistant_message_id')
+                    if continued_message_id and is_saved_chat_id(chat_id):
+                        await Chats.upsert_message_to_chat_by_id_and_message_id(
+                            chat_id,
+                            continued_message_id,
+                            {'done': False, 'error': None},
+                            touch=False,
+                        )
 
                     # Save ALL assistant placeholders
                     user_message_id = metadata.get('user_message_id')

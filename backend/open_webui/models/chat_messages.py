@@ -9,7 +9,7 @@ from sqlalchemy import select, delete, func, cast, Integer, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.utils.response import merge_usage, normalize_usage
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -200,6 +200,13 @@ class ChatMessageModel(BaseModel):
     created_at: int
     updated_at: int
 
+    @field_validator('done', mode='before')
+    @classmethod
+    def normalize_done(cls, value: Optional[bool]) -> bool:
+        # A null `done` means the message was stored without a completion flag
+        # (questions, imported replies), not that it is still running.
+        return value is not False
+
 
 ####################
 # Table Operations
@@ -358,6 +365,18 @@ class ChatMessageTable:
     # DB-internal columns excluded from the reconstructed message dict.
     EXCLUDED_COLUMNS = frozenset({'id', 'chat_id', 'user_id', 'updated_at'})
 
+    @classmethod
+    def _message_to_dict(cls, message: ChatMessage) -> dict:
+        """Convert a row to the chat.history.messages shape, keeping only the fields it has set."""
+        return {
+            'id': message.id.removeprefix(f'{message.chat_id}-'),
+            **{
+                cls.DB_TO_JSON_KEY_MAP.get(column.key, column.key): getattr(message, column.key)
+                for column in ChatMessage.__table__.columns
+                if column.key not in cls.EXCLUDED_COLUMNS and getattr(message, column.key) is not None
+            },
+        }
+
     async def get_messages_map_by_chat_id(self, chat_id: str, db: Optional[AsyncSession] = None) -> Optional[dict]:
         """Build a {message_id: message_dict} map from chat_message rows.
 
@@ -373,25 +392,9 @@ class ChatMessageTable:
         if not rows:
             return None
 
-        # Strip the composite-id prefix ("{chat_id}-") to recover the
-        # original message_id used as map key.
-        prefix = f'{chat_id}-'
-        prefix_len = len(prefix)
-        col_keys = [c.key for c in ChatMessage.__table__.columns]
-
         messages_map: dict[str, dict] = {}
         for row in rows:
-            msg_id = row.id[prefix_len:] if row.id.startswith(prefix) else row.id
-
-            msg: dict = {'id': msg_id}
-            for key in col_keys:
-                if key in self.EXCLUDED_COLUMNS:
-                    continue
-                val = getattr(row, key)
-                if val is None:
-                    continue
-                json_key = self.DB_TO_JSON_KEY_MAP.get(key, key)
-                msg[json_key] = val
+            msg = self._message_to_dict(row)
 
             # Ensure content always has a value
             msg.setdefault('content', '')
@@ -400,7 +403,7 @@ class ChatMessageTable:
             if 'usage' in msg:
                 msg['info'] = {'usage': msg['usage']}
 
-            messages_map[msg_id] = msg
+            messages_map[msg['id']] = msg
 
         # Reconstruct childrenIds from parentId links so that the map
         # is fully navigable (callers like the frontend rely on this).

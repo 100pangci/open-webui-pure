@@ -61,7 +61,7 @@
 		if (parentContainer && innerContent) {
 			const parentWidth = parentContainer.offsetWidth;
 			if (parentWidth > 0) {
-				innerContent.style.minWidth = `${parentWidth}px`;
+				innerContent.style.minWidth = `min(${parentWidth}px, ${maxWidth / 16}rem)`;
 			}
 		}
 

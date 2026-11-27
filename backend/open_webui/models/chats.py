@@ -178,10 +178,6 @@ class Chat(Base):  # database table mapping for chat entity
     )
 
 
-def is_internal_chat(meta: dict | None) -> bool:
-    return bool(meta and meta.get('internal') is True)
-
-
 class ChatModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)  # allows ORM model binding
     id: str
@@ -622,6 +618,18 @@ class ChatTable:
                 log.warning(f'Failed to write initial messages to chat_message table: {e}')
 
             return ChatModel.model_validate(chat_item) if chat_item else None
+
+    async def get_chat_ids_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> list[str]:
+        async with get_async_db_context(db) as session:
+            result = await session.execute(select(Chat.id).filter_by(user_id=user_id))
+            return list(result.scalars().all())
+
+    async def get_chat_ids_by_user_id_and_folder_id(
+        self, user_id: str, folder_id: str, db: AsyncSession | None = None
+    ) -> list[str]:
+        async with get_async_db_context(db) as session:
+            result = await session.execute(select(Chat.id).filter_by(user_id=user_id, folder_id=folder_id))
+            return list(result.scalars().all())
 
     async def get_internal_chat_ids_by_parent_id(self, parent_chat_id: str, user_id: str) -> list[str]:
         async with get_async_db_context() as session:
@@ -1178,12 +1186,21 @@ class ChatTable:
         return history_messages
 
     async def get_message_by_id_and_message_id(self, id: str, message_id: str) -> dict | None:
-        messages_map = await ChatMessages.get_messages_map_by_chat_id(id)
-        if messages_map and message_id in messages_map:
-            return messages_map[message_id]
-
-        # Messages the frontend saved straight into the chat blob have no chat_message row yet.
         async with get_async_db_context() as session:
+            # Read the one row instead of rebuilding every message of the chat.
+            stored = await session.get(ChatMessage, f'{id}-{message_id}')
+            if stored is not None:
+                message = ChatMessages._message_to_dict(stored)
+                message.setdefault('content', '')
+                if 'usage' in message:
+                    message['info'] = {'usage': message['usage']}
+
+                # Callers merge childrenIds, so keep the map's shape.
+                children = await session.execute(select(ChatMessage.id).filter_by(chat_id=id, parent_id=message_id))
+                message['childrenIds'] = [child_id.removeprefix(f'{id}-') for child_id in children.scalars().all()]
+                return message
+
+            # Messages the frontend saved straight into the chat blob have no chat_message row yet.
             result = await session.execute(select(Chat.chat[('history', 'messages')]).filter_by(id=id))
             row = result.one_or_none()
 
@@ -1844,11 +1861,7 @@ class ChatTable:
         if not access:
             return None
 
-        allowed = (
-            access.user_id == user.id
-            or user.role == 'admin'
-            and (ENABLE_ADMIN_CHAT_ACCESS or is_internal_chat(access.meta))
-        )
+        allowed = access.user_id == user.id or user.role == 'admin' and ENABLE_ADMIN_CHAT_ACCESS
 
         if not allowed:
             allowed = await AccessGrants.has_access(
@@ -1891,7 +1904,7 @@ class ChatTable:
 
         if chat.user_id == user.id:
             return True
-        if user.role == 'admin' and permission == 'read' and (ENABLE_ADMIN_CHAT_ACCESS or is_internal_chat(chat.meta)):
+        if user.role == 'admin' and permission == 'read' and ENABLE_ADMIN_CHAT_ACCESS:
             return True
         if await AccessGrants.has_access(
             user_id=user.id,
@@ -2082,6 +2095,16 @@ class ChatTable:
             stmt = stmt.where(Chat.meta['internal'].as_boolean().is_not(True))
             result = await session.execute(stmt.order_by(Chat.updated_at.desc()))
             return [ChatModel.model_validate(chat) for chat in result.scalars().all()]
+
+    async def get_archived_chat_metas_by_user_id(
+        self, user_id: str, db: AsyncSession | None = None
+    ) -> list[dict | None]:
+        """Only the archived chats' meta, for actions that never touch their content."""
+        async with get_async_db_context(db) as session:
+            stmt = select(Chat.meta).filter_by(user_id=user_id, archived=True)
+            stmt = stmt.where(Chat.meta['internal'].as_boolean().is_not(True))
+            result = await session.execute(stmt)
+            return list(result.scalars().all())
 
     # search user conversations
     async def get_chats_by_user_id_and_search_text(  # noqa: C901
@@ -2598,9 +2621,16 @@ class ChatTable:
         except Exception:
             return False
 
+    @staticmethod
+    async def _lock_chat_rows(session: AsyncSession, chat_ids) -> None:
+        """Lock chat rows first, like every other chat write, so a task that is still
+        reporting into a chat runs before the delete instead of deadlocking with it."""
+        await session.execute(select(Chat.id).where(Chat.id.in_(chat_ids)).with_for_update())
+
     async def delete_chat_by_id(self, id: str, db: AsyncSession | None = None) -> bool:
         try:
             async with get_async_db_context(db) as session:
+                await self._lock_chat_rows(session, select(Chat.id).filter_by(id=id))
                 await session.execute(delete(ChatMessage).filter_by(chat_id=id))
                 await session.execute(delete(Chat).filter_by(id=id))
                 await session.commit()
@@ -2612,6 +2642,7 @@ class ChatTable:
     async def delete_chat_by_id_and_user_id(self, id: str, user_id: str, db: AsyncSession | None = None) -> bool:
         try:
             async with get_async_db_context(db) as session:
+                await self._lock_chat_rows(session, select(Chat.id).filter_by(id=id, user_id=user_id))
                 await session.execute(delete(ChatMessage).filter_by(chat_id=id))
                 await session.execute(delete(Chat).filter_by(id=id, user_id=user_id))
                 await session.commit()
@@ -2623,9 +2654,9 @@ class ChatTable:
     async def delete_chats_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
         try:
             async with get_async_db_context(db) as session:
+                await self._lock_chat_rows(session, select(Chat.id).filter_by(user_id=user_id))
                 await self.delete_shared_chats_by_user_id(user_id, db=session)
 
-                chat_id_subquery = select(Chat.id).filter_by(user_id=user_id).scalar_subquery()
                 await session.execute(
                     delete(ChatMessage).filter(ChatMessage.chat_id.in_(select(Chat.id).filter_by(user_id=user_id)))
                 )
@@ -2643,10 +2674,22 @@ class ChatTable:
 
         try:
             async with get_async_db_context(db) as session:
-                chat_ids_stmt = select(Chat.id).filter_by(user_id=user_id, folder_id=folder_id)
+                folder_chat_ids_stmt = select(Chat.id).filter_by(user_id=user_id, folder_id=folder_id)
+                # Internal child chats sit outside the folder but go with their parent.
+                chat_ids_stmt = select(Chat.id).where(
+                    Chat.user_id == user_id,
+                    or_(
+                        Chat.folder_id == folder_id,
+                        and_(
+                            Chat.meta['internal'].as_boolean().is_(True),
+                            Chat.meta['parent_chat_id'].as_string().in_(folder_chat_ids_stmt),
+                        ),
+                    ),
+                )
+                await self._lock_chat_rows(session, chat_ids_stmt)
                 await session.execute(delete(ChatMessage).filter(ChatMessage.chat_id.in_(chat_ids_stmt)))
                 await session.execute(delete(SharedChatTable).filter(SharedChatTable.chat_id.in_(chat_ids_stmt)))
-                await session.execute(delete(Chat).filter_by(user_id=user_id, folder_id=folder_id))
+                await session.execute(delete(Chat).where(Chat.id.in_(chat_ids_stmt)))
                 await session.commit()
 
                 return True

@@ -168,6 +168,8 @@ async def create_session_response(
         response: FastAPI response object (required if set_cookie is True)
         set_cookie: Whether to set the auth cookie on the response
     """
+    # Scope-backed, so outer middleware (audit) can reuse the resolved user
+    request.state.user = user
     expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
     expires_at = None
     if expires_delta:
@@ -346,6 +348,8 @@ async def update_timezone(
     db: AsyncSession = Depends(get_async_session),
 ):
     if session_user:
+        if form_data.timezone == session_user.timezone:
+            return {'status': True}
         await Users.update_user_by_id(
             session_user.id,
             {'timezone': form_data.timezone},

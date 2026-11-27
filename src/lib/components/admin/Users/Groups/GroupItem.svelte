@@ -20,6 +20,8 @@
 	export let defaultPermissions = {};
 
 	export let setGroups = () => {};
+	/** @type {() => Promise<void>} */
+	export let onDeleted;
 	/** @type {(group: any) => void} */
 	export let updateGroup = () => {};
 
@@ -46,7 +48,7 @@
 
 		if (res) {
 			toast.success($i18n.t('Group deleted successfully'));
-			setGroups();
+			await onDeleted();
 		}
 	};
 
@@ -70,6 +72,7 @@
 />
 
 <button
+	data-focus-row={group.id}
 	class="group flex cursor-pointer text-left w-full px-2.5 py-2"
 	on:click={() => {
 		showEdit = true;

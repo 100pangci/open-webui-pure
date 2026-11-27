@@ -1,5 +1,4 @@
 <script lang="ts">
-	import hljs from 'highlight.js';
 	import { getContext, onMount } from 'svelte';
 
 	import {
@@ -246,10 +245,13 @@
 							class=" hljs p-4 px-5 overflow-x-auto"
 							style="border-top-left-radius: 0px; border-top-right-radius: 0px;"><code
 								class="language-{lang} rounded-t-none whitespace-pre text-sm"
-								>{#if lang && hljs.getLanguage(lang)}{@html hljs.highlight(code, {
-										language: lang,
-										ignoreIllegals: true
-									}).value}{:else}{code}{/if}</code
+								>{#await import('highlight.js')}{code}{:then { default: hljs }}{#if lang && hljs.getLanguage(lang)}{@html hljs.highlight(
+											code,
+											{
+												language: lang,
+												ignoreIllegals: true
+											}
+										).value}{:else}{code}{/if}{:catch}{code}{/await}</code
 							></pre>
 					{/if}
 				{:else}

@@ -6,6 +6,7 @@
 	import dayjs from 'dayjs';
 	import calendar from 'dayjs/plugin/calendar';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
+	import { withListFocus } from '$lib/utils/listFocus';
 	import { getContext, onMount, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
@@ -58,6 +59,8 @@
 	let selectedChatId: string | null = null;
 	let showDeleteConfirmDialog = false;
 	let showUnarchiveAllConfirmDialog = false;
+	let searchInput: HTMLInputElement;
+	let chatListElement: HTMLDivElement;
 
 	const getFilter = () => ({
 		...(query ? { query } : {}),
@@ -185,7 +188,7 @@
 <ConfirmDialog
 	bind:show={showDeleteConfirmDialog}
 	on:confirm={() => {
-		deleteHandler();
+		if (selectedChatId) withListFocus(chatListElement, selectedChatId, deleteHandler, searchInput);
 	}}
 />
 
@@ -198,7 +201,7 @@
 	}}
 />
 
-<div id="tab-archived-chats" class="flex flex-col h-full text-sm">
+<div bind:this={chatListElement} id="tab-archived-chats" class="flex flex-col h-full text-sm">
 	<div class="mb-3 flex items-center justify-between">
 		<h2 class="text-sm font-medium text-gray-900 dark:text-white">
 			{$i18n.t('Archived Chats')}
@@ -214,6 +217,7 @@
 		<div class="flex min-w-0 flex-1 items-center gap-2">
 			<Search className="size-3.5 shrink-0 text-gray-400 dark:text-gray-600" />
 			<input
+				bind:this={searchInput}
 				data-settings-search
 				class="min-w-0 flex-1 bg-transparent py-0.5 text-xs text-gray-700 outline-hidden placeholder:text-gray-300 dark:text-gray-300 dark:placeholder:text-gray-700"
 				bind:value={query}
@@ -360,9 +364,10 @@
 								<button
 									class="rounded-lg p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 									type="button"
+									data-focus-row={chat.id}
 									aria-label={$i18n.t('Unarchive Chat')}
 									on:click={() => {
-										unarchiveHandler(chat.id);
+										withListFocus(chatListElement, chat.id, unarchiveHandler, searchInput);
 									}}
 								>
 									<UndoAction className="size-3.5" strokeWidth="1.5" />
@@ -373,6 +378,7 @@
 									<button
 										class="rounded-lg p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-600 dark:hover:text-gray-300"
 										type="button"
+										data-focus-row={undefined}
 										aria-label={$i18n.t('Delete Chat')}
 										on:click={() => {
 											selectedChatId = chat.id;

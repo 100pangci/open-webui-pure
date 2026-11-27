@@ -13,6 +13,7 @@
 	import { v4 as uuidv4 } from 'uuid';
 
 	import { onMount, tick, getContext, createEventDispatcher } from 'svelte';
+	import { writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
 
 	const dispatch = createEventDispatcher();
@@ -111,6 +112,8 @@
 		(taskIds && taskIds.length > 0) ||
 		(history?.currentId && history.messages[history.currentId]?.done != true) ||
 		generating;
+	const isActiveStore = writable(false);
+	$: isActiveStore.set(isActive);
 	$: canCompact = !!history?.currentId;
 	$: canToggleTemporary =
 		!embedded &&
@@ -146,7 +149,7 @@
 	$: chatInputDraft = {
 		prompt,
 		files: files
-			.filter((file) => file.type !== 'image')
+			.filter((file) => file.type !== 'image' && file.status !== 'uploading')
 			.map((file) => {
 				return {
 					...file,
@@ -414,17 +417,18 @@
 		}, 1600);
 	};
 
-	$: statusContextUsage = contextUsage ?? getLocalContextUsage(history, $settings?.system ?? '');
-	$: contextHasThreshold = Number(statusContextUsage?.threshold) > 0;
+	const statusContextUsage = writable<any>(null);
+	$: statusContextUsage.set(contextUsage ?? getLocalContextUsage(history, $settings?.system ?? ''));
+	$: contextHasThreshold = Number($statusContextUsage?.threshold) > 0;
 	$: contextPercent = contextHasThreshold
-		? Math.max(0, Math.round(statusContextUsage?.percent ?? 0))
+		? Math.max(0, Math.round($statusContextUsage?.percent ?? 0))
 		: null;
 	$: contextTokens = formatTokenCount(
-		statusContextUsage?.estimated_tokens || statusContextUsage?.tokens || 0
+		$statusContextUsage?.estimated_tokens || $statusContextUsage?.tokens || 0
 	);
-	$: contextValue = statusContextUsage
+	$: contextValue = $statusContextUsage
 		? contextHasThreshold
-			? `${contextPercent}% ${contextTokens}/${formatTokenCount(statusContextUsage.threshold)}`
+			? `${contextPercent}% ${contextTokens}/${formatTokenCount($statusContextUsage.threshold)}`
 			: `${contextTokens} ${$i18n.t('tokens')}`
 		: $i18n.t('unknown');
 	$: contextBarPercent = contextHasThreshold ? Math.min(contextPercent, 100) : 0;
@@ -1074,16 +1078,16 @@
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
 					canCompact: () => !!history?.currentId && contextCompactionEnabled,
-					compactDisabled: () => isActive,
+					compactDisabled: isActiveStore,
 					canStatus: () => !!history?.currentId,
 					canFork: () =>
 						!!history?.currentId &&
 						!$temporaryChatEnabled &&
 						($_user?.role === 'admin' || ($_user?.permissions?.chat?.import ?? true)),
-					forkDisabled: () => isActive,
+					forkDisabled: isActiveStore,
 					canTemporary: () => canToggleTemporary,
 					temporaryEnabled: () => $temporaryChatEnabled === true,
-					contextUsage: () => statusContextUsage,
+					contextUsage: statusContextUsage,
 					onCompact: compactHandler,
 					onStatus: statusHandler,
 					onFork: forkHandler,
@@ -1387,7 +1391,7 @@
 											<img
 												alt="model profile"
 												class="size-3.5 max-w-[1.75rem] object-cover rounded-full"
-												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${$models.find((model) => model.id === atSelectedModel.id).id}&lang=${$i18n.language}`}
+												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${$models.find((model) => model.id === atSelectedModel.id).id}&lang=${$i18n.language}&v=${$models.find((model) => model.id === atSelectedModel.id)?.info?.updated_at}`}
 											/>
 											<div class="translate-y-[0.5px]">
 												<span class="">{atSelectedModel.name}</span>

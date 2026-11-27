@@ -309,9 +309,13 @@
 	import { onMount, onDestroy } from 'svelte';
 
 	let onPointerDown: ((e: PointerEvent) => void) | undefined;
+	let onDragStart: ((e: DragEvent) => void) | undefined;
 	onMount(() => {
 		onPointerDown = (e) => handleWindowPointerDown(e);
+		// A drag that starts outside the page never sends a pointerdown here.
+		onDragStart = (e) => handleWindowPointerDown(e as PointerEvent);
 		document.addEventListener('pointerdown', onPointerDown, true);
+		document.addEventListener('dragstart', onDragStart, true);
 		if (visualViewportAware) {
 			window.visualViewport?.addEventListener('resize', scheduleSettledPositionUpdates);
 			window.visualViewport?.addEventListener('scroll', schedulePositionUpdate);
@@ -322,6 +326,9 @@
 		for (const timer of settleTimers) window.clearTimeout(timer);
 		if (onPointerDown) {
 			document.removeEventListener('pointerdown', onPointerDown, true);
+		}
+		if (onDragStart) {
+			document.removeEventListener('dragstart', onDragStart, true);
 		}
 		if (visualViewportAware) {
 			window.visualViewport?.removeEventListener('resize', scheduleSettledPositionUpdates);

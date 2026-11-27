@@ -21,6 +21,7 @@
 		getPromptTags
 	} from '$lib/apis/prompts';
 	import { capitalizeFirstLetter, slugify, copyToClipboard } from '$lib/utils';
+	import { withListFocus } from '$lib/utils/listFocus';
 
 	import PromptMenu from './Prompts/PromptMenu.svelte';
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
@@ -73,6 +74,7 @@
 	let total = null;
 
 	let showDeleteConfirm = false;
+	let listElement: HTMLElement;
 	let showCreateModal = false;
 	let createPrompt: PromptDraft | null = null;
 	let deletePrompt = null;
@@ -300,7 +302,7 @@
 		}
 
 		page = 1;
-		getPromptList();
+		await getPromptList();
 	};
 
 	onMount(async () => {
@@ -393,9 +395,7 @@
 	<DeleteConfirmDialog
 		bind:show={showDeleteConfirm}
 		title={$i18n.t('Delete prompt?')}
-		on:confirm={() => {
-			deleteHandler(deletePrompt);
-		}}
+		on:confirm={() => withListFocus(listElement, deletePrompt, deleteHandler)}
 	>
 		<div class=" text-sm text-gray-500 truncate">
 			{$i18n.t('This will delete')} <span class="  font-normal">{deletePrompt.command}</span>.
@@ -460,7 +460,7 @@
 		}}
 	/>
 
-	<div class="space-y-1">
+	<div bind:this={listElement} class="space-y-1">
 		<div class="flex h-8 w-full items-center gap-2">
 			<div class="flex min-w-0 flex-1">
 				<div class=" self-center ml-1 mr-3">
@@ -468,6 +468,7 @@
 				</div>
 				<input
 					class=" w-full text-sm pr-4 py-1 rounded-r-xl outline-hidden bg-transparent"
+					data-focus-fallback
 					bind:value={query}
 					on:input={handleSearchInput}
 					aria-label={$i18n.t('Search Prompts')}
@@ -716,6 +717,7 @@
 											<button
 												class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500"
 												type="button"
+												data-focus-row={prompt.id}
 												aria-label={$i18n.t('Prompt Menu')}
 												on:click={(e) => {
 													e.preventDefault();

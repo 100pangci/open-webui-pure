@@ -50,7 +50,7 @@ classifiers = [
 [project.optional-dependencies]
 # Opt-in feature dependencies. The default install is SQLite-only.
 postgres = ["psycopg[binary]==3.3.4"]
-redis = ["redis==8.0.1", "hiredis==3.4.0"]
+redis = ["redis==8.2.0", "hiredis==3.4.2"]
 azure = ["azure-identity==1.25.3"]
 ldap = ["ldap3==2.9.1"]
 cli = ["typer==0.25.1"]
@@ -59,8 +59,8 @@ code-format = ["black==26.5.1"]
 pillow = ["pillow==12.2.0"]
 all = [
     "psycopg[binary]==3.3.4",
-    "redis==8.0.1",
-    "hiredis==3.4.0",
+    "redis==8.2.0",
+    "hiredis==3.4.2",
     "azure-identity==1.25.3",
     "ldap3==2.9.1",
     "typer==0.25.1",

@@ -197,22 +197,24 @@
 
 	import { PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
 	import { createLowlight } from 'lowlight';
-	import hljs from 'highlight.js';
+	import plaintext from 'highlight.js/lib/languages/plaintext';
+	import type { HLJSApi } from 'highlight.js';
 
 	export let oncompositionstart = (e) => {};
 	export let oncompositionend = (e) => {};
 	export let onChange = (e) => {};
 
-	// create a lowlight instance with all languages loaded
-	const lowlight = createLowlight(
-		hljs.listLanguages().reduce(
-			(obj, lang) => {
-				obj[lang] = () => hljs.getLanguage(lang);
-				return obj;
-			},
-			{} as Record<string, any>
-		)
-	);
+	const lowlight = createLowlight({ plaintext });
+	const registerLanguages = (hljs: HLJSApi) =>
+		lowlight.register(
+			hljs.listLanguages().reduce(
+				(obj, lang) => {
+					obj[lang] = () => hljs.getLanguage(lang);
+					return obj;
+				},
+				{} as Record<string, any>
+			)
+		);
 
 	export let editor: Editor | null = null;
 
@@ -323,6 +325,7 @@
 
 	let floatingMenuElement: Element | null = null;
 	let bubbleMenuElement: Element | null = null;
+	let formattingMenuContainer: HTMLElement | undefined;
 	let formattingDismissed = false;
 	let element: Element | null = null;
 
@@ -758,6 +761,18 @@
 			}
 		}
 
+		if (richText && !messageInput) {
+			const { default: hljs } = await import('highlight.js');
+			registerLanguages(hljs);
+		}
+
+		if (richText && showFormattingToolbar) {
+			// The menus outlive the editor's focus, so moving focus anywhere else dismisses them.
+			formattingMenuContainer = document.body.appendChild(document.createElement('div'));
+			bubbleMenuElement?.remove();
+			floatingMenuElement?.remove();
+		}
+
 		editor = new Editor({
 			element: element,
 			extensions: [
@@ -791,7 +806,16 @@
 				...(richText
 					? [
 							CodeBlockLowlight.configure({
-								lowlight
+								lowlight: {
+									...lowlight,
+									// tiptap checks highlight.js's global registry, which may list languages this lowlight lacks.
+									highlight: (language: string, code: string) =>
+										lowlight.highlight(
+											lowlight.registered(language) ? language : 'plaintext',
+											code
+										),
+									highlightAuto: (code: string) => lowlight.highlight('plaintext', code)
+								}
 							}),
 							Typography,
 							TableKit.configure({
@@ -851,7 +875,7 @@
 					? [
 							BubbleMenu.configure({
 								element: bubbleMenuElement,
-								appendTo: () => document.body,
+								appendTo: formattingMenuContainer,
 								options: {
 									strategy: 'fixed',
 									placement: 'top',
@@ -868,7 +892,7 @@
 							}),
 							FloatingMenu.configure({
 								element: floatingMenuElement,
-								appendTo: () => document.body,
+								appendTo: formattingMenuContainer,
 								options: {
 									strategy: 'fixed',
 									placement: floatingMenuPlacement,
@@ -1110,8 +1134,8 @@
 
 								const { state } = view;
 								const { $from } = state.selection;
-								const lineStart = $from.before($from.depth);
-								const lineEnd = $from.after($from.depth);
+								const lineStart = $from.start();
+								const lineEnd = $from.end();
 								const lineText = state.doc.textBetween(lineStart, lineEnd, '\n', '\0').trim();
 								if (event.shiftKey && !isCtrlPressed) {
 									if (lineText.startsWith('```')) {
@@ -1258,24 +1282,24 @@
 				formattingDismissed = false;
 				onSelectionUpdate(event);
 			},
-			onBlur: () => {
-				// Force-hide floating menus when editor loses focus.
-				// shouldShow alone isn't enough because it only runs on transactions.
-				if (bubbleMenuElement) {
-					bubbleMenuElement.style.visibility = 'hidden';
-					bubbleMenuElement.style.opacity = '0';
-				}
-				if (floatingMenuElement) {
-					floatingMenuElement.style.visibility = 'hidden';
-					floatingMenuElement.style.opacity = '0';
-				}
-			},
 			enableInputRules: richText,
 			enablePasteRules: richText
 		});
 
 		if (messageInput) {
 			selectTemplate();
+		}
+
+		if (richText && messageInput) {
+			const { default: hljs } = await import('highlight.js');
+			if (!editor || editor.isDestroyed) return;
+			registerLanguages(hljs);
+			// Re-run the code block decoration now that the languages are registered.
+			const { tr } = editor.state;
+			editor.state.doc.descendants((node, pos) => {
+				if (node.type.name === 'codeBlock') tr.setNodeMarkup(pos, undefined, node.attrs);
+			});
+			if (tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false));
 		}
 	});
 
@@ -1287,6 +1311,7 @@
 		if (editor) {
 			editor.destroy();
 		}
+		formattingMenuContainer?.remove();
 	});
 
 	$: if (value !== null && editor) {

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import copy
 import fnmatch
 import logging
 import re
@@ -14,11 +15,12 @@ from types import SimpleNamespace
 
 import aiohttp
 import jwt
-from authlib.integrations.starlette_client import OAuth
+from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
 from authlib.oauth2.rfc6749.errors import OAuth2Error
 from authlib.oidc.core import UserInfo
 from fastapi import HTTPException, status
 from joserfc.errors import BadSignatureError
+from joserfc.jwk import OctKey
 from open_webui.config import (
     DEFAULT_USER_ROLE,
     ENABLE_OAUTH,
@@ -358,9 +360,23 @@ OAUTH_REFRESH_LOCK_TIMEOUT = 60
 OAUTH_REFRESH_LOCKS: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
 
 
+class OAuthLoginClient(StarletteOAuth2App):
+    """Authlib client that also verifies ID tokens signed with the client secret."""
+
+    async def parse_id_token(self, token: dict, nonce: str | None, **kwargs):
+        header = jwt.get_unverified_header(token['id_token'])
+        if not header['alg'].startswith('HS'):
+            return await super().parse_id_token(token, nonce, **kwargs)
+        secret_key = OctKey.import_key(self.client_secret, {'kid': header['kid']} if 'kid' in header else None)
+        secret_client = copy.copy(self)
+        secret_client.server_metadata = {**self.server_metadata, 'jwks': {'keys': [secret_key.as_dict()]}}
+        return await StarletteOAuth2App.parse_id_token(secret_client, token, nonce, **kwargs)
+
+
 class OAuthManager:
     def __init__(self, app):
         self.oauth = OAuth()
+        self.oauth.oauth2_client_cls = OAuthLoginClient
         self.app = app
 
         self._clients = {}

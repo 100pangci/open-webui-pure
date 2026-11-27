@@ -110,14 +110,13 @@
 
 	const init = async () => {
 		try {
-			[taskConfig, chatConfig] = await Promise.all([
+			[taskConfig, chatConfig, workspaceModels, baseModels] = await Promise.all([
 				getTaskConfig(localStorage.token),
-				getChatConfig(localStorage.token)
+				getChatConfig(localStorage.token),
+				getBaseModels(localStorage.token),
+				getModels(localStorage.token, null, false)
 			]);
 			taskConfig.TASK_MODEL_PARAMS = taskConfig.TASK_MODEL_PARAMS ?? {};
-
-			workspaceModels = await getBaseModels(localStorage.token);
-			baseModels = await getModels(localStorage.token, null, false);
 
 			models = baseModels.map((m: any) => {
 				const workspaceModel = workspaceModels.find((wm: any) => wm.id === m.id);

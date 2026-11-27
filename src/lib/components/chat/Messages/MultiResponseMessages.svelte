@@ -20,6 +20,7 @@
 	import equal from 'fast-deep-equal';
 	import { formatMessageTimestamp, formatMessageTimestampFull } from '$lib/utils';
 	const i18n = getContext('i18n');
+	const exporting = getContext('exporting');
 
 	export let chatId;
 	export let history;
@@ -261,7 +262,7 @@
 			class="flex snap-x snap-mandatory overflow-x-auto scrollbar-hidden"
 			id="responses-container-{chatId}-{parentMessage.id}"
 		>
-			{#if $settings?.displayMultiModelResponsesInTabs ?? false}
+			{#if !exporting && ($settings?.displayMultiModelResponsesInTabs ?? false)}
 				<div class="w-full">
 					<div
 						class=" flex w-full mb-4.5 border-b border-gray-200 dark:border-gray-850 {compactPreview

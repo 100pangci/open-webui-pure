@@ -164,3 +164,37 @@ async def test_manual_compaction_skips_empty_assistant_placeholder(monkeypatch):
     assert saved['chat_id'] == 'chat'
     assert saved['message_id'] == 'user-2'
     assert saved['data'] == {'contextSummary': 'summary'}
+
+
+async def test_context_usage_skips_history_reads_when_compaction_is_off(monkeypatch):
+    async def fake_load_config():
+        return {'enable': False, 'token_threshold': 100, 'token_cap': None, 'retention_percentage': 40}
+
+    async def fail_if_loaded(*args, **kwargs):
+        pytest.fail('the history must not be read while context compaction is off')
+
+    monkeypatch.setattr(context_compaction, '_load_config', fake_load_config)
+    monkeypatch.setattr(context_compaction.Chats, 'get_messages_map_by_chat_id', fail_if_loaded)
+
+    chat = SimpleNamespace(id='chat', chat={'history': {'messages': {}}}, current_message_id=None)
+
+    assert await context_compaction.get_chat_context_usage(chat) is None
+
+
+async def test_context_usage_reports_a_threshold_for_an_empty_chat(monkeypatch):
+    async def fake_load_config():
+        return {'enable': True, 'token_threshold': 8000, 'token_cap': 8000, 'retention_percentage': 40}
+
+    async def fake_get_messages_map(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(context_compaction, '_load_config', fake_load_config)
+    monkeypatch.setattr(context_compaction.Chats, 'get_messages_map_by_chat_id', fake_get_messages_map)
+
+    chat = SimpleNamespace(id='chat', chat={'history': {'messages': {}}}, current_message_id=None)
+    usage = await context_compaction.get_chat_context_usage(chat)
+
+    # A chat created for an upload has no messages yet, but still needs its threshold.
+    assert usage is not None
+    assert usage['threshold'] == 8000
+    assert usage['tokens'] == 0

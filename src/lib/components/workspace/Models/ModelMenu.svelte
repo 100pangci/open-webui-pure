@@ -54,6 +54,9 @@
 >
 	<Tooltip content={$i18n.t('More')}>
 		<button
+			type="button"
+			data-focus-row={model.id}
+			aria-label={`${$i18n.t('More')}: ${model.name ?? model.id}`}
 			on:click={(e) => {
 				e.stopPropagation();
 				show = !show;

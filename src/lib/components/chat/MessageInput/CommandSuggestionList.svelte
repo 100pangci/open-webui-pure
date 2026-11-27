@@ -3,6 +3,7 @@
 	import AtCommands from './Commands/AtCommands.svelte';
 	import Emojis from './Commands/Emojis.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
+	import { readable, type Readable } from 'svelte/store';
 
 	export let char = '';
 	export let query = '';
@@ -22,27 +23,23 @@
 	export let onTemporary: () => void = () => {};
 	export let insertTextHandler: (text: string) => void = () => {};
 	export let canCompact: boolean | (() => boolean) = false;
-	export let compactDisabled: boolean | (() => boolean) = false;
+	export let compactDisabled: Readable<boolean> = readable(false);
 	export let canStatus: boolean | (() => boolean) = false;
 	export let canFork: boolean | (() => boolean) = false;
-	export let forkDisabled: boolean | (() => boolean) = false;
+	export let forkDisabled: Readable<boolean> = readable(false);
 	export let canTemporary: boolean | (() => boolean) = false;
 	export let temporaryEnabled: boolean | (() => boolean) = false;
-	export let contextUsage = null;
+	export let contextUsage: Readable<any> = readable(null);
 
 	$: compactAvailable = typeof canCompact === 'function' ? canCompact() : canCompact;
-	$: isCompactDisabled =
-		typeof compactDisabled === 'function' ? compactDisabled() : compactDisabled;
 	$: statusAvailable = typeof canStatus === 'function' ? canStatus() : canStatus;
 	$: forkAvailable = typeof canFork === 'function' ? canFork() : canFork;
-	$: isForkDisabled = typeof forkDisabled === 'function' ? forkDisabled() : forkDisabled;
 	$: temporaryAvailable = typeof canTemporary === 'function' ? canTemporary() : canTemporary;
 	$: isTemporaryEnabled =
 		typeof temporaryEnabled === 'function' ? temporaryEnabled() : temporaryEnabled;
-	$: resolvedContextUsage = typeof contextUsage === 'function' ? contextUsage() : contextUsage;
-	$: contextHasThreshold = Number(resolvedContextUsage?.threshold) > 0;
+	$: contextHasThreshold = Number($contextUsage?.threshold) > 0;
 	$: contextPercent = contextHasThreshold
-		? Math.max(0, Math.round(resolvedContextUsage?.percent ?? 0))
+		? Math.max(0, Math.round($contextUsage?.percent ?? 0))
 		: null;
 
 	let suggestionElement: any = null;
@@ -97,10 +94,10 @@
 					{query}
 					bind:filteredItems
 					canCompact={compactAvailable}
-					compactDisabled={isCompactDisabled}
+					compactDisabled={$compactDisabled}
 					canStatus={statusAvailable}
 					canFork={forkAvailable}
-					forkDisabled={isForkDisabled}
+					forkDisabled={$forkDisabled}
 					canTemporary={temporaryAvailable}
 					temporaryEnabled={isTemporaryEnabled}
 					{contextPercent}

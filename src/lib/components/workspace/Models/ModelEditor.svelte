@@ -249,7 +249,8 @@
 
 	onMount(async () => {
 		if (suggestionTags.length === 0) {
-			await loadSuggestionTags();
+			// Fill the tag suggestions when they arrive instead of holding the form back.
+			loadSuggestionTags();
 		}
 
 		// Fetch admin-configured default model metadata so the editor
