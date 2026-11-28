@@ -310,7 +310,15 @@ def merge_system_messages(messages: list[dict]) -> list[dict]:
 
     for message in messages:
         if message.get('role') == 'system':
-            content = get_content_from_message(message)
+            content = message.get('content')
+            if isinstance(content, list):
+                # Keep every text block: a system message split into several
+                # blocks must not lose all but the first.
+                content = '\n'.join(
+                    item['text'] for item in content if isinstance(item, dict) and item.get('type') == 'text'
+                )
+            else:
+                content = get_content_from_message(message)
             if content:
                 system_contents.append(content)
         else:
@@ -325,12 +333,16 @@ def merge_system_messages(messages: list[dict]) -> list[dict]:
 
 def update_message_content(message: dict, content: str, append: bool = True) -> dict:
     if isinstance(message['content'], list):
-        for item in message['content']:
+        # Append to the last text block, prepend to the first, and stop there:
+        # writing into every block would duplicate the content.
+        items = reversed(message['content']) if append else message['content']
+        for item in items:
             if item['type'] == 'text':
                 if append:
                     item['text'] = f'{item["text"]}\n{content}'
                 else:
                     item['text'] = f'{content}\n{item["text"]}'
+                break
     else:
         if append:
             message['content'] = f'{message["content"]}\n{content}'

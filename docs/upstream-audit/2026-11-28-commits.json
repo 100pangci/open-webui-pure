@@ -1,0 +1,3000 @@
+{
+	"local_head": "5a1d989fd1e19a6dc4e5f20907132fef59fa2f96",
+	"upstream_base": "ddbae7670",
+	"target": "ddbae7670",
+	"target_tag": null,
+	"commit_count": 72,
+	"decision_counts": {
+		"skip-engineering": 10,
+		"skip-removed": 40,
+		"skip-new-feature": 15,
+		"adapt": 2,
+		"already-covered": 1,
+		"adopt": 4
+	},
+	"review_complete": true,
+	"coverage_errors": [],
+	"blocked_implementations": [],
+	"commits": [
+		{
+			"id": 1,
+			"sha": "eac017ea4c0092f78bd0c5cc12fb8c6f43d2d6ad",
+			"parents": ["7e5634d2086be4e87e3c7921b1421933ee489a9a"],
+			"subject": "Merge pull request #35071 from silentoplayz/i18n/batch-2026-11-25",
+			"date": "2026-11-25T14:01:32-05:00",
+			"paths": [
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 1,
+					"sha": "eac017ea4c0092f78bd0c5cc12fb8c6f43d2d6ad",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 2,
+			"sha": "92aebeb1be3101dcc71ba7250fc94e21b02cd3af",
+			"parents": ["eac017ea4c0092f78bd0c5cc12fb8c6f43d2d6ad"],
+			"subject": "i18n: fix 17 existing translations in 9 languages (#35094)",
+			"date": "2026-11-25T14:51:28-05:00",
+			"paths": [
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 2,
+					"sha": "92aebeb1be3101dcc71ba7250fc94e21b02cd3af",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 3,
+			"sha": "4cf955b95cf71152ec5d9bd261df4b6ab05f4174",
+			"parents": ["92aebeb1be3101dcc71ba7250fc94e21b02cd3af"],
+			"subject": "fix: Open WebUI crashes on startup on Windows (#35077)",
+			"date": "2026-11-25T20:51:42+01:00",
+			"paths": ["backend/open_webui/utils/machines/managed.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 3,
+					"sha": "4cf955b95cf71152ec5d9bd261df4b6ab05f4174",
+					"decision": "skip-removed",
+					"reason": "仅改 utils/machines/managed.py 的 /tmp 路径；Pure 已删 machines，无该 Startup 崩溃路径。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 4,
+			"sha": "59bd4991e268b89880336478472db96504b4791a",
+			"parents": ["4cf955b95cf71152ec5d9bd261df4b6ab05f4174"],
+			"subject": "perf: faster notification badge and inbox on instances with many chats (#35070)",
+			"date": "2026-11-25T20:51:53+01:00",
+			"paths": ["backend/open_webui/utils/inbox.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 4,
+					"sha": "59bd4991e268b89880336478472db96504b4791a",
+					"decision": "skip-removed",
+					"reason": "inbox 后端查询；Pure 已删通知/收件箱。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 5,
+			"sha": "ec0ef19474421fccf13483599444cb8f6fd58ef1",
+			"parents": ["59bd4991e268b89880336478472db96504b4791a"],
+			"subject": "refac",
+			"date": "2026-11-26T00:40:06+04:00",
+			"paths": [
+				"src/lib/components/admin/Settings/Connections.svelte",
+				"src/lib/components/admin/Settings/Integrations.svelte",
+				"src/lib/components/admin/Settings/Pipelines.svelte",
+				"src/lib/components/admin/Settings/Subagents.svelte",
+				"src/lib/components/chat/Chat.svelte",
+				"src/lib/components/chat/MessageInput.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-management"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"frontend-chat": {
+					"id": 5,
+					"sha": "ec0ef19474421fccf13483599444cb8f6fd58ef1",
+					"decision": "skip-engineering",
+					"reason": "仅 Connections.svelte 的 Spinner 尺寸属纯视觉；其余 forkHandler 置空、/fork 门控只服务已删的嵌入式笔记与 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 5,
+					"sha": "ec0ef19474421fccf13483599444cb8f6fd58ef1",
+					"decision": "skip-engineering",
+					"reason": "仅 Connections.svelte 的 Spinner 尺寸属纯视觉；其余 forkHandler 置空、/fork 门控只服务已删的嵌入式笔记与 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 6,
+			"sha": "9a596e2eed4045e7113a880ce69c43678308fb48",
+			"parents": ["ec0ef19474421fccf13483599444cb8f6fd58ef1"],
+			"subject": "refac",
+			"date": "2026-11-26T00:47:50+04:00",
+			"paths": [
+				"backend/open_webui/routers/chats.py",
+				"backend/open_webui/routers/folders.py",
+				"backend/open_webui/routers/scim.py",
+				"backend/open_webui/routers/users.py",
+				"src/lib/components/chat/Tabs/Desktop.svelte",
+				"src/lib/components/chat/Tabs/FrameCanvas.svelte",
+				"src/lib/components/chat/Tabs/NativeDesktop.svelte"
+			],
+			"groups": ["backend-api", "frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 6,
+					"sha": "9a596e2eed4045e7113a880ce69c43678308fb48",
+					"decision": "skip-removed",
+					"reason": "把停止任务挪到删除之后是为让被停止的 sub-agent 无处回写；Pure 无 sub-agent，保留现有「先停后删」更安全（避免流式任务与 Postgres 行锁争用）。SCIM 与 chat tabs hunk 亦属已删功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 6,
+					"sha": "9a596e2eed4045e7113a880ce69c43678308fb48",
+					"decision": "skip-removed",
+					"reason": "把停止任务挪到删除之后是为让被停止的 sub-agent 无处回写；Pure 无 sub-agent，保留现有「先停后删」更安全（避免流式任务与 Postgres 行锁争用）。SCIM 与 chat tabs hunk 亦属已删功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 7,
+			"sha": "572974f73ff966ff49bbb5625402852b9988eb09",
+			"parents": ["9a596e2eed4045e7113a880ce69c43678308fb48"],
+			"subject": "refac",
+			"date": "2026-11-26T00:50:07+04:00",
+			"paths": ["src/lib/components/chat/Tabs/Desktop.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 7,
+					"sha": "572974f73ff966ff49bbb5625402852b9988eb09",
+					"decision": "skip-removed",
+					"reason": "Tabs/Desktop；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 8,
+			"sha": "90ef1f6b0d2f192bac3501f6cfc654243d9c2e9c",
+			"parents": ["572974f73ff966ff49bbb5625402852b9988eb09"],
+			"subject": "refac",
+			"date": "2026-11-26T00:59:00+04:00",
+			"paths": [
+				"src/lib/components/channel/Channel.svelte",
+				"src/lib/components/channel/Messages.svelte",
+				"src/lib/components/channel/Thread.svelte",
+				"src/lib/components/chat/Messages/Message.svelte",
+				"src/lib/components/chat/Tabs/Desktop.svelte",
+				"src/lib/components/chat/Tabs/FrameCanvas.svelte",
+				"src/lib/components/chat/Tabs/NativeDesktop.svelte",
+				"src/lib/components/common/DateSeparator.svelte",
+				"src/lib/utils/index.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 8,
+					"sha": "90ef1f6b0d2f192bac3501f6cfc654243d9c2e9c",
+					"decision": "skip-new-feature",
+					"reason": "主体为频道布局与 FrameCanvas 解码（channels/machines 已删）；聊天 DateSeparator 属新增视觉功能，非缺陷修复。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 8,
+					"sha": "90ef1f6b0d2f192bac3501f6cfc654243d9c2e9c",
+					"decision": "skip-new-feature",
+					"reason": "主体为频道布局与 FrameCanvas 解码（channels/machines 已删）；聊天 DateSeparator 属新增视觉功能，非缺陷修复。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 9,
+			"sha": "b7a7ddff182db90929a969d2181b7a9f09dcad3c",
+			"parents": ["90ef1f6b0d2f192bac3501f6cfc654243d9c2e9c"],
+			"subject": "perf: fewer requests when opening the inbox or clicking a notification (#35068)",
+			"date": "2026-11-25T22:02:36+01:00",
+			"paths": [
+				"src/lib/components/layout/InboxHost.svelte",
+				"src/lib/components/layout/InboxPanel.svelte"
+			],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 9,
+					"sha": "b7a7ddff182db90929a969d2181b7a9f09dcad3c",
+					"decision": "skip-removed",
+					"reason": "Inbox 面板请求优化；Pure 已删通知/收件箱。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 10,
+			"sha": "301ae2cf7deeee7c181132c815fa1d9106915386",
+			"parents": ["b7a7ddff182db90929a969d2181b7a9f09dcad3c"],
+			"subject": "refac",
+			"date": "2026-11-26T01:15:35+04:00",
+			"paths": [
+				"src/lib/components/chat/MessageInput/MachineMenu.svelte",
+				"src/lib/components/chat/Placeholder/FolderTitle.svelte",
+				"src/lib/components/chat/Tabs/NativeDesktop.svelte",
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+				"src/lib/components/layout/Sidebar/Folders/OpenDirectoryModal.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [
+				"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+				"src/lib/components/chat/Placeholder/FolderTitle.svelte"
+			],
+			"merge": false,
+			"decision": "adapt",
+			"decisions": {
+				"frontend-chat": {
+					"id": 10,
+					"sha": "301ae2cf7deeee7c181132c815fa1d9106915386",
+					"decision": "adapt",
+					"reason": "混合提交：machines 的 OpenDirectory、NativeDesktop 滚轮（已删功能）丢弃；保留「文件夹表单保存成功才关闭」契约，已同步改 FolderModal 与四个调用方。",
+					"paths": [
+						"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+						"src/lib/components/layout/Sidebar.svelte",
+						"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+						"src/lib/components/chat/Placeholder/FolderTitle.svelte"
+					],
+					"implementation_status": "applied"
+				},
+				"frontend-ui": {
+					"id": 10,
+					"sha": "301ae2cf7deeee7c181132c815fa1d9106915386",
+					"decision": "adapt",
+					"reason": "混合提交：machines 的 OpenDirectory、NativeDesktop 滚轮（已删功能）丢弃；保留「文件夹表单保存成功才关闭」契约，已同步改 FolderModal 与四个调用方。",
+					"paths": [
+						"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+						"src/lib/components/layout/Sidebar.svelte",
+						"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+						"src/lib/components/chat/Placeholder/FolderTitle.svelte"
+					],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 11,
+			"sha": "9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6",
+			"parents": ["301ae2cf7deeee7c181132c815fa1d9106915386"],
+			"subject": "refac",
+			"date": "2026-11-26T01:31:48+04:00",
+			"paths": [
+				"backend/open_webui/models/folders.py",
+				"backend/open_webui/routers/folders.py",
+				"src/lib/components/channel/Channel.svelte",
+				"src/lib/components/chat/Placeholder/FolderTitle.svelte",
+				"src/lib/components/common/ResizableSidePanel.svelte",
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+				"src/lib/utils/folders.ts"
+			],
+			"groups": ["backend-api", "backend-db", "frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 11,
+					"sha": "9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6",
+					"decision": "skip-removed",
+					"reason": "整提交服务机器目录/频道：machine_id/directory 字段、hasDirectory 删除保护、Channel 线程面板；Pure 已删 machines/Tether/channels。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-db": {
+					"id": 11,
+					"sha": "9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6",
+					"decision": "skip-removed",
+					"reason": "整提交服务机器目录/频道：machine_id/directory 字段、hasDirectory 删除保护、Channel 线程面板；Pure 已删 machines/Tether/channels。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 11,
+					"sha": "9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6",
+					"decision": "skip-removed",
+					"reason": "整提交服务机器目录/频道：machine_id/directory 字段、hasDirectory 删除保护、Channel 线程面板；Pure 已删 machines/Tether/channels。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 11,
+					"sha": "9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6",
+					"decision": "skip-removed",
+					"reason": "整提交服务机器目录/频道：machine_id/directory 字段、hasDirectory 删除保护、Channel 线程面板；Pure 已删 machines/Tether/channels。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 12,
+			"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+			"parents": ["9c9a3ca0d6cb5d445c110caaee4d8068ff03ffc6"],
+			"subject": "refac",
+			"date": "2026-11-26T02:04:30+04:00",
+			"paths": [
+				"backend/open_webui/models/auths.py",
+				"backend/open_webui/models/users.py",
+				"backend/open_webui/routers/auths.py",
+				"backend/open_webui/routers/users.py",
+				"src/lib/apis/users/index.ts",
+				"src/lib/components/UserProfileModal.svelte",
+				"src/lib/components/channel/Messages/Message.svelte",
+				"src/lib/components/channel/Messages/Message/ProfilePreview.svelte",
+				"src/lib/components/channel/Messages/Message/UserStatus.svelte",
+				"src/lib/components/channel/Thread.svelte",
+				"src/lib/components/chat/MessageInput/VoiceRecording.svelte",
+				"src/lib/components/chat/Messages/Markdown/MarkdownInlineTokens/MentionToken.svelte",
+				"src/lib/components/chat/Settings/Account.svelte",
+				"src/lib/components/chat/Settings/Account/UserProfileBanner.svelte",
+				"src/lib/components/chat/Tabs/Desktop.svelte",
+				"src/lib/components/chat/Tabs/NativeDesktop.svelte",
+				"src/lib/components/layout/Sidebar/ChannelItem.svelte",
+				"src/lib/types/index.ts",
+				"src/routes/(app)/+layout.svelte"
+			],
+			"groups": [
+				"backend-api",
+				"backend-db",
+				"frontend-chat",
+				"frontend-management",
+				"frontend-ui"
+			],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"backend-api": {
+					"id": 12,
+					"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+					"decision": "skip-new-feature",
+					"reason": "个人资料横幅属新功能：新增上传/删除端点与 UserProfileModal，依赖已删的 channels 私信、ChatTabs、machines 与背景图校验。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-db": {
+					"id": 12,
+					"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+					"decision": "skip-new-feature",
+					"reason": "个人资料横幅属新功能：新增上传/删除端点与 UserProfileModal，依赖已删的 channels 私信、ChatTabs、machines 与背景图校验。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 12,
+					"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+					"decision": "skip-new-feature",
+					"reason": "个人资料横幅属新功能：新增上传/删除端点与 UserProfileModal，依赖已删的 channels 私信、ChatTabs、machines 与背景图校验。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 12,
+					"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+					"decision": "skip-new-feature",
+					"reason": "个人资料横幅属新功能：新增上传/删除端点与 UserProfileModal，依赖已删的 channels 私信、ChatTabs、machines 与背景图校验。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 12,
+					"sha": "4b648ec4e731fe857a0dfeb1867b7cba6af0bb41",
+					"decision": "skip-new-feature",
+					"reason": "个人资料横幅属新功能：新增上传/删除端点与 UserProfileModal，依赖已删的 channels 私信、ChatTabs、machines 与背景图校验。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 13,
+			"sha": "e629c35c3ea4a25ae10f98ec0181cfe03fa5ae04",
+			"parents": ["4b648ec4e731fe857a0dfeb1867b7cba6af0bb41"],
+			"subject": "i18n: add pt-BR translations for newly added UI items and consistency pass (#35100)",
+			"date": "2026-11-25T19:05:04-03:00",
+			"paths": ["src/lib/i18n/locales/pt-BR/translation.json"],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 13,
+					"sha": "e629c35c3ea4a25ae10f98ec0181cfe03fa5ae04",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 14,
+			"sha": "d6812c851b073bd067433069c76e00cef5fdc993",
+			"parents": ["e629c35c3ea4a25ae10f98ec0181cfe03fa5ae04"],
+			"subject": "refac",
+			"date": "2026-11-26T03:08:54+04:00",
+			"paths": [
+				"src/lib/components/AddToolServerModal.svelte",
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/layout/Sidebar/ChatItem.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+				"src/lib/stores/index.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 14,
+					"sha": "d6812c851b073bd067433069c76e00cef5fdc993",
+					"decision": "skip-removed",
+					"reason": "MCP 默认项、在文件夹内开聊天标签页、ChatItem 标签跳转，均属已删功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 14,
+					"sha": "d6812c851b073bd067433069c76e00cef5fdc993",
+					"decision": "skip-removed",
+					"reason": "MCP 默认项、在文件夹内开聊天标签页、ChatItem 标签跳转，均属已删功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 15,
+			"sha": "fdfcb03a0ae8b3b32dc6ed9cca634191a43dbbde",
+			"parents": ["d6812c851b073bd067433069c76e00cef5fdc993"],
+			"subject": "refac",
+			"date": "2026-11-26T03:20:54+04:00",
+			"paths": [
+				"src/lib/components/chat/Placeholder/ChatList.svelte",
+				"src/lib/components/chat/Placeholder/FolderBoard.svelte",
+				"src/lib/components/chat/Placeholder/FolderPlaceholder.svelte",
+				"src/lib/utils/folders.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 15,
+					"sha": "fdfcb03a0ae8b3b32dc6ed9cca634191a43dbbde",
+					"decision": "skip-new-feature",
+					"reason": "为看板加状态列拖拽排序、按文件夹+分组记忆折叠；Pure 无 FolderBoard.svelte、无 collapsed 分组概念。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 15,
+					"sha": "fdfcb03a0ae8b3b32dc6ed9cca634191a43dbbde",
+					"decision": "skip-new-feature",
+					"reason": "为看板加状态列拖拽排序、按文件夹+分组记忆折叠；Pure 无 FolderBoard.svelte、无 collapsed 分组概念。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 16,
+			"sha": "0d142e96ba816eff981d3d55b6ab67a6c8b204b2",
+			"parents": ["fdfcb03a0ae8b3b32dc6ed9cca634191a43dbbde"],
+			"subject": "refac",
+			"date": "2026-11-26T03:21:43+04:00",
+			"paths": [
+				"src/lib/components/chat/Placeholder/FolderPlaceholder.svelte",
+				"src/lib/utils/folders.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 16,
+					"sha": "0d142e96ba816eff981d3d55b6ab67a6c8b204b2",
+					"decision": "skip-new-feature",
+					"reason": "把 StatusEntry 类型挪到 utils/folders.ts 并让模态直接吃 groupedStatusDefs；Pure 无 folders.ts、无状态/看板代码。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 16,
+					"sha": "0d142e96ba816eff981d3d55b6ab67a6c8b204b2",
+					"decision": "skip-new-feature",
+					"reason": "把 StatusEntry 类型挪到 utils/folders.ts 并让模态直接吃 groupedStatusDefs；Pure 无 folders.ts、无状态/看板代码。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 17,
+			"sha": "871159e7d71c0b6e4c69e6373c2116a21cd3bddc",
+			"parents": ["0d142e96ba816eff981d3d55b6ab67a6c8b204b2"],
+			"subject": "refac",
+			"date": "2026-11-26T03:22:32+04:00",
+			"paths": ["src/lib/components/chat/Placeholder/FolderStatusesModal.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 17,
+					"sha": "871159e7d71c0b6e4c69e6373c2116a21cd3bddc",
+					"decision": "skip-new-feature",
+					"reason": "FolderStatusesModal 重写；Pure 无文件夹状态看板功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 18,
+			"sha": "4043ad64ac10f9dc032a6afaa76265c0588a5e22",
+			"parents": ["871159e7d71c0b6e4c69e6373c2116a21cd3bddc"],
+			"subject": "refac",
+			"date": "2026-11-26T03:50:42+04:00",
+			"paths": ["src/routes/(app)/+layout.svelte"],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "already-covered",
+			"decisions": {
+				"frontend-ui": {
+					"id": 18,
+					"sha": "4043ad64ac10f9dc032a6afaa76265c0588a5e22",
+					"decision": "already-covered",
+					"reason": "删除设置加载骨架并改静态导入；Pure 从未落过该骨架，保持现状即可。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 19,
+			"sha": "d331f062e6740fd188d856a77117576c300f4908",
+			"parents": ["4043ad64ac10f9dc032a6afaa76265c0588a5e22"],
+			"subject": "refac",
+			"date": "2026-11-26T03:52:50+04:00",
+			"paths": ["src/lib/components/chat/SettingsModal.svelte"],
+			"groups": ["frontend-management"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"frontend-management": {
+					"id": 19,
+					"sha": "d331f062e6740fd188d856a77117576c300f4908",
+					"decision": "skip-engineering",
+					"reason": "逐面板 {#await import} 属代码分割工程重构，无行为修复；Pure 的 SettingsModal 已整体懒加载。且用户明确该设置界面为自有 UI 调整，不动其文件。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 20,
+			"sha": "376e77cee01043488557512ba30da5d35510f78f",
+			"parents": ["d331f062e6740fd188d856a77117576c300f4908"],
+			"subject": "refac",
+			"date": "2026-11-26T15:45:31+04:00",
+			"paths": [
+				"backend/open_webui/config.py",
+				"backend/open_webui/utils/middleware.py",
+				"src/lib/components/chat/Messages/Citations.svelte",
+				"src/lib/components/chat/Messages/Markdown/Source.svelte",
+				"src/lib/components/chat/Messages/Markdown/SourceToken.svelte",
+				"src/lib/components/common/PDFViewer.svelte",
+				"src/lib/utils/citations.ts"
+			],
+			"groups": ["backend-runtime", "frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 20,
+					"sha": "376e77cee01043488557512ba30da5d35510f78f",
+					"decision": "skip-removed",
+					"reason": "为 RAG 模板加 [N#P] 段落标记并新增 split_paragraphs；Pure 的 config.py 无任何 RAG 配置，middleware 无引用函数。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 20,
+					"sha": "376e77cee01043488557512ba30da5d35510f78f",
+					"decision": "skip-removed",
+					"reason": "为 RAG 模板加 [N#P] 段落标记并新增 split_paragraphs；Pure 的 config.py 无任何 RAG 配置，middleware 无引用函数。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 20,
+					"sha": "376e77cee01043488557512ba30da5d35510f78f",
+					"decision": "skip-removed",
+					"reason": "为 RAG 模板加 [N#P] 段落标记并新增 split_paragraphs；Pure 的 config.py 无任何 RAG 配置，middleware 无引用函数。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 21,
+			"sha": "54d1b41fd3f5d96b737fbaca170246dc9e1a85d4",
+			"parents": ["376e77cee01043488557512ba30da5d35510f78f"],
+			"subject": "refac",
+			"date": "2026-11-26T15:48:48+04:00",
+			"paths": [
+				"src/lib/components/channel/Messages.svelte",
+				"src/lib/components/chat/Chat.svelte",
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/chat/Tabs/ChatTab.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 21,
+					"sha": "54d1b41fd3f5d96b737fbaca170246dc9e1a85d4",
+					"decision": "skip-removed",
+					"reason": "频道消息头部重构 + Chat.svelte/Tabs 的 tabBarActions；Pure 已删 channels 与 Chat Tabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 21,
+					"sha": "54d1b41fd3f5d96b737fbaca170246dc9e1a85d4",
+					"decision": "skip-removed",
+					"reason": "频道消息头部重构 + Chat.svelte/Tabs 的 tabBarActions；Pure 已删 channels 与 Chat Tabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 22,
+			"sha": "e0eb2297d1922095eb0114da2bdaa55eb594f6ba",
+			"parents": ["54d1b41fd3f5d96b737fbaca170246dc9e1a85d4"],
+			"subject": "refac",
+			"date": "2026-11-26T16:20:36+04:00",
+			"paths": [
+				"backend/open_webui/utils/middleware.py",
+				"src/lib/components/chat/Messages/Citations.svelte",
+				"src/lib/components/chat/Messages/Markdown/SourceToken.svelte",
+				"src/lib/components/chat/Messages/ResponseMessage.svelte",
+				"src/lib/components/chat/Tabs/Embeds.svelte",
+				"src/lib/components/comments/anchors.ts",
+				"src/lib/components/common/PDFViewer.svelte",
+				"src/lib/components/common/PdfPagesPreview.svelte",
+				"src/lib/utils/citations.ts",
+				"src/lib/utils/comments/highlights.ts"
+			],
+			"groups": ["backend-runtime", "frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 22,
+					"sha": "e0eb2297d1922095eb0114da2bdaa55eb594f6ba",
+					"decision": "skip-removed",
+					"reason": "后端依赖 get_citation_ids/get_source_paragraphs/mark_tool_result（Pure 无）；前端 citations.ts、comments、Tabs/Embeds、PDFViewer 均已随裁剪删除。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 22,
+					"sha": "e0eb2297d1922095eb0114da2bdaa55eb594f6ba",
+					"decision": "skip-removed",
+					"reason": "后端依赖 get_citation_ids/get_source_paragraphs/mark_tool_result（Pure 无）；前端 citations.ts、comments、Tabs/Embeds、PDFViewer 均已随裁剪删除。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 22,
+					"sha": "e0eb2297d1922095eb0114da2bdaa55eb594f6ba",
+					"decision": "skip-removed",
+					"reason": "后端依赖 get_citation_ids/get_source_paragraphs/mark_tool_result（Pure 无）；前端 citations.ts、comments、Tabs/Embeds、PDFViewer 均已随裁剪删除。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 23,
+			"sha": "3854a4d0860f3d561a1b2046bc60779530fbf9ce",
+			"parents": ["e0eb2297d1922095eb0114da2bdaa55eb594f6ba"],
+			"subject": "refac",
+			"date": "2026-11-26T16:36:45+04:00",
+			"paths": ["src/lib/components/chat/Tabs/Embeds.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 23,
+					"sha": "3854a4d0860f3d561a1b2046bc60779530fbf9ce",
+					"decision": "skip-removed",
+					"reason": "Tabs/Embeds；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 24,
+			"sha": "ee38c0213c670ee7f0ec266d6fb928ffce44552c",
+			"parents": ["3854a4d0860f3d561a1b2046bc60779530fbf9ce"],
+			"subject": "refac",
+			"date": "2026-11-26T16:55:05+04:00",
+			"paths": [
+				"backend/open_webui/models/chat_views.py",
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/chat/Tabs/GitBar.svelte",
+				"src/lib/components/chat/Tabs/tabs.ts"
+			],
+			"groups": ["backend-db", "frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-db": {
+					"id": 24,
+					"sha": "ee38c0213c670ee7f0ec266d6fb928ffce44552c",
+					"decision": "skip-removed",
+					"reason": "chat_views 与 Tabs/GitBar；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 24,
+					"sha": "ee38c0213c670ee7f0ec266d6fb928ffce44552c",
+					"decision": "skip-removed",
+					"reason": "chat_views 与 Tabs/GitBar；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 25,
+			"sha": "536032a9efacd43c19ea666e5dc057270ec42951",
+			"parents": ["ee38c0213c670ee7f0ec266d6fb928ffce44552c"],
+			"subject": "refac",
+			"date": "2026-11-26T16:57:06+04:00",
+			"paths": [
+				"src/lib/components/chat/FileNav/Icon.svelte",
+				"src/lib/components/chat/Tabs/GitBar.svelte"
+			],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 25,
+					"sha": "536032a9efacd43c19ea666e5dc057270ec42951",
+					"decision": "skip-removed",
+					"reason": "FileNav 图标与 GitBar；Pure 已删。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 26,
+			"sha": "7a797bee44a5222f8e7047fda4f2e56e25a4094a",
+			"parents": ["536032a9efacd43c19ea666e5dc057270ec42951"],
+			"subject": "refac",
+			"date": "2026-11-26T17:08:19+04:00",
+			"paths": [
+				"src/lib/components/layout/Sidebar/FolderHoverPreview.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte"
+			],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 26,
+					"sha": "7a797bee44a5222f8e7047fda4f2e56e25a4094a",
+					"decision": "skip-removed",
+					"reason": "FolderHoverPreview 与 RecursiveFolder 的机器名/目录展示；Pure 无 FolderHoverPreview.svelte 与 machines。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 27,
+			"sha": "24f49bf467e71f1ca4139a9b5b5fef1867468c69",
+			"parents": ["7a797bee44a5222f8e7047fda4f2e56e25a4094a"],
+			"subject": "refac",
+			"date": "2026-11-26T17:16:55+04:00",
+			"paths": [
+				"src/lib/components/chat/FileNav.svelte",
+				"src/lib/components/chat/Placeholder.svelte",
+				"src/lib/components/chat/Placeholder/FolderPlaceholder.svelte",
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/layout/Sidebar/FolderHoverPreview.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 27,
+					"sha": "24f49bf467e71f1ca4139a9b5b5fef1867468c69",
+					"decision": "skip-new-feature",
+					"reason": "为文件夹页新增 machines 的 files 区段、FileNav 内嵌与 composer 让位；Pure 已删 machines/FileNav，无 Tabs.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 27,
+					"sha": "24f49bf467e71f1ca4139a9b5b5fef1867468c69",
+					"decision": "skip-new-feature",
+					"reason": "为文件夹页新增 machines 的 files 区段、FileNav 内嵌与 composer 让位；Pure 已删 machines/FileNav，无 Tabs.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 28,
+			"sha": "c6b06567b8d2bb0a312050c8b7238f8d4853baeb",
+			"parents": ["24f49bf467e71f1ca4139a9b5b5fef1867468c69"],
+			"subject": "refac",
+			"date": "2026-11-26T17:19:16+04:00",
+			"paths": ["src/lib/components/layout/Sidebar/RecursiveFolder.svelte"],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 28,
+					"sha": "c6b06567b8d2bb0a312050c8b7238f8d4853baeb",
+					"decision": "skip-removed",
+					"reason": "仅给机器标签加 translate-y 视觉微调，位于 folder.machine_id 分支；Pure 无 machines 字段。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 29,
+			"sha": "5fc1b1b59119a558bb524de63986784537695e70",
+			"parents": ["c6b06567b8d2bb0a312050c8b7238f8d4853baeb"],
+			"subject": "refac",
+			"date": "2026-11-26T17:21:33+04:00",
+			"paths": ["src/lib/components/chat/Placeholder/FolderPlaceholder.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 29,
+					"sha": "5fc1b1b59119a558bb524de63986784537695e70",
+					"decision": "skip-new-feature",
+					"reason": "修正 24f49bf467 的逻辑：无 machines 时回退 chats。Pure 无 filesTarget/folderSection/machines，属同一未引入功能的自纠。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 30,
+			"sha": "2d4a3f622fd9303db5557801e000b3636e92c64d",
+			"parents": ["5fc1b1b59119a558bb524de63986784537695e70"],
+			"subject": "refac",
+			"date": "2026-11-26T17:24:30+04:00",
+			"paths": [
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/chat/Tabs/GitBar.svelte",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/shortcuts.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 30,
+					"sha": "2d4a3f622fd9303db5557801e000b3636e92c64d",
+					"decision": "skip-removed",
+					"reason": "Git 标签页、Tabs.svelte 与 OPEN_GIT 快捷键只服务已删的 ChatTabs/Git；Pure 无 Tabs.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 30,
+					"sha": "2d4a3f622fd9303db5557801e000b3636e92c64d",
+					"decision": "skip-removed",
+					"reason": "Git 标签页、Tabs.svelte 与 OPEN_GIT 快捷键只服务已删的 ChatTabs/Git；Pure 无 Tabs.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 30,
+					"sha": "2d4a3f622fd9303db5557801e000b3636e92c64d",
+					"decision": "skip-removed",
+					"reason": "Git 标签页、Tabs.svelte 与 OPEN_GIT 快捷键只服务已删的 ChatTabs/Git；Pure 无 Tabs.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 31,
+			"sha": "c456a6dbfdb90356537c5d445310bb103eef9ac0",
+			"parents": ["2d4a3f622fd9303db5557801e000b3636e92c64d"],
+			"subject": "refac",
+			"date": "2026-11-26T18:14:38+04:00",
+			"paths": [
+				"backend/open_webui/routers/machines.py",
+				"backend/open_webui/utils/machines/__init__.py",
+				"src/lib/apis/machines/index.ts",
+				"src/lib/components/chat/ModelSelector/Selector.svelte",
+				"src/lib/components/layout/Sidebar/Folders/FolderShareModal.svelte"
+			],
+			"groups": ["backend-api", "backend-runtime", "frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"backend-api": {
+					"id": 31,
+					"sha": "c456a6dbfdb90356537c5d445310bb103eef9ac0",
+					"decision": "skip-new-feature",
+					"reason": "machines 访问校验（已删）与给模型下拉新增管理员齿轮按钮（新交互）。Pure 的设置入口是用户特意整合的左下角 UI，不引入该新按钮。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-runtime": {
+					"id": 31,
+					"sha": "c456a6dbfdb90356537c5d445310bb103eef9ac0",
+					"decision": "skip-new-feature",
+					"reason": "machines 访问校验（已删）与给模型下拉新增管理员齿轮按钮（新交互）。Pure 的设置入口是用户特意整合的左下角 UI，不引入该新按钮。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 31,
+					"sha": "c456a6dbfdb90356537c5d445310bb103eef9ac0",
+					"decision": "skip-new-feature",
+					"reason": "machines 访问校验（已删）与给模型下拉新增管理员齿轮按钮（新交互）。Pure 的设置入口是用户特意整合的左下角 UI，不引入该新按钮。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 31,
+					"sha": "c456a6dbfdb90356537c5d445310bb103eef9ac0",
+					"decision": "skip-new-feature",
+					"reason": "machines 访问校验（已删）与给模型下拉新增管理员齿轮按钮（新交互）。Pure 的设置入口是用户特意整合的左下角 UI，不引入该新按钮。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 32,
+			"sha": "65f64e37b89c8b853c80d6673ad6604ecdb95bef",
+			"parents": ["c456a6dbfdb90356537c5d445310bb103eef9ac0"],
+			"subject": "refac",
+			"date": "2026-11-26T18:21:10+04:00",
+			"paths": ["src/lib/components/chat/ContinueFolders.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 32,
+					"sha": "65f64e37b89c8b853c80d6673ad6604ecdb95bef",
+					"decision": "skip-removed",
+					"reason": "ContinueFolders；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 33,
+			"sha": "ee7846286c77fb83624d4da974a12d04473cf0e4",
+			"parents": ["65f64e37b89c8b853c80d6673ad6604ecdb95bef"],
+			"subject": "refac",
+			"date": "2026-11-26T18:25:14+04:00",
+			"paths": [
+				"backend/open_webui/models/chat_views.py",
+				"src/lib/components/chat/ContinueFolders.svelte",
+				"src/lib/components/chat/Tabs.svelte"
+			],
+			"groups": ["backend-db", "frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-db": {
+					"id": 33,
+					"sha": "ee7846286c77fb83624d4da974a12d04473cf0e4",
+					"decision": "skip-removed",
+					"reason": "chat_views 与 ContinueFolders；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 33,
+					"sha": "ee7846286c77fb83624d4da974a12d04473cf0e4",
+					"decision": "skip-removed",
+					"reason": "chat_views 与 ContinueFolders；Pure 已删 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 34,
+			"sha": "c4b71322ae6e60ae5e50825c93be24325d1ce09d",
+			"parents": ["ee7846286c77fb83624d4da974a12d04473cf0e4"],
+			"subject": "refac",
+			"date": "2026-11-26T18:27:34+04:00",
+			"paths": [
+				"src/lib/components/chat/Placeholder.svelte",
+				"src/lib/components/chat/Placeholder/FolderPlaceholder.svelte",
+				"src/lib/components/chat/Tabs/tabs.ts",
+				"src/lib/stores/chatViewStates.ts",
+				"src/lib/utils/folders.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 34,
+					"sha": "c4b71322ae6e60ae5e50825c93be24325d1ce09d",
+					"decision": "skip-new-feature",
+					"reason": "给文件夹页恢复 section（files/chats/notes/automations）并与标签页视图状态一起持久化；Pure 无 Tabs/、chatViewStates.ts、FileNav。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 34,
+					"sha": "c4b71322ae6e60ae5e50825c93be24325d1ce09d",
+					"decision": "skip-new-feature",
+					"reason": "给文件夹页恢复 section（files/chats/notes/automations）并与标签页视图状态一起持久化；Pure 无 Tabs/、chatViewStates.ts、FileNav。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 35,
+			"sha": "90eae9507cadd292493a6ce168f590850d4aed58",
+			"parents": ["c4b71322ae6e60ae5e50825c93be24325d1ce09d"],
+			"subject": "refac",
+			"date": "2026-11-26T21:08:30+04:00",
+			"paths": ["src/lib/components/chat/FileNav.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 35,
+					"sha": "90eae9507cadd292493a6ce168f590850d4aed58",
+					"decision": "skip-removed",
+					"reason": "FileNav；Pure 已删 FileNav/machines。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 36,
+			"sha": "4d49c6d950a25cbe935fc2128171117c1d04aeef",
+			"parents": ["90eae9507cadd292493a6ce168f590850d4aed58"],
+			"subject": "refac",
+			"date": "2026-11-26T21:25:16+04:00",
+			"paths": [
+				"backend/open_webui/retrieval/external.py",
+				"backend/open_webui/routers/knowledge.py",
+				"src/lib/components/admin/Settings/ExternalKnowledge.svelte",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json"
+			],
+			"groups": ["backend-api", "frontend-management", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 36,
+					"sha": "4d49c6d950a25cbe935fc2128171117c1d04aeef",
+					"decision": "skip-removed",
+					"reason": "retrieval/external.py、routers/knowledge.py、ExternalKnowledge.svelte 与 rag.* 配置均属已删除的 RAG/知识库。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 36,
+					"sha": "4d49c6d950a25cbe935fc2128171117c1d04aeef",
+					"decision": "skip-removed",
+					"reason": "retrieval/external.py、routers/knowledge.py、ExternalKnowledge.svelte 与 rag.* 配置均属已删除的 RAG/知识库。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 36,
+					"sha": "4d49c6d950a25cbe935fc2128171117c1d04aeef",
+					"decision": "skip-removed",
+					"reason": "retrieval/external.py、routers/knowledge.py、ExternalKnowledge.svelte 与 rag.* 配置均属已删除的 RAG/知识库。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 37,
+			"sha": "42b06ada7c263a7a6cd8353cd06829aacc81d21e",
+			"parents": ["4d49c6d950a25cbe935fc2128171117c1d04aeef"],
+			"subject": "i18n: fill missing translations in 48 languages and fix 13 existing ones (#35130)",
+			"date": "2026-11-26T14:37:35-05:00",
+			"paths": [
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 37,
+					"sha": "42b06ada7c263a7a6cd8353cd06829aacc81d21e",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 38,
+			"sha": "26b6484e1113589192398366d874678fd776583a",
+			"parents": ["42b06ada7c263a7a6cd8353cd06829aacc81d21e"],
+			"subject": "fix: add browser history entries for page tabs and follow back and forward (#35131)",
+			"date": "2026-11-26T14:41:12-05:00",
+			"paths": [
+				"src/app.d.ts",
+				"src/lib/components/chat/Chat.svelte",
+				"src/lib/components/chat/Tabs.svelte",
+				"src/lib/components/chat/Tabs/Page.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 38,
+					"sha": "26b6484e1113589192398366d874678fd776583a",
+					"decision": "skip-removed",
+					"reason": "给页面标签接浏览器 history；Pure 无页面标签，亦无 Tabs.svelte/Page.svelte/openPageTab。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 38,
+					"sha": "26b6484e1113589192398366d874678fd776583a",
+					"decision": "skip-removed",
+					"reason": "给页面标签接浏览器 history；Pure 无页面标签，亦无 Tabs.svelte/Page.svelte/openPageTab。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 39,
+			"sha": "de696d4b4a6d4e5b32713db80511f6a595518cf7",
+			"parents": ["26b6484e1113589192398366d874678fd776583a"],
+			"subject": "fix: check ui translation placeholders against the default text (#35127)",
+			"date": "2026-11-26T14:44:04-05:00",
+			"paths": [
+				"backend/open_webui/routers/auths.py",
+				"src/lib/components/admin/Settings/General.svelte",
+				"src/lib/utils/translationDictionary.ts"
+			],
+			"groups": ["backend-api", "frontend-management", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"backend-api": {
+					"id": 39,
+					"sha": "de696d4b4a6d4e5b32713db80511f6a595518cf7",
+					"decision": "skip-new-feature",
+					"reason": "针对管理员自定义翻译字典的占位符校验；Pure 未引入 translationDictionary/I18nSettings 与后端 UI_I18N，前端口译目录由 i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 39,
+					"sha": "de696d4b4a6d4e5b32713db80511f6a595518cf7",
+					"decision": "skip-new-feature",
+					"reason": "针对管理员自定义翻译字典的占位符校验；Pure 未引入 translationDictionary/I18nSettings 与后端 UI_I18N，前端口译目录由 i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 39,
+					"sha": "de696d4b4a6d4e5b32713db80511f6a595518cf7",
+					"decision": "skip-new-feature",
+					"reason": "针对管理员自定义翻译字典的占位符校验；Pure 未引入 translationDictionary/I18nSettings 与后端 UI_I18N，前端口译目录由 i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 40,
+			"sha": "f0acd8e77174e64d49b729b74ec68375197f0885",
+			"parents": ["de696d4b4a6d4e5b32713db80511f6a595518cf7"],
+			"subject": "refac",
+			"date": "2026-11-27T00:07:04+04:00",
+			"paths": [
+				"src/lib/components/chat/MachineSessionsModal.svelte",
+				"src/lib/components/chat/MessageInput/MachineItemMenu.svelte",
+				"src/lib/components/chat/MessageInput/MachineMenu.svelte",
+				"src/lib/components/icons/TerminalPrompt.svelte",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json"
+			],
+			"groups": ["frontend-chat", "frontend-ui", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 40,
+					"sha": "f0acd8e77174e64d49b729b74ec68375197f0885",
+					"decision": "skip-new-feature",
+					"reason": "新增 MachineSessionsModal（列出机器上的 shell 与运行中命令）与 TerminalPrompt 图标，属已删 machines/Tether 的新功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 40,
+					"sha": "f0acd8e77174e64d49b729b74ec68375197f0885",
+					"decision": "skip-new-feature",
+					"reason": "新增 MachineSessionsModal（列出机器上的 shell 与运行中命令）与 TerminalPrompt 图标，属已删 machines/Tether 的新功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 40,
+					"sha": "f0acd8e77174e64d49b729b74ec68375197f0885",
+					"decision": "skip-new-feature",
+					"reason": "新增 MachineSessionsModal（列出机器上的 shell 与运行中命令）与 TerminalPrompt 图标，属已删 machines/Tether 的新功能。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 41,
+			"sha": "a8399f68fbcac35c724fdbb66813a543e3bc6aca",
+			"parents": ["f0acd8e77174e64d49b729b74ec68375197f0885"],
+			"subject": "fix: hide finished reasoning blocks that have no text (#35126)",
+			"date": "2026-11-26T15:12:28-05:00",
+			"paths": ["src/lib/components/chat/Messages/structuredOutput.ts"],
+			"groups": ["frontend-chat"],
+			"local_paths": ["src/lib/components/chat/Messages/structuredOutput.ts"],
+			"merge": false,
+			"decision": "adopt",
+			"decisions": {
+				"frontend-chat": {
+					"id": 41,
+					"sha": "a8399f68fbcac35c724fdbb66813a543e3bc6aca",
+					"decision": "adopt",
+					"reason": "前端聊天缺陷修复：已结束但没有文本的 reasoning 块会渲染成空的「Thought for N seconds」。已在 buildReasoningToken 中返回 null。",
+					"paths": ["src/lib/components/chat/Messages/structuredOutput.ts"],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 42,
+			"sha": "7b37a622405aba532b52147509f1a83f950df3a3",
+			"parents": ["a8399f68fbcac35c724fdbb66813a543e3bc6aca"],
+			"subject": "refac",
+			"date": "2026-11-27T00:31:51+04:00",
+			"paths": [
+				"src/lib/components/chat/MachineSessionsModal.svelte",
+				"src/lib/components/chat/MessageInput.svelte",
+				"src/lib/components/chat/MessageInput/MachineMenu.svelte",
+				"src/lib/i18n/locales/fa-IR/translation.json"
+			],
+			"groups": ["frontend-chat", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 42,
+					"sha": "7b37a622405aba532b52147509f1a83f950df3a3",
+					"decision": "skip-removed",
+					"reason": "MachineSessionsModal 重设计与 MachineMenu 的 locked 属已删 machines；fa-IR 翻译目录由 i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 42,
+					"sha": "7b37a622405aba532b52147509f1a83f950df3a3",
+					"decision": "skip-removed",
+					"reason": "MachineSessionsModal 重设计与 MachineMenu 的 locked 属已删 machines；fa-IR 翻译目录由 i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 43,
+			"sha": "833f32f8f4dd73465084fce267bf41d399d5c3b8",
+			"parents": ["7b37a622405aba532b52147509f1a83f950df3a3"],
+			"subject": "refac",
+			"date": "2026-11-27T00:58:20+04:00",
+			"paths": [
+				"src/lib/components/chat/MachineSessionsModal.svelte",
+				"src/lib/components/chat/MessageInput/MachineItemMenu.svelte",
+				"src/lib/components/icons/TerminalPrompt.svelte"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 43,
+					"sha": "833f32f8f4dd73465084fce267bf41d399d5c3b8",
+					"decision": "skip-removed",
+					"reason": "machines 会话模态与终端图标；Pure 已删 machines。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 43,
+					"sha": "833f32f8f4dd73465084fce267bf41d399d5c3b8",
+					"decision": "skip-removed",
+					"reason": "machines 会话模态与终端图标；Pure 已删 machines。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 44,
+			"sha": "1362747031d44665e2623430268efbcf801ceff9",
+			"parents": ["833f32f8f4dd73465084fce267bf41d399d5c3b8"],
+			"subject": "i18n: fill missing translations in 48 languages (#35135)",
+			"date": "2026-11-26T16:17:58-05:00",
+			"paths": [
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 44,
+					"sha": "1362747031d44665e2623430268efbcf801ceff9",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 45,
+			"sha": "1e68fa8d181328b5d64b0acada74a8320878337d",
+			"parents": ["1362747031d44665e2623430268efbcf801ceff9"],
+			"subject": "fix: with several workers, chats go to the wrong connection after a connection is deleted (#35119)",
+			"date": "2026-11-26T22:19:28+01:00",
+			"paths": [
+				"backend/open_webui/main.py",
+				"backend/open_webui/routers/ollama.py",
+				"backend/open_webui/routers/openai.py",
+				"backend/open_webui/socket/main.py"
+			],
+			"groups": ["backend-api", "backend-runtime"],
+			"local_paths": [
+				"backend/open_webui/socket/main.py",
+				"backend/open_webui/main.py",
+				"backend/open_webui/routers/openai.py"
+			],
+			"merge": false,
+			"decision": "adapt",
+			"decisions": {
+				"backend-api": {
+					"id": 45,
+					"sha": "1e68fa8d181328b5d64b0acada74a8320878337d",
+					"decision": "adapt",
+					"reason": "混合提交：ollama 部分（已删功能）丢弃；openai 部分把 OPENAI_MODELS 改为 RedisDict 共享，避免多 worker 下删除连接后其他 worker 仍用旧 urlIdx。已移植。",
+					"paths": [
+						"backend/open_webui/socket/main.py",
+						"backend/open_webui/main.py",
+						"backend/open_webui/routers/openai.py"
+					],
+					"implementation_status": "applied"
+				},
+				"backend-runtime": {
+					"id": 45,
+					"sha": "1e68fa8d181328b5d64b0acada74a8320878337d",
+					"decision": "adapt",
+					"reason": "混合提交：ollama 部分（已删功能）丢弃；openai 部分把 OPENAI_MODELS 改为 RedisDict 共享，避免多 worker 下删除连接后其他 worker 仍用旧 urlIdx。已移植。",
+					"paths": [
+						"backend/open_webui/socket/main.py",
+						"backend/open_webui/main.py",
+						"backend/open_webui/routers/openai.py"
+					],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 46,
+			"sha": "4aaf19191fd865ec6a4b5e98877d040e09547146",
+			"parents": ["1e68fa8d181328b5d64b0acada74a8320878337d"],
+			"subject": "fix: slide preview shows the first slide when opened at a later one (#35107)",
+			"date": "2026-11-26T22:19:43+01:00",
+			"paths": ["src/lib/components/common/PDFViewer.svelte"],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 46,
+					"sha": "4aaf19191fd865ec6a4b5e98877d040e09547146",
+					"decision": "skip-removed",
+					"reason": "PDFViewer 幻灯片预览；Pure 无 PDF 阅读器。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 47,
+			"sha": "8103755d47e35bb1fd5c3cee85762b4eee85dace",
+			"parents": ["4aaf19191fd865ec6a4b5e98877d040e09547146"],
+			"subject": "refac",
+			"date": "2026-11-27T02:25:06+04:00",
+			"paths": ["src/lib/components/chat/MessageInput.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 47,
+					"sha": "8103755d47e35bb1fd5c3cee85762b4eee85dace",
+					"decision": "skip-removed",
+					"reason": "MessageInput 的 MachineMenu disabled→locked 只服务已删的 machines；Pure 无 MachineMenu.svelte。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 48,
+			"sha": "ee188b43167bf388a50090a8b73eb4c9b2ea9e34",
+			"parents": ["8103755d47e35bb1fd5c3cee85762b4eee85dace"],
+			"subject": "fix: use the Youtube Proxy URL for YouTube transcripts even when HTTPS_PROXY is set (#35124)",
+			"date": "2026-11-26T23:36:54+01:00",
+			"paths": ["backend/open_webui/retrieval/loaders/youtube.py"],
+			"groups": ["backend-api"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 48,
+					"sha": "ee188b43167bf388a50090a8b73eb4c9b2ea9e34",
+					"decision": "skip-removed",
+					"reason": "YouTube 转录加载器；Pure 已删 RAG。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 49,
+			"sha": "b6f0d483ed128d9623fbf57bd26deabcc7a3c6c5",
+			"parents": ["ee188b43167bf388a50090a8b73eb4c9b2ea9e34"],
+			"subject": "perf: removing files from a large knowledge base on pgvector gets slower the bigger it grows (#35123)",
+			"date": "2026-11-26T23:37:19+01:00",
+			"paths": ["backend/open_webui/retrieval/vector/dbs/pgvector.py"],
+			"groups": ["backend-api"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 49,
+					"sha": "b6f0d483ed128d9623fbf57bd26deabcc7a3c6c5",
+					"decision": "skip-removed",
+					"reason": "pgvector 知识库删除性能；Pure 已删 RAG/向量库。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 50,
+			"sha": "78bd95f21e26769d190fde8842c427e813241c93",
+			"parents": ["b6f0d483ed128d9623fbf57bd26deabcc7a3c6c5"],
+			"subject": "fix: native knowledge citations open PDFs at page 1 instead of the cited page (#35116)",
+			"date": "2026-11-26T23:37:45+01:00",
+			"paths": ["backend/open_webui/utils/middleware.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 50,
+					"sha": "78bd95f21e26769d190fde8842c427e813241c93",
+					"decision": "skip-removed",
+					"reason": "只给 get_citation_source_from_tool_result 加 page 字段；Pure 无该函数、无 citation_ids/RAG 设施，知识库引用已整体移除。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 51,
+			"sha": "25d880bd62ed5dedd3516b23485730ea4e5d5f17",
+			"parents": ["78bd95f21e26769d190fde8842c427e813241c93"],
+			"subject": "refac",
+			"date": "2026-11-27T02:42:47+04:00",
+			"paths": [
+				"src/lib/components/UserProfileModal.svelte",
+				"src/lib/components/admin/Settings/Connections/ManageOllamaModal.svelte",
+				"src/lib/components/admin/Settings/Events.svelte",
+				"src/lib/components/admin/Settings/ExternalKnowledge.svelte",
+				"src/lib/components/admin/Settings/Models/ManageModelsModal.svelte",
+				"src/lib/components/chat/MachineSessionsModal.svelte",
+				"src/lib/components/chat/Settings/Interface/ManageFloatingActionButtonsModal.svelte",
+				"src/lib/components/chat/Settings/Interface/ManageImageCompressionModal.svelte",
+				"src/lib/components/chat/Settings/SyncStatsModal.svelte",
+				"src/lib/components/chat/SettingsModal.svelte",
+				"src/lib/components/comments/Comments.svelte",
+				"src/lib/components/common/Modal.svelte",
+				"src/lib/components/workspace/Prompts.svelte",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json"
+			],
+			"groups": ["frontend-chat", "frontend-management", "frontend-ui", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"frontend-chat": {
+					"id": 51,
+					"sha": "25d880bd62ed5dedd3516b23485730ea4e5d5f17",
+					"decision": "skip-engineering",
+					"reason": "全站 modal 圆角 rounded-4xl→rounded-3xl 纯视觉统一（MachineSessionsModal 属已删 machines）；无行为修复，按视觉类先例跳过。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 51,
+					"sha": "25d880bd62ed5dedd3516b23485730ea4e5d5f17",
+					"decision": "skip-engineering",
+					"reason": "全站 modal 圆角 rounded-4xl→rounded-3xl 纯视觉统一（MachineSessionsModal 属已删 machines）；无行为修复，按视觉类先例跳过。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 51,
+					"sha": "25d880bd62ed5dedd3516b23485730ea4e5d5f17",
+					"decision": "skip-engineering",
+					"reason": "全站 modal 圆角 rounded-4xl→rounded-3xl 纯视觉统一（MachineSessionsModal 属已删 machines）；无行为修复，按视觉类先例跳过。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 51,
+					"sha": "25d880bd62ed5dedd3516b23485730ea4e5d5f17",
+					"decision": "skip-engineering",
+					"reason": "全站 modal 圆角 rounded-4xl→rounded-3xl 纯视觉统一（MachineSessionsModal 属已删 machines）；无行为修复，按视觉类先例跳过。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 52,
+			"sha": "60d9094f677d9e5d958cf321abeb22584d105eac",
+			"parents": ["25d880bd62ed5dedd3516b23485730ea4e5d5f17"],
+			"subject": "fix: asking about a file from a folder's Files tab never gets a reply (#35084)",
+			"date": "2026-11-26T23:44:13+01:00",
+			"paths": ["src/lib/components/chat/Chat.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 52,
+					"sha": "60d9094f677d9e5d958cf321abeb22584d105eac",
+					"decision": "skip-removed",
+					"reason": "只在 machines 的 filesystem 附件校验里放行 folderSessionId；Pure 无 machines/filesystem 附件，chatId.ts 无 folderSessionId。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 53,
+			"sha": "c63565927d52eb8fbb11f0af0598d3b30464ad53",
+			"parents": ["60d9094f677d9e5d958cf321abeb22584d105eac"],
+			"subject": "fix: keep the main chat's address while a chat tab beside it is in front (#35137)",
+			"date": "2026-11-26T18:09:43-05:00",
+			"paths": ["src/lib/components/chat/Tabs.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 53,
+					"sha": "c63565927d52eb8fbb11f0af0598d3b30464ad53",
+					"decision": "skip-removed",
+					"reason": "Tabs.svelte；Pure 无 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 54,
+			"sha": "aa8d32e9f330ff1cffdbeff0af04253a12b667ea",
+			"parents": ["c63565927d52eb8fbb11f0af0598d3b30464ad53"],
+			"subject": "refac",
+			"date": "2026-11-27T03:14:04+04:00",
+			"paths": [
+				"src/lib/components/calendar/Calendar.svelte",
+				"src/lib/components/calendar/CalendarEventChip.svelte",
+				"src/lib/components/calendar/CalendarView.svelte"
+			],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 54,
+					"sha": "aa8d32e9f330ff1cffdbeff0af04253a12b667ea",
+					"decision": "skip-removed",
+					"reason": "calendar 组件；Pure 已删日历。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 55,
+			"sha": "205761a76bfbb5688b12f6b267e473aafbf5e653",
+			"parents": ["aa8d32e9f330ff1cffdbeff0af04253a12b667ea"],
+			"subject": "refac",
+			"date": "2026-11-27T03:27:04+04:00",
+			"paths": ["src/lib/components/calendar/CalendarView.svelte"],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 55,
+					"sha": "205761a76bfbb5688b12f6b267e473aafbf5e653",
+					"decision": "skip-removed",
+					"reason": "calendar 组件；Pure 已删日历。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 56,
+			"sha": "723a1a577fbc7d23ada48e801f3d117bd3c6996f",
+			"parents": ["205761a76bfbb5688b12f6b267e473aafbf5e653"],
+			"subject": "refac",
+			"date": "2026-11-27T04:12:22+04:00",
+			"paths": [
+				"src/lib/components/calendar/CalendarSidebar.svelte",
+				"src/lib/components/calendar/CalendarView.svelte"
+			],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-ui": {
+					"id": 56,
+					"sha": "723a1a577fbc7d23ada48e801f3d117bd3c6996f",
+					"decision": "skip-removed",
+					"reason": "calendar 组件；Pure 已删日历。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 57,
+			"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+			"parents": ["723a1a577fbc7d23ada48e801f3d117bd3c6996f"],
+			"subject": "refac",
+			"date": "2026-11-27T04:26:53+04:00",
+			"paths": [
+				"backend/open_webui/migrations/versions/c4e1a7f9b2d3_add_memory_folder_id.py",
+				"backend/open_webui/models/memories.py",
+				"backend/open_webui/routers/folders.py",
+				"backend/open_webui/routers/memories.py",
+				"backend/open_webui/tools/builtin.py",
+				"backend/open_webui/utils/memory.py",
+				"backend/open_webui/utils/middleware.py",
+				"src/lib/apis/memories/index.ts",
+				"src/lib/components/chat/Settings/Personalization.svelte",
+				"src/lib/components/chat/Settings/Personalization/MemoryList.svelte",
+				"src/lib/components/chat/Settings/Personalization/MemoryModal.svelte",
+				"src/lib/components/layout/Sidebar/Folders/FolderMemories.svelte",
+				"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte"
+			],
+			"groups": [
+				"backend-api",
+				"backend-db",
+				"backend-runtime",
+				"frontend-chat",
+				"frontend-management",
+				"frontend-ui"
+			],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-api": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-db": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-runtime": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-chat": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-management": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 57,
+					"sha": "d36ab208f31716b15686641ff2f2dbe26f1263b5",
+					"decision": "skip-removed",
+					"reason": "整提交服务记忆功能（memories 模型/路由、utils/memory.py、Personalization 记忆列表、FolderMemories 与 FolderModal 的记忆面板），Pure 已整体移除记忆；此外其迁移 c4e1a7f9b2d3 也无法落地，Pure 迁移目录冻结在 d4c1a8e37b62。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 58,
+			"sha": "3f3cd7b971c865516a0007f0e30b682414fad29e",
+			"parents": ["d36ab208f31716b15686641ff2f2dbe26f1263b5"],
+			"subject": "refac",
+			"date": "2026-11-27T04:38:15+04:00",
+			"paths": [
+				"backend/open_webui/utils/memory.py",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json"
+			],
+			"groups": ["backend-runtime", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 58,
+					"sha": "3f3cd7b971c865516a0007f0e30b682414fad29e",
+					"decision": "skip-removed",
+					"reason": "只改 utils/memory.py（已删除的记忆功能）与翻译目录；Pure 无 memory.py，i18n 由 npm run i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 58,
+					"sha": "3f3cd7b971c865516a0007f0e30b682414fad29e",
+					"decision": "skip-removed",
+					"reason": "只改 utils/memory.py（已删除的记忆功能）与翻译目录；Pure 无 memory.py，i18n 由 npm run i18n:parse 生成。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 59,
+			"sha": "9a5ce52843b0741487254acc29e3d702eb76f3fa",
+			"parents": ["3f3cd7b971c865516a0007f0e30b682414fad29e"],
+			"subject": "i18n: fill missing translations in 48 languages and fix 14 existing ones (#35138)",
+			"date": "2026-11-27T06:06:05-05:00",
+			"paths": [
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 59,
+					"sha": "9a5ce52843b0741487254acc29e3d702eb76f3fa",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 60,
+			"sha": "91ef645d95542e495d7fbac20ad663fee29a4901",
+			"parents": ["9a5ce52843b0741487254acc29e3d702eb76f3fa"],
+			"subject": "refac",
+			"date": "2026-11-27T15:17:00+04:00",
+			"paths": [
+				"backend/open_webui/models/chats.py",
+				"backend/open_webui/tools/builtin.py",
+				"backend/open_webui/utils/memory.py"
+			],
+			"groups": ["backend-db", "backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-db": {
+					"id": 60,
+					"sha": "91ef645d95542e495d7fbac20ad663fee29a4901",
+					"decision": "skip-removed",
+					"reason": "get_chat_search_condition 属已删除的 memory 功能，where 仅供 tools 使用；且 Pure 的搜索返回 ChatModel 与上游不同。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-runtime": {
+					"id": 60,
+					"sha": "91ef645d95542e495d7fbac20ad663fee29a4901",
+					"decision": "skip-removed",
+					"reason": "get_chat_search_condition 属已删除的 memory 功能，where 仅供 tools 使用；且 Pure 的搜索返回 ChatModel 与上游不同。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 61,
+			"sha": "79d556efda5ec0b9822316216db7bcc30cb6e31d",
+			"parents": ["91ef645d95542e495d7fbac20ad663fee29a4901"],
+			"subject": "refac",
+			"date": "2026-11-27T15:18:31+04:00",
+			"paths": ["backend/open_webui/models/chats.py", "backend/open_webui/tools/builtin.py"],
+			"groups": ["backend-db", "backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-db": {
+					"id": 61,
+					"sha": "79d556efda5ec0b9822316216db7bcc30cb6e31d",
+					"decision": "skip-removed",
+					"reason": "新增的 where 参数唯一调用方是 tools/builtin.py 的 view_chat，条件来自已删除的 utils/memory.py。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"backend-runtime": {
+					"id": 61,
+					"sha": "79d556efda5ec0b9822316216db7bcc30cb6e31d",
+					"decision": "skip-removed",
+					"reason": "新增的 where 参数唯一调用方是 tools/builtin.py 的 view_chat，条件来自已删除的 utils/memory.py。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 62,
+			"sha": "e07a4b2bc6d818507e8aa49e13f47fe6f007a1ed",
+			"parents": ["79d556efda5ec0b9822316216db7bcc30cb6e31d"],
+			"subject": "refac",
+			"date": "2026-11-27T15:31:53+04:00",
+			"paths": [
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/Section.svelte",
+				"src/lib/stores/index.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 62,
+					"sha": "e07a4b2bc6d818507e8aa49e13f47fe6f007a1ed",
+					"decision": "skip-new-feature",
+					"reason": "侧栏分区拖拽排序新功能（sidebarSectionOrder + Sortable + data-section-handle），其余为纯缩进重排。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 62,
+					"sha": "e07a4b2bc6d818507e8aa49e13f47fe6f007a1ed",
+					"decision": "skip-new-feature",
+					"reason": "侧栏分区拖拽排序新功能（sidebarSectionOrder + Sortable + data-section-handle），其余为纯缩进重排。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 63,
+			"sha": "4dc058bbb7f7632739f2722628ecaf93eac57414",
+			"parents": ["e07a4b2bc6d818507e8aa49e13f47fe6f007a1ed"],
+			"subject": "i18n: fix 35 existing translations in 11 languages (#35155)",
+			"date": "2026-11-27T07:02:07-05:00",
+			"paths": [
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json"
+			],
+			"groups": ["infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-engineering",
+			"decisions": {
+				"infra-i18n": {
+					"id": 63,
+					"sha": "4dc058bbb7f7632739f2722628ecaf93eac57414",
+					"decision": "skip-engineering",
+					"reason": "上游翻译目录增量；Pure 的翻译目录由 npm run i18n:parse 生成且 CI 要求工作树干净，不手抄。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 64,
+			"sha": "0e5eb45c095f83d700050d84ffed85d4d4c6d0e2",
+			"parents": ["4dc058bbb7f7632739f2722628ecaf93eac57414"],
+			"subject": "fix: keep a reply's text when its model connection drops partway through (#35143)",
+			"date": "2026-11-27T08:23:50-05:00",
+			"paths": ["backend/open_webui/utils/middleware.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": ["backend/open_webui/utils/middleware.py"],
+			"merge": false,
+			"decision": "adopt",
+			"decisions": {
+				"backend-runtime": {
+					"id": 64,
+					"sha": "0e5eb45c095f83d700050d84ffed85d4d4c6d0e2",
+					"decision": "adopt",
+					"reason": "后端聊天路径缺陷修复：Pure 的流式处理器只捕获 CancelledError，异常断流时已流出的文本不会落库。已补 except 分支保存 incomplete 输出并清理流。",
+					"paths": ["backend/open_webui/utils/middleware.py"],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 65,
+			"sha": "7b30ad5bea402120dc46744ad8ef9424dfb8fdbe",
+			"parents": ["0e5eb45c095f83d700050d84ffed85d4d4c6d0e2"],
+			"subject": "refac",
+			"date": "2026-11-27T17:25:43+04:00",
+			"paths": ["src/lib/components/chat/Tabs.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 65,
+					"sha": "7b30ad5bea402120dc46744ad8ef9424dfb8fdbe",
+					"decision": "skip-removed",
+					"reason": "Tabs.svelte；Pure 无 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 66,
+			"sha": "ff70b357e0ce5d19b7d69b202940397d014d4217",
+			"parents": ["7b30ad5bea402120dc46744ad8ef9424dfb8fdbe"],
+			"subject": "fix: file reads by the model get blank lines that are not in the file (#35162)",
+			"date": "2026-11-27T14:26:12+01:00",
+			"paths": ["backend/open_webui/utils/middleware.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"backend-runtime": {
+					"id": 66,
+					"sha": "ff70b357e0ce5d19b7d69b202940397d014d4217",
+					"decision": "skip-removed",
+					"reason": "修复对象 mark_tool_result / mark_paragraphs_in_place 属已删除的内置文件工具与引用标记设施；Pure 无 tools/builtin.py 与 retrieval。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 67,
+			"sha": "278342b867bc5fb2d4287c11ee8d47a81666eff7",
+			"parents": ["ff70b357e0ce5d19b7d69b202940397d014d4217"],
+			"subject": "fix: system messages split into several text blocks lose every block after the first (#35153)",
+			"date": "2026-11-27T14:26:39+01:00",
+			"paths": ["backend/open_webui/utils/misc.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": ["backend/open_webui/utils/misc.py"],
+			"merge": false,
+			"decision": "adopt",
+			"decisions": {
+				"backend-runtime": {
+					"id": 67,
+					"sha": "278342b867bc5fb2d4287c11ee8d47a81666eff7",
+					"decision": "adopt",
+					"reason": "后端聊天路径缺陷修复：Pure 的 merge_system_messages 只取首个 text 块、update_message_content 会向每个块重复追加。已按上游形态移植并计入 applied。",
+					"paths": ["backend/open_webui/utils/misc.py"],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 68,
+			"sha": "f725d5c7591e315af51fc7464579967663a8a756",
+			"parents": ["278342b867bc5fb2d4287c11ee8d47a81666eff7"],
+			"subject": "chore: a reply cut off by a closed model connection says so in plain words (#35141)",
+			"date": "2026-11-27T08:26:56-05:00",
+			"paths": ["backend/open_webui/constants.py", "backend/open_webui/main.py"],
+			"groups": ["backend-runtime"],
+			"local_paths": ["backend/open_webui/constants.py", "backend/open_webui/main.py"],
+			"merge": false,
+			"decision": "adopt",
+			"decisions": {
+				"backend-runtime": {
+					"id": 68,
+					"sha": "f725d5c7591e315af51fc7464579967663a8a756",
+					"decision": "adopt",
+					"reason": "后端聊天错误路径：Pure 未把 aiohttp.ClientPayloadError 映射为可读文案。已新增 MODEL_CONNECTION_CLOSED 并在 main.py 的 except 中替换。",
+					"paths": ["backend/open_webui/constants.py", "backend/open_webui/main.py"],
+					"implementation_status": "applied"
+				}
+			}
+		},
+		{
+			"id": 69,
+			"sha": "606d33469a67dd15aedbd75441be871fb602f4b1",
+			"parents": ["f725d5c7591e315af51fc7464579967663a8a756"],
+			"subject": "refac",
+			"date": "2026-11-27T18:15:04+04:00",
+			"paths": [
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/Folders.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+				"src/lib/components/layout/Sidebar/icons/Shared.svelte",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json",
+				"src/lib/stores/index.ts",
+				"src/lib/utils/folders.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 69,
+					"sha": "606d33469a67dd15aedbd75441be871fb602f4b1",
+					"decision": "skip-new-feature",
+					"reason": "新增文件夹过滤/排序菜单（Owner/Machine/Sort by）与共享根目录拖拽，依赖 machines 与已被删的 Folders onReorder。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 69,
+					"sha": "606d33469a67dd15aedbd75441be871fb602f4b1",
+					"decision": "skip-new-feature",
+					"reason": "新增文件夹过滤/排序菜单（Owner/Machine/Sort by）与共享根目录拖拽，依赖 machines 与已被删的 Folders onReorder。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 69,
+					"sha": "606d33469a67dd15aedbd75441be871fb602f4b1",
+					"decision": "skip-new-feature",
+					"reason": "新增文件夹过滤/排序菜单（Owner/Machine/Sort by）与共享根目录拖拽，依赖 machines 与已被删的 Folders onReorder。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 70,
+			"sha": "b9b3957701125abad2385daf5b2ac1981c9d7ea8",
+			"parents": ["606d33469a67dd15aedbd75441be871fb602f4b1"],
+			"subject": "refac",
+			"date": "2026-11-27T18:18:46+04:00",
+			"paths": ["src/lib/components/chat/Tabs.svelte"],
+			"groups": ["frontend-chat"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-removed",
+			"decisions": {
+				"frontend-chat": {
+					"id": 70,
+					"sha": "b9b3957701125abad2385daf5b2ac1981c9d7ea8",
+					"decision": "skip-removed",
+					"reason": "Tabs.svelte；Pure 无 ChatTabs。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 71,
+			"sha": "23de0cebab3bdbe7c0b0d1d81a4ebb41926008e6",
+			"parents": ["b9b3957701125abad2385daf5b2ac1981c9d7ea8"],
+			"subject": "refac",
+			"date": "2026-11-27T19:49:59+04:00",
+			"paths": [
+				"src/lib/apis/folders/index.ts",
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/Folders.svelte",
+				"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+				"src/lib/components/layout/Sidebar/Section.svelte",
+				"src/lib/i18n/locales/ar-BH/translation.json",
+				"src/lib/i18n/locales/ar/translation.json",
+				"src/lib/i18n/locales/az-AZ/translation.json",
+				"src/lib/i18n/locales/bg-BG/translation.json",
+				"src/lib/i18n/locales/bn-BD/translation.json",
+				"src/lib/i18n/locales/bo-TB/translation.json",
+				"src/lib/i18n/locales/bs-BA/translation.json",
+				"src/lib/i18n/locales/ca-ES/translation.json",
+				"src/lib/i18n/locales/ceb-PH/translation.json",
+				"src/lib/i18n/locales/cs-CZ/translation.json",
+				"src/lib/i18n/locales/da-DK/translation.json",
+				"src/lib/i18n/locales/de-DE/translation.json",
+				"src/lib/i18n/locales/dg-DG/translation.json",
+				"src/lib/i18n/locales/el-GR/translation.json",
+				"src/lib/i18n/locales/en-GB/translation.json",
+				"src/lib/i18n/locales/en-US/translation.json",
+				"src/lib/i18n/locales/es-ES/translation.json",
+				"src/lib/i18n/locales/et-EE/translation.json",
+				"src/lib/i18n/locales/eu-ES/translation.json",
+				"src/lib/i18n/locales/fa-IR/translation.json",
+				"src/lib/i18n/locales/fi-FI/translation.json",
+				"src/lib/i18n/locales/fil-PH/translation.json",
+				"src/lib/i18n/locales/fo-FO/translation.json",
+				"src/lib/i18n/locales/fr-CA/translation.json",
+				"src/lib/i18n/locales/fr-FR/translation.json",
+				"src/lib/i18n/locales/gl-ES/translation.json",
+				"src/lib/i18n/locales/he-IL/translation.json",
+				"src/lib/i18n/locales/hi-IN/translation.json",
+				"src/lib/i18n/locales/hr-HR/translation.json",
+				"src/lib/i18n/locales/hu-HU/translation.json",
+				"src/lib/i18n/locales/id-ID/translation.json",
+				"src/lib/i18n/locales/ie-GA/translation.json",
+				"src/lib/i18n/locales/it-IT/translation.json",
+				"src/lib/i18n/locales/ja-JP/translation.json",
+				"src/lib/i18n/locales/ka-GE/translation.json",
+				"src/lib/i18n/locales/kab-DZ/translation.json",
+				"src/lib/i18n/locales/ko-KR/translation.json",
+				"src/lib/i18n/locales/lt-LT/translation.json",
+				"src/lib/i18n/locales/lv-LV/translation.json",
+				"src/lib/i18n/locales/ms-MY/translation.json",
+				"src/lib/i18n/locales/nb-NO/translation.json",
+				"src/lib/i18n/locales/nl-NL/translation.json",
+				"src/lib/i18n/locales/pa-IN/translation.json",
+				"src/lib/i18n/locales/pl-PL/translation.json",
+				"src/lib/i18n/locales/pt-BR/translation.json",
+				"src/lib/i18n/locales/pt-PT/translation.json",
+				"src/lib/i18n/locales/ro-RO/translation.json",
+				"src/lib/i18n/locales/ru-RU/translation.json",
+				"src/lib/i18n/locales/sk-SK/translation.json",
+				"src/lib/i18n/locales/sl-SI/translation.json",
+				"src/lib/i18n/locales/sr-RS/translation.json",
+				"src/lib/i18n/locales/sv-SE/translation.json",
+				"src/lib/i18n/locales/ta-IN/translation.json",
+				"src/lib/i18n/locales/th-TH/translation.json",
+				"src/lib/i18n/locales/tk-TM/translation.json",
+				"src/lib/i18n/locales/tr-TR/translation.json",
+				"src/lib/i18n/locales/ug-CN/translation.json",
+				"src/lib/i18n/locales/uk-UA/translation.json",
+				"src/lib/i18n/locales/ur-PK/translation.json",
+				"src/lib/i18n/locales/uz-Cyrl-UZ/translation.json",
+				"src/lib/i18n/locales/uz-Latn-UZ/translation.json",
+				"src/lib/i18n/locales/vi-VN/translation.json",
+				"src/lib/i18n/locales/zh-CN/translation.json",
+				"src/lib/i18n/locales/zh-TW/translation.json",
+				"src/lib/stores/index.ts",
+				"src/lib/utils/folderSections.ts"
+			],
+			"groups": ["frontend-chat", "frontend-ui", "infra-i18n"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-chat": {
+					"id": 71,
+					"sha": "23de0cebab3bdbe7c0b0d1d81a4ebb41926008e6",
+					"decision": "skip-new-feature",
+					"reason": "新增「Group by」分组与用户分区：新设置字段、utils/folderSections.ts、侧栏大改；Pure 已删 folderOrder/folderSort 基础设施。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"frontend-ui": {
+					"id": 71,
+					"sha": "23de0cebab3bdbe7c0b0d1d81a4ebb41926008e6",
+					"decision": "skip-new-feature",
+					"reason": "新增「Group by」分组与用户分区：新设置字段、utils/folderSections.ts、侧栏大改；Pure 已删 folderOrder/folderSort 基础设施。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				},
+				"infra-i18n": {
+					"id": 71,
+					"sha": "23de0cebab3bdbe7c0b0d1d81a4ebb41926008e6",
+					"decision": "skip-new-feature",
+					"reason": "新增「Group by」分组与用户分区：新设置字段、utils/folderSections.ts、侧栏大改；Pure 已删 folderOrder/folderSort 基础设施。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		},
+		{
+			"id": 72,
+			"sha": "ddbae767069165438c06761f9d0091355c84e23e",
+			"parents": ["23de0cebab3bdbe7c0b0d1d81a4ebb41926008e6"],
+			"subject": "refac",
+			"date": "2026-11-27T19:59:58+04:00",
+			"paths": [
+				"src/lib/components/layout/Sidebar.svelte",
+				"src/lib/components/layout/Sidebar/Folders.svelte",
+				"src/lib/components/layout/Sidebar/Section.svelte"
+			],
+			"groups": ["frontend-ui"],
+			"local_paths": [],
+			"merge": false,
+			"decision": "skip-new-feature",
+			"decisions": {
+				"frontend-ui": {
+					"id": 72,
+					"sha": "ddbae767069165438c06761f9d0091355c84e23e",
+					"decision": "skip-new-feature",
+					"reason": "细化分组/分区新功能（Default 文案、分组时隐藏分区、新增 sortHandle）；Pure 无 folderGroup/folderSections 设置。",
+					"paths": [],
+					"implementation_status": "not-needed"
+				}
+			}
+		}
+	],
+	"applied": [
+		{
+			"scope": "frontend-chat",
+			"item": {
+				"id": 10,
+				"sha": "301ae2cf7deeee7c181132c815fa1d9106915386",
+				"paths": [
+					"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+					"src/lib/components/layout/Sidebar.svelte",
+					"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+					"src/lib/components/chat/Placeholder/FolderTitle.svelte"
+				]
+			}
+		},
+		{
+			"scope": "frontend-ui",
+			"item": {
+				"id": 10,
+				"sha": "301ae2cf7deeee7c181132c815fa1d9106915386",
+				"paths": [
+					"src/lib/components/layout/Sidebar/Folders/FolderModal.svelte",
+					"src/lib/components/layout/Sidebar.svelte",
+					"src/lib/components/layout/Sidebar/RecursiveFolder.svelte",
+					"src/lib/components/chat/Placeholder/FolderTitle.svelte"
+				]
+			}
+		},
+		{
+			"scope": "frontend-chat",
+			"item": {
+				"id": 41,
+				"sha": "a8399f68fbcac35c724fdbb66813a543e3bc6aca",
+				"paths": ["src/lib/components/chat/Messages/structuredOutput.ts"]
+			}
+		},
+		{
+			"scope": "backend-api",
+			"item": {
+				"id": 45,
+				"sha": "1e68fa8d181328b5d64b0acada74a8320878337d",
+				"paths": [
+					"backend/open_webui/socket/main.py",
+					"backend/open_webui/main.py",
+					"backend/open_webui/routers/openai.py"
+				]
+			}
+		},
+		{
+			"scope": "backend-runtime",
+			"item": {
+				"id": 45,
+				"sha": "1e68fa8d181328b5d64b0acada74a8320878337d",
+				"paths": [
+					"backend/open_webui/socket/main.py",
+					"backend/open_webui/main.py",
+					"backend/open_webui/routers/openai.py"
+				]
+			}
+		},
+		{
+			"scope": "backend-runtime",
+			"item": {
+				"id": 64,
+				"sha": "0e5eb45c095f83d700050d84ffed85d4d4c6d0e2",
+				"paths": ["backend/open_webui/utils/middleware.py"]
+			}
+		},
+		{
+			"scope": "backend-runtime",
+			"item": {
+				"id": 67,
+				"sha": "278342b867bc5fb2d4287c11ee8d47a81666eff7",
+				"paths": ["backend/open_webui/utils/misc.py"]
+			}
+		},
+		{
+			"scope": "backend-runtime",
+			"item": {
+				"id": 68,
+				"sha": "f725d5c7591e315af51fc7464579967663a8a756",
+				"paths": ["backend/open_webui/constants.py", "backend/open_webui/main.py"]
+			}
+		}
+	],
+	"backlog": []
+}

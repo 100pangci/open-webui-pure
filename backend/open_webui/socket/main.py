@@ -130,6 +130,16 @@ if WEBSOCKET_MANAGER == 'redis':
         cache_set_signature=True,
     )
 
+    # Model cache is shared so a worker that clears it on a connection change is
+    # seen by every other worker; a per-process dict would keep a stale urlIdx.
+    OPENAI_MODELS = RedisDict(
+        f'{REDIS_KEY_PREFIX}:openai_models',
+        redis_url=WEBSOCKET_REDIS_URL,
+        redis_sentinels=ws_sentinels,
+        redis_cluster=WEBSOCKET_REDIS_CLUSTER,
+        cache_set_signature=True,
+    )
+
     SESSION_POOL = RedisDict(
         f'{REDIS_KEY_PREFIX}:session_pool',
         redis_url=WEBSOCKET_REDIS_URL,
@@ -166,6 +176,7 @@ if WEBSOCKET_MANAGER == 'redis':
     session_release_func = session_cleanup_lock.release_lock
 else:
     MODELS = {}
+    OPENAI_MODELS = {}
 
     SESSION_POOL = {}
     USAGE_POOL = {}

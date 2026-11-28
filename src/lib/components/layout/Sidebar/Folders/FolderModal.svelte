@@ -15,6 +15,7 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
+	/** Returns true once saved; otherwise the form stays open. */
 	export let onSubmit: Function = (e) => {};
 
 	export let folderId = null;
@@ -52,13 +53,13 @@
 			return;
 		}
 
-		await onSubmit({
+		const saved = await onSubmit({
 			name,
 			meta,
 			data,
 			parent_id: edit ? undefined : parentId
 		});
-		show = false;
+		if (saved) show = false;
 		loading = false;
 	};
 

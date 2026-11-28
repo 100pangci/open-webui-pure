@@ -515,6 +515,7 @@
 				}
 			}
 			dispatch('update');
+			return true;
 		}
 	};
 
@@ -724,6 +725,7 @@
 		if (res) {
 			toast.success($i18n.t('Folder created successfully'));
 			dispatch('update');
+			return true;
 		}
 	};
 </script>
