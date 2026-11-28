@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.7] - 2026-11-28
+
+### Changed
+
+- Sync retained fixes from the upstream `dev` branch up to `ddbae7670`. This is the backlog upstream has not released yet; per-commit decisions and validation are recorded in [`docs/upstream-audit/2026-11-28-summary.md`](./docs/upstream-audit/2026-11-28-summary.md).
+
+### Fixed
+
+- Keep every text block of a system message: a system message split into several content blocks used to lose all but the first, and the update helper wrote the new content into every block instead of one.
+- Keep the text already streamed when a model connection drops partway through a reply, saving it as an incomplete output instead of leaving the reply empty.
+- Say that the connection to the model closed before the reply finished, instead of surfacing the raw payload error.
+- Stop a stale OpenAI connection cache in one worker from sending chats to the wrong connection after the connection is deleted: the model cache is now shared across workers, so clearing it is visible everywhere.
+- Close a folder form only when the save succeeds, so a failed create or rename keeps the dialog open and no placeholder folder is left behind.
+- Hide a finished reasoning block that has no text instead of rendering an empty "Thought for N seconds" marker.
+
 ## [0.13.6] - 2026-11-28
 
 ### Fixed

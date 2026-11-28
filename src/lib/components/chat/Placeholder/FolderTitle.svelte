@@ -82,6 +82,7 @@
 			const updatedFolder = { ...folder, ..._folder };
 			await selectedFolder.set(updatedFolder);
 			onUpdate(updatedFolder);
+			return true;
 		}
 	};
 
@@ -175,6 +176,7 @@
 		if (res) {
 			toast.success($i18n.t('Folder created successfully'));
 			onUpdate();
+			return true;
 		}
 	};
 </script>

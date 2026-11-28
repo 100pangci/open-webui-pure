@@ -33,6 +33,7 @@ from open_webui.models.config import Config
 from open_webui.models.groups import Groups
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel
+from open_webui.socket.utils import RedisDict
 from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.headers import get_custom_headers, include_user_info_headers
@@ -344,7 +345,7 @@ async def clear_openai_model_cache(request: Request):
     if redis is not None:
         await redis.delete(BASE_MODELS_CACHE_KEY)
     request.app.state.BASE_MODELS = []
-    request.app.state.OPENAI_MODELS = {}
+    request.app.state.OPENAI_MODELS.clear()
     models = getattr(request.app.state, 'MODELS', None)
     if hasattr(models, 'clear'):
         models.clear()
@@ -627,7 +628,7 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]:
 
     enable_openai_api, api_base_urls, _, api_configs = await get_openai_runtime_config()
     if not enable_openai_api:
-        request.app.state.OPENAI_MODELS = {}
+        request.app.state.OPENAI_MODELS.clear()
         return {'data': []}
 
     responses = await get_all_models_responses(request, user=user)
@@ -686,7 +687,10 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]:
     models = get_merged_models(map(extract_data, responses))
     log.debug('models: %s', models)
 
-    request.app.state.OPENAI_MODELS = models
+    if isinstance(request.app.state.OPENAI_MODELS, RedisDict):
+        request.app.state.OPENAI_MODELS.set(models)
+    else:
+        request.app.state.OPENAI_MODELS = models
     return {'data': list(models.values())}
 
 

@@ -77,10 +77,15 @@ function getReasoningText(item: OutputItem): string {
 	return getTextFromParts(summary ?? item.content ?? []);
 }
 
-function buildReasoningToken(item: OutputItem, isLastItem: boolean): OutputDetailToken {
+function buildReasoningToken(item: OutputItem, isLastItem: boolean): OutputDetailToken | null {
 	const duration = item.duration ?? '';
 	const isDone = isDoneStatus(item.status) || item.duration !== undefined || !isLastItem;
-	const text = getReasoningText(item)
+	const reasoningText = getReasoningText(item);
+	// A finished reasoning block with no text is not worth showing at all.
+	if (isDone && !reasoningText.trim()) {
+		return null;
+	}
+	const text = reasoningText
 		.split('\n')
 		.map((line) => (line.startsWith('>') ? line : `> ${line}`))
 		.join('\n');

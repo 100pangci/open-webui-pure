@@ -133,6 +133,7 @@ from open_webui.routers import (
 )
 from open_webui.socket.main import (
     MODELS,
+    OPENAI_MODELS,
     get_event_emitter,
     get_models_in_use,
     get_user_id_from_session_pool,
@@ -421,7 +422,7 @@ app.state.EXTERNAL_PWA_MANIFEST_URL = EXTERNAL_PWA_MANIFEST_URL
 ########################################
 
 
-app.state.OPENAI_MODELS = {}
+app.state.OPENAI_MODELS = OPENAI_MODELS
 
 ########################################
 #
@@ -1145,6 +1146,9 @@ async def chat_completion(
             raise  # re-raise to ensure proper task cancellation handling
         except Exception as e:
             error_detail = e.detail if isinstance(e, HTTPException) else str(e)
+            if isinstance(e, aiohttp.ClientPayloadError):
+                log.error('Model connection closed partway through the reply: %s', error_detail)
+                error_detail = ERROR_MESSAGES.MODEL_CONNECTION_CLOSED
             log.error('Error processing chat payload: %s', error_detail)
             if metadata.get('chat_id') and metadata.get('message_id'):
                 # Update the chat message with the error

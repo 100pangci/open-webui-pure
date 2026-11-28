@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { v4 as uuidv4 } from 'uuid';
 	import Sortable from 'sortablejs';
 
 	import { goto } from '$app/navigation';
@@ -323,19 +322,6 @@
 			name = `${name} ${i}`;
 		}
 
-		// Add a dummy folder to the list to show the user that the folder is being created
-		const tempId = uuidv4();
-		folders = {
-			...folders,
-			[tempId]: {
-				id: tempId,
-				name: name,
-				parent_id: parent_id,
-				created_at: Date.now(),
-				updated_at: Date.now()
-			}
-		};
-
 		const res = await createNewFolder(localStorage.token, {
 			name,
 			data,
@@ -351,6 +337,7 @@
 			await initFolders();
 			showFolders = true;
 		}
+		return res;
 	};
 
 	const initChatList = async () => {
@@ -920,13 +907,7 @@
 	const isWindows = /Windows/i.test(navigator.userAgent);
 </script>
 
-<FolderModal
-	bind:show={showCreateFolderModal}
-	onSubmit={async (folder) => {
-		await createFolder(folder);
-		showCreateFolderModal = false;
-	}}
-/>
+<FolderModal bind:show={showCreateFolderModal} onSubmit={createFolder} />
 
 <svelte:window
 	on:pointermove={(e) => {
